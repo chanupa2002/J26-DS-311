@@ -1,8 +1,8 @@
 """Lazy model loading: the model is loaded on first use, not when the server starts.
 
 Put exported model files (from Google Colab) in this ml/ folder.
-Small models may be committed. Large files must NOT be committed (see .gitignore and
-docs/REQUIREMENTS_RULES.md); store them in Supabase Storage or a shared drive instead.
+Small classical models may be committed. Large files must NOT be committed;
+see docs/DATA_AND_MODELS_RULES.md. Keep ml/model_info.json up to date.
 """
 from functools import lru_cache
 from pathlib import Path

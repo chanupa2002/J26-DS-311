@@ -51,4 +51,5 @@ JSON may be placed in a component's sample_data/ folder.
 ## Shared project rules
 
 - [Rules for backend dependencies](docs/REQUIREMENTS_RULES.md)
+- [Rules for data, notebooks, and model files](docs/DATA_AND_MODELS_RULES.md)
 - [API, service, and database contracts](docs/CONTRACTS.md)
