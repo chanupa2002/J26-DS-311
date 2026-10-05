@@ -4,5 +4,6 @@
   "trained_on": null,
   "trained_in": "Google Colab",
   "metrics": {},
-  "library_versions": {}
+  "library_versions": {},
+  "download_location": null
 }

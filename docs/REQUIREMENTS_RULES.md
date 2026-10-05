@@ -22,11 +22,5 @@
 
 ## Model files
 
-Small models may be committed. Large files, including LoRA adapters and LLM
-weights, must not be committed; store them in Supabase Storage or a shared drive
-instead.
-
-Use native formats such as LightGBM .txt, CatBoost .cbm, and joblib. Never load
-pickle files received from other people. Keep each ml/model_info.json current
-with the training date, metrics, and library versions. Train in Google Colab
-with the same library versions pinned in backend/requirements.txt.
+Rules for model files, notebooks and datasets are in docs/DATA_AND_MODELS_RULES.md.
+Train in Colab with the same library versions pinned in this requirements file.

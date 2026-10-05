@@ -24,10 +24,7 @@ Thumbs.db
 # Notebooks
 .ipynb_checkpoints/
 
-# Large model files
-backend/app/components/*/ml/*.pkl
-backend/app/components/*/ml/*.joblib
-backend/app/components/*/ml/*.cbm
+# Small classical models (.pkl/.joblib/.cbm) may be committed; large formats below must not be.
 backend/app/components/*/ml/*.pt
 backend/app/components/*/ml/*.pth
 backend/app/components/*/ml/*.onnx
@@ -44,3 +41,9 @@ private_data/
 **/private_data/
 *.xlsx
 *.xls
+
+# Datasets are under an NDA: never commit them
+*.csv
+*.tsv
+*.parquet
+*.feather
