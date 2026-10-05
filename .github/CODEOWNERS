@@ -1,0 +1,15 @@
+# Last matching rule wins, so the catch-all is first.
+# NOTE: GitHub only enforces CODEOWNERS on a private repo with GitHub Pro (or higher).
+*                                                    @chanupa2002
+
+/backend/app/components/beneficiary_selection/       @wichitawolf
+/backend/app/components/livelihood_planning/         @chanupa2002
+/backend/app/components/evidence_trust/              @Punsandali
+/backend/app/components/market_risk/                 @Chamosithmini
+
+# Shared files: leader reviews
+/backend/app/main.py                                 @chanupa2002
+/backend/app/core/                                   @chanupa2002
+/backend/requirements.txt                            @chanupa2002
+/docs/                                               @chanupa2002
+/.github/                                            @chanupa2002

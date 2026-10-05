@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+*.egg-info/
+
+# Secrets
+.env
+*.env.local
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Large model files
+backend/app/components/*/ml/*.pkl
+backend/app/components/*/ml/*.joblib
+backend/app/components/*/ml/*.cbm
+backend/app/components/*/ml/*.pt
+backend/app/components/*/ml/*.pth
+backend/app/components/*/ml/*.onnx
+backend/app/components/*/ml/*.safetensors
+backend/app/components/*/ml/*.bin
+backend/app/components/*/ml/*.gguf
+backend/app/components/*/ml/*.h5
+backend/app/components/*/ml/*.ckpt
+
+# Confidential data
+raw_data/
+private_data/
+**/raw_data/
+**/private_data/
+*.xlsx
+*.xls
