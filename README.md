@@ -33,14 +33,18 @@ to the relevant backend component.
 See [backend/README.md](backend/README.md) for setup, local development, and test
 commands.
 
-## Git workflow
+## Git Workflow
 
-- Never push directly to main.
-- Create a branch such as feature/<name>-<what>.
-- Open a pull request when the change is ready.
-- The leader reviews every pull request.
-- Work only inside your own component folder unless a shared change has been
-  agreed by the group.
+1. Work on your personal branch: chanupa, ishini, chamoda, or punsandali. Edit
+   only files inside your own component folder; you may read and use everything
+   else.
+2. Never push directly to main or dev.
+3. While on your personal branch, regularly run `git pull origin dev` to stay up
+   to date.
+4. Open Pull Requests from your personal branch into `dev`, never into `main`.
+5. Only the project leader (@chanupa2002) merges Pull Requests into `dev`.
+6. At milestones, such as progress presentations, the leader merges `dev` into
+   `main` using **Create a merge commit**, not squash.
 
 ## Confidentiality
 
