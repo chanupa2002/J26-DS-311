@@ -1,8 +1,8 @@
 """Lazy model loading: the model is loaded on first use, not when the server starts.
 
-Put exported model files (from Google Colab) in this ml/ folder.
+Put exported model files (from Google Colab) in this model_1_recommend/ folder.
 Small classical models may be committed. Large files must NOT be committed;
-see docs/DATA_AND_MODELS_RULES.md. Keep ml/model_info.json up to date.
+see docs/DATA_AND_MODELS_RULES.md. Keep model_1_recommend/model_info.json up to date.
 """
 from functools import lru_cache
 from pathlib import Path
