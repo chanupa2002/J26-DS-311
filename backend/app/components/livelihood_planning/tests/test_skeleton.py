@@ -1,4 +1,4 @@
-"""Tests for the livelihood-planning placeholder modules."""
+"""Tests for the livelihood-planning modules."""
 
 import importlib
 
@@ -62,8 +62,14 @@ def test_model_recommendations_have_the_expected_shape():
 
     assert len(OFFICIAL_LIVELIHOOD_CATEGORIES) == 9
     assert len(recommendations) == 3
-    assert all(set(item) == {"livelihood", "score"} for item in recommendations)
+    assert all(
+        {"livelihood", "score"}.issubset(item) for item in recommendations
+    )
     assert all(isinstance(item["score"], float) for item in recommendations)
+    assert all(0.0 <= item["score"] <= 1.0 for item in recommendations)
+    assert [item["score"] for item in recommendations] == sorted(
+        (item["score"] for item in recommendations), reverse=True
+    )
 
 
 def test_swot_placeholders_have_the_expected_shape():
@@ -102,7 +108,14 @@ def test_plan_placeholders_have_the_expected_shape():
 def test_public_service_returns_the_full_placeholder_chain():
     result = services.recommend_livelihood({})
 
-    assert set(result) == {"recommendations", "swot", "plan", "placeholder"}
+    assert {
+        "recommendations",
+        "swot",
+        "plan",
+        "placeholder",
+        "confidence",
+        "notes",
+    }.issubset(result)
     assert result["recommendations"]
     assert result["plan"]["validation"] == {"ok": True, "issues": []}
     assert result["placeholder"] is True

@@ -47,3 +47,6 @@ private_data/
 *.tsv
 *.parquet
 *.feather
+
+!backend/app/components/livelihood_planning/model_1_recommend/artifacts/area_index.csv
+!backend/app/components/livelihood_planning/model_1_recommend/artifacts/district_livelihood_shares.csv
