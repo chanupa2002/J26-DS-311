@@ -6,7 +6,7 @@ To use Model 1:       from app.components.livelihood_planning.model_1_recommend.
 """
 
 from app.components.livelihood_planning.model_1_recommend.predict import (
-    recommend_top_k,
+    recommend_with_context,
 )
 from app.components.livelihood_planning.model_2_swot.swot import build_swot
 from app.components.livelihood_planning.model_3_plan.checker import check_plan
@@ -25,8 +25,9 @@ def get_status() -> dict:
 
 
 def recommend_livelihood(features: dict) -> dict:
-    """Build a placeholder recommendation, SWOT analysis, and business plan."""
-    recommendations = recommend_top_k(features)
+    """Build real recommendations with placeholder SWOT and plan content."""
+    recommendation_result = recommend_with_context(features)
+    recommendations = recommendation_result["recommendations"]
     livelihood = (
         recommendations[0]["livelihood"]
         if recommendations
@@ -44,4 +45,6 @@ def recommend_livelihood(features: dict) -> dict:
         "swot": swot,
         "plan": plan,
         "placeholder": True,
+        "confidence": recommendation_result["confidence"],
+        "notes": recommendation_result["notes"],
     }

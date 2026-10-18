@@ -1,5 +1,7 @@
 """Request and response data shapes for Livelihood Recommendation and Family Development Planning."""
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 OFFICIAL_LIVELIHOOD_CATEGORIES = (
     "AGRICULTURE & PLANTATION CROPS",
@@ -34,6 +36,7 @@ class LivelihoodRequest(BaseModel):
 class RecommendationItem(BaseModel):
     livelihood: str
     score: float
+    reasons: list[str] = Field(default_factory=list)
 
 
 class SwotItem(BaseModel):
@@ -51,6 +54,8 @@ class SwotResult(BaseModel):
 class RecommendResponse(BaseModel):
     recommendations: list[RecommendationItem]
     placeholder: bool
+    confidence: Literal["low", "normal"] = "normal"
+    notes: list[str] = Field(default_factory=list)
 
 
 class SwotResponse(RecommendResponse):
