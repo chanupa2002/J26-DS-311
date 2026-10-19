@@ -22,15 +22,23 @@ class Stage3DerivationTests(unittest.TestCase):
     def test_housing_999_classes_and_missing(self):
         self.assertEqual(s.toilet_type(999), "unknown")
         self.assertEqual(s.toilet_type(None), "unknown")
-        self.assertEqual(s.toilet_service(1, 1), "basic")
-        self.assertEqual(s.toilet_service(1, 2), "limited")
-        self.assertEqual(s.toilet_service(4, 2), "unimproved")
-        self.assertEqual(s.toilet_service(14, 1), "open_defecation")
+        self.assertEqual(s.toilet_service(1, 0), "basic")
+        self.assertEqual(s.toilet_service(1, 1), "limited")
+        self.assertEqual(s.toilet_service(4, 0), "unimproved")
+        self.assertEqual(s.toilet_service(14, 0), "open_defecation")
+        self.assertEqual(s.toilet_service(1, 2), "unknown")
+        self.assertEqual(s.toilet_service(4, 2), "unknown")
         self.assertEqual(s.tenure_class(999), "unknown")
         self.assertEqual(s.tenure_class(2), "secure")
         self.assertEqual(s.tenure_class(5), "intermediate")
         self.assertEqual(s.tenure_class(8), "insecure")
         self.assertEqual(s.material_class(1, {}), "unknown")
+
+    def test_d04b_c1_10_codebook_mapping(self):
+        self.assertEqual(s.toilet_sharing_class(0), "not shared")
+        self.assertEqual(s.toilet_sharing_class(1), "shared")
+        self.assertEqual(s.toilet_sharing_class(2), "unknown")
+        self.assertEqual(s.toilet_sharing_class(None), "unknown")
 
     def test_crowding_zero_missing_and_positive(self):
         bedrooms = pd.Series([0, None, 2])
@@ -59,13 +67,13 @@ class Stage3DerivationTests(unittest.TestCase):
         mapped = statuses.map(lambda v: "consistent" if v == "consistent_repeated_value" else "unknown")
         self.assertEqual(mapped.tolist(), ["consistent", "unknown", "unknown"])
 
-    def test_asset_counts_binary_mismatch_and_missing(self):
+    def test_asset_counts_and_codebook_binary_assets(self):
         self.assertEqual(s.asset_owned(0, "d_01", True), 0)
         self.assertEqual(s.asset_owned(3, "d_01", True), 1)
         self.assertTrue(pd.isna(s.asset_owned(None, "d_01", True)))
-        self.assertEqual(s.asset_owned(1, "d_12", False), 0)
-        self.assertEqual(s.asset_owned(2, "d_12", False), 1)
-        self.assertTrue(pd.isna(s.asset_owned(0, "d_12", False)))
+        self.assertEqual(s.asset_owned(0, "d_12", False), 0)
+        self.assertEqual(s.asset_owned(1, "d_12", False), 1)
+        self.assertTrue(pd.isna(s.asset_owned(2, "d_12", False)))
         self.assertTrue(pd.isna(s.asset_owned(None, "d_12", False)))
 
 

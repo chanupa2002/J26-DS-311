@@ -66,7 +66,7 @@
   },
   "outputs": {
     "column_dictionary.csv": {
-      "sha256": "564e9133e7d285b09e1c91d81dff83894968cd16367e6f1ad5a842c3d215fc07",
+      "sha256": "975d3365d627339e59670aefd13faad094c9d99356acba8dc588342af9bad2aa",
       "rows": 75
     },
     "fies_item_responses_pending.csv": {
@@ -74,24 +74,27 @@
       "rows": 6847
     },
     "missingness_report.csv": {
-      "sha256": "197b19e8f1c5e2fee95d2cbeb13d83719b72d7486a04094afddc6310bfb862a6",
+      "sha256": "941f66bdb911b7f851747e260eda2bc99d28f59d558a8c821ecc27f2c4b6fd96",
       "rows": 75
     },
     "modelling_inputs_v0_1.csv": {
-      "sha256": "a17669afbac9112ea2679ab3bf5685635bfc2abef426f945487d072f27ebd8b1",
+      "sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47",
       "rows": 6847
     },
     "open_questions.md": {
-      "sha256": "397e7f8ce6d42ca16ca3e228a9479638122df3eb777b2d2fafe68a5b59283256"
+      "sha256": "1bd1a3e0b5da8243de4a54ae380681abbe816d7990d39803300757ad1a60b288"
     },
     "prepare_stage3.py": {
-      "sha256": "abf5d04b519e9168233274eeb1b14fca180033d92be9d565aea663ad76bd3319"
+      "sha256": "080b8d978d9465a40cd41691852315c5d5b3a884548bc470147d5c262e425d48"
     },
     "stage3_summary.md": {
-      "sha256": "8b6b617707893ffc57fe94e243dfb292f6b71534450dfcd123e5512a6affe28b"
+      "sha256": "8156f82fc46489d2b74f6d64f1bba371286c43e97769b02d12b6003cc474af43"
     },
-    "checks\\A1_fies_form_by_hhtype.csv": {
-      "sha256": "ecb01a66028655c105ee90d469a5a98c80774817ad311e167fed0659dfdf85c3",
+    "test_prepare_stage3.py": {
+      "sha256": "c410d3efc3a89102a1ae4f90946f3471318ca3bb968407383075b5f88d8536a3"
+    },
+    "checks\\A1_fies_form_by_hh_type.csv": {
+      "sha256": "38bd5167ad4cc3251a6ee17c6a1ea9923e67e06ab0ad424c70968c467e2abf2f",
       "rows": 9
     },
     "checks\\A1_fies_form_totals.csv": {
@@ -143,12 +146,31 @@
       "rows": 51
     },
     "checks\\A7_asset_value_sets_and_code_checks.csv": {
-      "sha256": "aa9ba345f7d8c834591660d39e0ea42e069f5703803a37ec6c46b36b8172a4c5",
+      "sha256": "3d0efc4e660753d541752659523fa585cd172205ff464058b06db4bfb699af70",
       "rows": 18
     },
+    "checks\\A8_b0_01a_code_counts.csv": {
+      "sha256": "eedc8556acd5dd061053e254e3665652ec52364498be445e4ccbca0581240d0b",
+      "rows": 2
+    },
+    "checks\\A8_b0_01b_code_counts.csv": {
+      "sha256": "1f9b911f8471db589d518d45250a1bfa6961eb1dc77b72fc1ac098cfc56f7eaa",
+      "rows": 3
+    },
+    "checks\\A8_roster_flag_counterfactuals.csv": {
+      "sha256": "8f9067c8777815ecd190db3e9c2bbb8c6537db9d22c385430365bd8ba1956d19",
+      "rows": 2
+    },
     "checks\\decision_log_comparison.csv": {
-      "sha256": "4cc5149e4cf3020812fb55a20d982b4b778e2b5bf8eb894571739a0d324779cd",
-      "rows": 6
+      "sha256": "b9c7b8a9676e1c007050e7e1682211883229e05ad5cddda5620af2512acdec72",
+      "rows": 7
+    },
+    "checks\\toilet_diagnosis.csv": {
+      "sha256": "849e1b3f808445f7cbb7acdc21e99c4b76b1c065edea096d2028314d893eb199",
+      "rows": 55
+    },
+    "checks\\toilet_diagnosis.md": {
+      "sha256": "8fe3961958ef073da6ab05ef841ac4debaa253cc05c2c9e0538bb9f9ed07d93d"
     },
     "lookups\\material_durability_lookup.csv": {
       "sha256": "85e579b6d741f4583398bf203c33b320fa64fc1c02bd9ca9ba9c601ac782b79b",
@@ -159,8 +181,14 @@
       "rows": 9
     },
     "lookups\\toilet_jmp_lookup.csv": {
-      "sha256": "04952c5b0c6fc51027002c25a1685e711a355da6402adc3872712f693db80451",
+      "sha256": "8cc7fc5727179984d69047be9cae638e5d4f42fc48ddecb0c76df73ed1d55155",
       "rows": 15
+    },
+    "__pycache__\\prepare_stage3.cpython-313.pyc": {
+      "sha256": "8ac90104eb6fb05973c20a2b57a732807162396767c30d881223f5725ea06e5b"
+    },
+    "__pycache__\\test_prepare_stage3.cpython-313.pyc": {
+      "sha256": "db557ebd1405a7021e836cff08954fcffdd7fd75c8e5bd92b5711f475045d31e"
     }
   },
   "proxy_excluded_from_modelling_table": [

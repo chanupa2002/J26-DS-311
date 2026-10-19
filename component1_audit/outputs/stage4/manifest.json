@@ -1,0 +1,135 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "stage_version": "4.0.1",
+  "engine_model_version": "fuzzy-0.1.0",
+  "spec_version": "0.1",
+  "household_rows": 6847,
+  "inputs": {
+    "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv": {
+      "sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47",
+      "rows": 6847
+    },
+    "component1_audit\\outputs\\stage3\\column_dictionary.csv": {
+      "sha256": "975d3365d627339e59670aefd13faad094c9d99356acba8dc588342af9bad2aa",
+      "rows": 75
+    },
+    "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py": {
+      "sha256": "4eb84a59d97f7007bddd57a88dde32ee1a4eb5a41f537309c62f3d33504f9518",
+      "rows": null
+    },
+    "component1_audit\\fuzzy_engine\\test_fuzzy_v0_1.py": {
+      "sha256": "ce9621c21e85c7e27fd805457ec9b266542213f725a016475470cece18abdf33",
+      "rows": null
+    },
+    "component1_audit\\docs\\spec_v0_1_decision_log.md": {
+      "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4",
+      "rows": null
+    }
+  },
+  "outputs": {
+    "domain_n_used_distributions.csv": {
+      "sha256": "334f5ce1227c974030fe26d170e05fe09cd8ca4b5a74c74a69795a240e43362d",
+      "rows": 7
+    },
+    "fuzzy_adapter.py": {
+      "sha256": "0df868b424afdbe852784de35679f00c8a61220bbe98738b499d7e69f620ccf0",
+      "rows": null
+    },
+    "fuzzy_scores_v0_1.csv": {
+      "sha256": "02afb9bfc1418bf085260e5263f9488c9087ffb69c5e39e45b9dceba48835d17",
+      "rows": 6847
+    },
+    "fuzzy_validation.md": {
+      "sha256": "1ce070cdd18a4a0a228ddd682a4a1ed795535192d54cf568b2defdaef02dfedf",
+      "rows": null
+    },
+    "input_coverage.csv": {
+      "sha256": "4bc6a9ba391f14a4ab73b3d493bde4a2eab09a9de6292ebf5f5073a098883c95",
+      "rows": 17
+    },
+    "membership_distributions.csv": {
+      "sha256": "ea82052d0cdb8b50df07760ac69e6e594a5e468139ea9e50dbb2557694e358b1",
+      "rows": 521
+    },
+    "open_questions.md": {
+      "sha256": "d591d9fb15acb3ea227f45067e29fd311d461f977a1556c51333cdf51df4e2f0",
+      "rows": null
+    },
+    "prerequisite_check.csv": {
+      "sha256": "f94090703331010c15c3bf23a28bfaa96a35f01ee5d6374af22a1b088a1bac3d",
+      "rows": 5
+    },
+    "reference_v0_1.json": {
+      "sha256": "15490a881ef104dcc79359647a748e7ab5ca4be26aebdbcab1c4240692a99033",
+      "rows": null
+    },
+    "run_stage4.py": {
+      "sha256": "d3dcd54704ca276ce563f2d9aec1909beb89670475dfe6f6fe095dc2901d24bf",
+      "rows": null
+    },
+    "stage3_input_coverage.csv": {
+      "sha256": "e4a0e56846fdd7ea6ea5a5888420b6850936d1385e736018088375f76fc0babe",
+      "rows": 12
+    },
+    "stage4_summary.md": {
+      "sha256": "b3fc33e34e57047e24bb0947f46807db22068c72307715c2129e099416c3fe04",
+      "rows": null
+    },
+    "test_fuzzy_adapter.py": {
+      "sha256": "bb33197e94e92b3525915dfeadb84e115fbd822bde49bd8ef0ea02933698b488",
+      "rows": null
+    },
+    "toilet_score_correction_comparison.json": {
+      "sha256": "7d90304d8f8b2eb3a313a9d764f61ce7ef5d5e26785809837e2f0e1f14ab0305",
+      "rows": null
+    },
+    "toilet_service_cross_tab.csv": {
+      "sha256": "c5a7bf1d521ae4651282fa1b659605234a9d65b2bd453b2c14a1f4e25625bb97",
+      "rows": 5
+    },
+    "sensitivity\\age_cutoff_60plus.csv": {
+      "sha256": "48368d80788ebda5ead8673bb57f53823946ad6746705d173949039ef68d66ad",
+      "rows": 6847
+    },
+    "sensitivity\\crowding_mid3_half0.5.csv": {
+      "sha256": "1ef153ec949d5f4108117aa0c6ab989102c2e162c3c11b0ddaab814422b7f166",
+      "rows": 6847
+    },
+    "sensitivity\\crowding_mid3_half1.5.csv": {
+      "sha256": "1d9c508e979ad2702169f012a9d051fb136e285658ebde9bda04370ea5c9eaed",
+      "rows": 6847
+    },
+    "sensitivity\\crowding_mid4_half0.5.csv": {
+      "sha256": "c2288ddc6c80452ae4b9dd065b7630c0dbfb344b2869a85e00dd7a548b248d25",
+      "rows": 6847
+    },
+    "sensitivity\\crowding_mid4_half1.5.csv": {
+      "sha256": "aacba733aad3c5faf0a42e90200e0b3ae1028e00138404b27b6b43052f02b146",
+      "rows": 6847
+    },
+    "sensitivity\\domain_max.csv": {
+      "sha256": "ffba515601ff940bde4caa2c22f6b10ef1463550d8f85e2556139350b4b9a368",
+      "rows": 6847
+    },
+    "sensitivity\\domain_min.csv": {
+      "sha256": "de5db5e2fe8b05e98deb9b400122619fba8da3289990211eabba2ddcac0ef07c",
+      "rows": 6847
+    },
+    "sensitivity\\sensitivity_comparison.csv": {
+      "sha256": "9527a402a4ccfd6bc6ce816426fa6ef06ee0238e57978f8edff3f5bb446bc2e2",
+      "rows": 40
+    },
+    "sensitivity\\sensitivity_notes.md": {
+      "sha256": "143578fb5e5b4d0315d55dffde9f7a3ac784bd61bccb1932fe256f5bfd80c790",
+      "rows": null
+    },
+    "sensitivity\\tenure_codes_7_8_insecure.csv": {
+      "sha256": "02afb9bfc1418bf085260e5263f9488c9087ffb69c5e39e45b9dceba48835d17",
+      "rows": 6847
+    },
+    "sensitivity\\toilet_type_only.csv": {
+      "sha256": "5bf90cf3f7c2d1f7ac97d13d2888860148d6a3ba5ab3b564f69ba853837363f9",
+      "rows": 6847
+    }
+  }
+}

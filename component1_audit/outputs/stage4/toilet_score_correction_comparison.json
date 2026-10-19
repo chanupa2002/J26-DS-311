@@ -1,0 +1,11 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "previous_score_file_sha256": "6f25bd5ae5ff4d9ae09a5541fff1e0ab9a5d48056a0b85407f21ab035d3bede6",
+  "new_score_file_sha256": "02afb9bfc1418bf085260e5263f9488c9087ffb69c5e39e45b9dceba48835d17",
+  "households_compared": 6847,
+  "previous_mu_toilet_observed_n": 797,
+  "new_mu_toilet_observed_n": 6825,
+  "households_with_changed_mu_toilet": 6651,
+  "change_definition": "membership differs (tolerance 1e-12), or known/unknown status changes; household keys aligned by hhcode",
+  "stage3_input_sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47"
+}
