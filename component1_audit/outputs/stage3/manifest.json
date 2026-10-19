@@ -1,0 +1,175 @@
+{
+  "pipeline_version": "0.2.0",
+  "scope": "Data engineering only; no fuzzy/Bayesian model, scoring, ranking, imputation or eligibility decisions.",
+  "household_rows": 6847,
+  "unique_nonmissing_hhcode": true,
+  "inputs": {
+    "Data\\processed\\clean\\mod_a_household_identification.csv": {
+      "sha256": "afa59682b34918647c74406f9c6c59835b84f1f7c0671fa1ae97ac2238e8d39c",
+      "rows": 6847
+    },
+    "Data\\processed\\clean\\mod_c_housing.csv": {
+      "sha256": "43a5f7ed4a3f0248a421a6b5978b39247d806865c72759873c245f34542f7ac5",
+      "rows": 6847
+    },
+    "Data\\processed\\clean\\mod_b0_roster_long.csv": {
+      "sha256": "c0080fa9f1da768fb02060bbcffdf77ef31baba0e7d3ac7a2334d51284c47d25",
+      "rows": 27875
+    },
+    "Data\\processed\\clean\\mod_d_assets.csv": {
+      "sha256": "cb19a9ad93296d1013ee5db8b33bcff3de96f86164a7ec011962f17bda6211e2",
+      "rows": 6847
+    },
+    "Data\\processed\\clean\\mod_h1_primary_employment_long.csv": {
+      "sha256": "1bb6109c450582e3f8c45356475806889b06577cee3a778c6088ab95aeedc129",
+      "rows": 27883
+    },
+    "Data\\processed\\clean\\mod_l1_food_security_w.csv": {
+      "sha256": "711972a6e9a602b557517085e8e1950766039ebe6bdc3f2490245c9edf14915e",
+      "rows": 6847
+    },
+    "Data\\processed\\clean\\mod_l2_food_security_m.csv": {
+      "sha256": "182d6d619ee0d878e1cc90a997c0b82e47f84c90e0e280518acd45220f855180",
+      "rows": 6847
+    },
+    "component1_audit\\outputs\\pipeline_v0\\household_core.csv": {
+      "sha256": "af25f6235a53fc7ee161727fd801d1c14b8ecf6fd6e29b74ccde13e821b6af24",
+      "rows": 6847
+    },
+    "component1_audit\\outputs\\pipeline_v0\\fies_item_responses_pending.csv": {
+      "sha256": "5b3ba5b052f38add4b6c3d014334812046f369151af1b408d0ce5b072c3216df",
+      "rows": 6847
+    },
+    "component1_audit\\outputs\\pipeline_v0\\d1_observed_candidates_pending.csv": {
+      "sha256": "db649a95e1d5394d596a04d953c25a41cfa566f427410b710a001cddb156945f",
+      "rows": 6847
+    },
+    "component1_audit\\outputs\\pipeline_v0\\d3_person_items_pending.csv": {
+      "sha256": "795d72142c6418405ed57311d66c0ca58239f325acec52d31daf66081dedd121",
+      "rows": 27875
+    },
+    "component1_audit\\outputs\\pipeline_v0\\manifest.json": {
+      "sha256": "7540a397bbfcf4895f775711ed199f179606183e11cd9e624ff76b152813139a"
+    },
+    "component1_audit\\review_register\\indicator_approval_register.csv": {
+      "sha256": "9837c1aee4c9b7022128feca2eb510c9a7d16065d6b558a1f6516546c172f049",
+      "rows": 61
+    },
+    "component1_audit\\review_register\\research_decision_register.csv": {
+      "sha256": "f60adcb37099b9f0f8618cb0311a627a0769e2f23f1d5ce402ba477f585aff84",
+      "rows": 9
+    },
+    "component1_audit\\outputs\\d1_housing_material_validation\\housing_material_crosswalk.csv": {
+      "sha256": "0f224860df4ae527b7e4c9ca39d39c39a801517fe0454190453ccdbebeeff437",
+      "rows": 26
+    }
+  },
+  "outputs": {
+    "column_dictionary.csv": {
+      "sha256": "564e9133e7d285b09e1c91d81dff83894968cd16367e6f1ad5a842c3d215fc07",
+      "rows": 75
+    },
+    "fies_item_responses_pending.csv": {
+      "sha256": "eb84825dd2dd6fa40fa009057f0a795fd97b4a0620900e3be7dd1f6922e69b8a",
+      "rows": 6847
+    },
+    "missingness_report.csv": {
+      "sha256": "197b19e8f1c5e2fee95d2cbeb13d83719b72d7486a04094afddc6310bfb862a6",
+      "rows": 75
+    },
+    "modelling_inputs_v0_1.csv": {
+      "sha256": "a17669afbac9112ea2679ab3bf5685635bfc2abef426f945487d072f27ebd8b1",
+      "rows": 6847
+    },
+    "open_questions.md": {
+      "sha256": "397e7f8ce6d42ca16ca3e228a9479638122df3eb777b2d2fafe68a5b59283256"
+    },
+    "prepare_stage3.py": {
+      "sha256": "abf5d04b519e9168233274eeb1b14fca180033d92be9d565aea663ad76bd3319"
+    },
+    "stage3_summary.md": {
+      "sha256": "8b6b617707893ffc57fe94e243dfb292f6b71534450dfcd123e5512a6affe28b"
+    },
+    "checks\\A1_fies_form_by_hhtype.csv": {
+      "sha256": "ecb01a66028655c105ee90d469a5a98c80774817ad311e167fed0659dfdf85c3",
+      "rows": 9
+    },
+    "checks\\A1_fies_form_totals.csv": {
+      "sha256": "aca275ed1c57b7b2ed64693d978472352039c5af38878e085e6c84d105566b2e",
+      "rows": 4
+    },
+    "checks\\A2_c1_08_other_redacted_counts.csv": {
+      "sha256": "f96293e9e9f3b0f6969c80b9ecb128b36690cd1f2fa9f102ceef5caf97e0520d",
+      "rows": 13
+    },
+    "checks\\A2_c1_08_other_summary.csv": {
+      "sha256": "21dde5f1c7fdb200fa449712d716370dde24bb544fe67e388ae7adb0f4ee683e",
+      "rows": 1
+    },
+    "checks\\A2_housing_999_counts.csv": {
+      "sha256": "f43350222394e5410636be3b834e84492b9af0dac04cf536a4195bee7d5983c0",
+      "rows": 6
+    },
+    "checks\\A3_bedroom_distribution.csv": {
+      "sha256": "d0b503febca82c1ae542dc62eea1da843006587bcaba17ad0698852910cb323b",
+      "rows": 9
+    },
+    "checks\\A3_bedroom_summary.csv": {
+      "sha256": "138622da6eb33517cb3d64f592f2955f9076d6bc6bb914a0a74c2c44725899ef",
+      "rows": 1
+    },
+    "checks\\A3_persons_per_bedroom_distribution.csv": {
+      "sha256": "bdab4886d5b8bc296552a088d679469fbcb967e5283a78b969db9d82e7f03353",
+      "rows": 48
+    },
+    "checks\\A4_age_field_summary.csv": {
+      "sha256": "59b31df6153e281fcec3e1ca51abb32011d4d44b48ba3b2a3006eb381a12a678",
+      "rows": 2
+    },
+    "checks\\A4_households_without_working_age_member.csv": {
+      "sha256": "7ed59c35ea603200f59dda378a9cd2d88c3427ab9a7b42b78d50f887653b08ed",
+      "rows": 2
+    },
+    "checks\\A5_fies_form_completeness.csv": {
+      "sha256": "621299cc0cb23fcb85f485fffb96c9f87a03f6d4892468fb71bc99641088cae2",
+      "rows": 2
+    },
+    "checks\\A5_fies_item_response_counts.csv": {
+      "sha256": "4979af9094ad6b571cad399cd34e3b5101a23a063fde08de093e22d8e5e735c8",
+      "rows": 16
+    },
+    "checks\\A6_housing_code_counts.csv": {
+      "sha256": "71f53d354772d23f1a1d7d71365d5400a8f0eac77a3ddd1fd25be5c755f5a191",
+      "rows": 51
+    },
+    "checks\\A7_asset_value_sets_and_code_checks.csv": {
+      "sha256": "aa9ba345f7d8c834591660d39e0ea42e069f5703803a37ec6c46b36b8172a4c5",
+      "rows": 18
+    },
+    "checks\\decision_log_comparison.csv": {
+      "sha256": "4cc5149e4cf3020812fb55a20d982b4b778e2b5bf8eb894571739a0d324779cd",
+      "rows": 6
+    },
+    "lookups\\material_durability_lookup.csv": {
+      "sha256": "85e579b6d741f4583398bf203c33b320fa64fc1c02bd9ca9ba9c601ac782b79b",
+      "rows": 26
+    },
+    "lookups\\tenure_lookup.csv": {
+      "sha256": "306991b0e5a0b63066a617fe4d7eaf7255900e9e508888ad4cf0d5ed30bb4ffa",
+      "rows": 9
+    },
+    "lookups\\toilet_jmp_lookup.csv": {
+      "sha256": "04952c5b0c6fc51027002c25a1685e711a355da6402adc3872712f693db80451",
+      "rows": 15
+    }
+  },
+  "proxy_excluded_from_modelling_table": [
+    "pc_cons",
+    "label_high_vuln"
+  ],
+  "notes": [
+    "fies_item_responses_pending.csv remains a separate raw-form extract.",
+    "material durability remains unknown because DCS rule is unavailable locally.",
+    "all joins are one-to-one validated and preserve the 6,847-row household core."
+  ]
+}
