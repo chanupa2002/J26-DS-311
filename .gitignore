@@ -50,3 +50,5 @@ private_data/
 
 !backend/app/components/livelihood_planning/model_1_recommend/artifacts/area_index.csv
 !backend/app/components/livelihood_planning/model_1_recommend/artifacts/district_livelihood_shares.csv
+!backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_data_dictionary.csv
+!backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_cleaning_log.csv

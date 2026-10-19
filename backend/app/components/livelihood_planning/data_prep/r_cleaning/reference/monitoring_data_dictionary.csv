@@ -1,0 +1,49 @@
+column,description
+visit_id,Sequential visit id created during cleaning (V0001...)
+source_uuid,Original submission id from the form
+household_id,Household key as given in the file (blank where the visit has no household key)
+monitoring_period,Month of the visit (YYYY-MM)
+month_index,1 = first month in the data
+visit_date,Date of the SDO household visit
+first_visit,TRUE if first visit under the programme (NA if not asked)
+district,Participant district (standardised)
+ds_division,Participant DS division (standardised)
+beneficiary_gender,Gender of the Aswesuma beneficiary
+participant_gender,Gender of the programme participant
+female_headed,Household headed by a female
+age,Participant age (NA if missing or outside 18-90)
+cyclone_affected,Household affected by the cyclone (NA if not asked)
+category,"One of the 9 official livelihood categories, or UNASSIGNED"
+category_known,FALSE when the livelihood type was not recorded
+activity,Primary livelihood activity (standardised)
+business_running,Is the business running
+hours_band,Average hours per day worked in the livelihood (band)
+record_keeping,How often written business records were kept
+record_keeping_level,"0 = none, 1 = few times a month, 2 = once or twice a week, 3 = daily"
+borrowed_money,Borrowed money for the business in the last month
+revenue_band,Revenue band for the last month (NA = don't know or not running)
+revenue_mid_lkr,"Mid-point of the revenue band (assumption, for rough comparison only)"
+profit,Made a profit in the last month (NA = don't know or not running)
+coach_progressing,Coach view: participant progressing well
+problem_sales_low,Problem: sales less than expected
+problem_asset_lost,Problem: lost a livelihood asset
+problem_input_cost,Problem: high cost of inputs
+problem_input_unavailable,Problem: inputs not available
+problem_storage_transport,Problem: storage or transport
+problem_equipment,Problem: equipment not working
+problem_disaster,Problem: natural disaster
+problem_count,Number of problems answered Yes (NA if none answered)
+skipped_meal,A household member skipped a meal in the last 2 weeks
+children_in_school,All children 6-16 attended school at least 4 days a week
+ill_member_got_care,A significantly ill member accessed medical care
+saved_money,Household saved money in the last month
+saved_amount_lkr,Amount saved (0 when the household did not save)
+did_agreed_actions,Did the agreed family-plan actions
+referral_reached,Reached out to a referral person or organisation
+goals_need_adjustment,Participant thinks goals need adjustment
+grant_received,Grant received
+grant_use_status,How the grant was used
+grant_used_per_plan,Coach view: grant used as planned
+grant_spent_lkr,Approximate amount spent so far
+grant_remaining_lkr,Remaining balance
+refund_required,Refund required
