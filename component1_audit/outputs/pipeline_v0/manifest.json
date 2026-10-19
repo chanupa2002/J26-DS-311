@@ -1,0 +1,63 @@
+{
+  "pipeline_version": "0.1.0",
+  "scope": "household key spine and direct unique-roster-member count only",
+  "population_rows": 6847,
+  "household_keys_unique_nonmissing": true,
+  "roster_member_count_missing": 0,
+  "inputs": {
+    "mod_a_household_identification.csv": {
+      "sha256": "afa59682b34918647c74406f9c6c59835b84f1f7c0671fa1ae97ac2238e8d39c",
+      "rows": 6847
+    },
+    "mod_b0_roster_long.csv": {
+      "sha256": "c0080fa9f1da768fb02060bbcffdf77ef31baba0e7d3ac7a2334d51284c47d25",
+      "rows": 27875
+    }
+  },
+  "output": "household_core.csv",
+  "companion_outputs": {
+    "fies_item_responses_pending.csv": "L1/L2 raw item codes kept in separate columns; no combined score",
+    "proxy_sensitivity_reference.csv": "Prepared proxy copy for descriptive sensitivity only; excluded from core and model features",
+    "d1_observed_candidates_pending.csv": "Raw D1 housing/assets; H1_17 retained as one raw household value only when repeated records agree; no classification or recoding",
+    "d3_person_items_pending.csv": "Person-level B0 age and B3 item responses joined one-to-one by household/person key; no household aggregation or recoding"
+  },
+  "additional_inputs": {
+    "mod_l1_food_security_w.csv": {
+      "sha256": "711972a6e9a602b557517085e8e1950766039ebe6bdc3f2490245c9edf14915e",
+      "rows": 6847
+    },
+    "mod_l2_food_security_m.csv": {
+      "sha256": "182d6d619ee0d878e1cc90a997c0b82e47f84c90e0e280518acd45220f855180",
+      "rows": 6847
+    },
+    "hh_context.csv": {
+      "sha256": "973e2dfdfd31c0ca561c97fcde20a56959ae059f1348e3cf08ce2d63947309ea",
+      "rows": 6847
+    },
+    "mod_c_housing.csv": {
+      "sha256": "43a5f7ed4a3f0248a421a6b5978b39247d806865c72759873c245f34542f7ac5",
+      "rows": 6847
+    },
+    "mod_d_assets.csv": {
+      "sha256": "cb19a9ad93296d1013ee5db8b33bcff3de96f86164a7ec011962f17bda6211e2",
+      "rows": 6847
+    },
+    "mod_h1_primary_employment_long.csv": {
+      "sha256": "1bb6109c450582e3f8c45356475806889b06577cee3a778c6088ab95aeedc129",
+      "rows": 27883
+    },
+    "mod_b0_roster_long.csv": {
+      "sha256": "c0080fa9f1da768fb02060bbcffdf77ef31baba0e7d3ac7a2334d51284c47d25",
+      "rows": 27875
+    },
+    "mod_b3_roster_long.csv": {
+      "sha256": "8708de3462b518f6bc9388e36a40b5b3e9b8b5e8ee3ecd99ee772f31fcf96116",
+      "rows": 27021
+    }
+  },
+  "unresolved_methodology": [
+    "This count is not asserted to equal the questionnaire's defined household size.",
+    "No new D1-D7 indicators, imputed values, proxy labels, weights, or model scores are calculated; the existing proxy is copied only to a separate descriptive reference file.",
+    "The 6,847 versus 6,850 survey denominator remains unresolved."
+  ]
+}

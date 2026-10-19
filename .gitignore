@@ -47,3 +47,11 @@ private_data/
 *.tsv
 *.parquet
 *.feather
+
+# BRIGHT research data - keep local, never commit
+/Data/
+
+# R-generated data and workspaces
+*.rds
+*.RData
+*.rda
