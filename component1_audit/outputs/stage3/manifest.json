@@ -62,11 +62,20 @@
     "component1_audit\\outputs\\d1_housing_material_validation\\housing_material_crosswalk.csv": {
       "sha256": "0f224860df4ae527b7e4c9ca39d39c39a801517fe0454190453ccdbebeeff437",
       "rows": 26
+    },
+    "component1_audit\\docs\\codebook_crosscheck_v0_1.md": {
+      "sha256": "76420beebd2bbab5b70a209da1003f5b18e6e3e9c9a551e5127264ef099aec5e"
+    },
+    "component1_audit\\docs\\spec_v0_1_decision_log.md": {
+      "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4"
     }
   },
   "outputs": {
+    "codebook_rule_confirmation.md": {
+      "sha256": "ef256ca36e1d43b770f50f2653129e86f53fc375ff82683808c3008eff40b94e"
+    },
     "column_dictionary.csv": {
-      "sha256": "975d3365d627339e59670aefd13faad094c9d99356acba8dc588342af9bad2aa",
+      "sha256": "01bb38b02345c28e68e158305e3cbe488f56f1e9226d5281509c39e6d24f3f23",
       "rows": 75
     },
     "fies_item_responses_pending.csv": {
@@ -78,20 +87,20 @@
       "rows": 75
     },
     "modelling_inputs_v0_1.csv": {
-      "sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
       "rows": 6847
     },
     "open_questions.md": {
-      "sha256": "1bd1a3e0b5da8243de4a54ae380681abbe816d7990d39803300757ad1a60b288"
+      "sha256": "f020914c20008ace0c574562798362333852895701045ff882e6fb0db37e24b7"
     },
     "prepare_stage3.py": {
-      "sha256": "080b8d978d9465a40cd41691852315c5d5b3a884548bc470147d5c262e425d48"
+      "sha256": "a5204da19a65cae6ff50965e787c7e676fadc5f26389105ace2a13b4796c7d54"
     },
     "stage3_summary.md": {
-      "sha256": "8156f82fc46489d2b74f6d64f1bba371286c43e97769b02d12b6003cc474af43"
+      "sha256": "8f88e254381900ce5e055f73e6eca136f382cd84815af4e388ec984ead9cc409"
     },
     "test_prepare_stage3.py": {
-      "sha256": "c410d3efc3a89102a1ae4f90946f3471318ca3bb968407383075b5f88d8536a3"
+      "sha256": "06ecf247b981e78c45f6f7f5820cb62be6eefdaeba9d5a35f459d614ce715035"
     },
     "checks\\A1_fies_form_by_hh_type.csv": {
       "sha256": "38bd5167ad4cc3251a6ee17c6a1ea9923e67e06ab0ad424c70968c467e2abf2f",
@@ -162,7 +171,7 @@
       "rows": 2
     },
     "checks\\decision_log_comparison.csv": {
-      "sha256": "b9c7b8a9676e1c007050e7e1682211883229e05ad5cddda5620af2512acdec72",
+      "sha256": "39d1932aae1c263495dd2b737c09e35c8a2cb44cb2e362f85ca8b34fefb4e9a5",
       "rows": 7
     },
     "checks\\toilet_diagnosis.csv": {
@@ -173,7 +182,7 @@
       "sha256": "8fe3961958ef073da6ab05ef841ac4debaa253cc05c2c9e0538bb9f9ed07d93d"
     },
     "lookups\\material_durability_lookup.csv": {
-      "sha256": "85e579b6d741f4583398bf203c33b320fa64fc1c02bd9ca9ba9c601ac782b79b",
+      "sha256": "13d637af7cdc3cb4a7956f3c7d74c925419cc094596c122a6d97eb195242c67b",
       "rows": 26
     },
     "lookups\\tenure_lookup.csv": {
@@ -197,7 +206,8 @@
   ],
   "notes": [
     "fies_item_responses_pending.csv remains a separate raw-form extract.",
-    "material durability remains unknown because DCS rule is unavailable locally.",
+    "D-03a material lookup applied exactly; every unspecified material row remains blank/unknown.",
+    "codebook crosscheck and decision log are included as input references.",
     "all joins are one-to-one validated and preserve the 6,847-row household core."
   ]
 }

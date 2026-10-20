@@ -12,6 +12,8 @@ CLEAN=ROOT/"Data/processed/clean"
 PIPE=BASE/"pipeline_v0"
 REG=ROOT/"component1_audit/review_register/indicator_approval_register.csv"
 DEC=ROOT/"component1_audit/review_register/research_decision_register.csv"
+CODEBOOK=ROOT/"component1_audit/docs/codebook_crosscheck_v0_1.md"
+SPEC=ROOT/"component1_audit/docs/spec_v0_1_decision_log.md"
 HOUSING_XWALK=BASE/"d1_housing_material_validation/housing_material_crosswalk.csv"
 ASSETS=["d_01","d_03","d_05","d_06","d_08","d_10","d_12","d_13","d_14","d_15","d_16","d_17","d_18","d_19","d_20","d_21","d_22","d_23"]
 COUNT_ASSETS={"d_01","d_03","d_05","d_06","d_08","d_10","d_17","d_18","d_19","d_20","d_21","d_22","d_23"}
@@ -189,25 +191,34 @@ def run_checks():
         {"check":"C1_08 Other text nonblank records across all codes","decision_or_prior_reference":"prior register reports 24 nonblank text records across all C1_08 codes; value text suppressed","observed":f"{len(other_all)} nonblank records / {len(housing)} housing records; within code 999: {len(other)} / {int(num(housing.c1_08).eq(999).sum())}","status":"match" if len(other_all)==24 else "mismatch"},
         {"check":"C1_10 available in prepared housing module","decision_or_prior_reference":"A6 requires C1_10 code and missingness diagnostic","observed":"present in Data/processed/clean/mod_c_housing.csv" if "c1_10" in housing else "absent","status":"match" if "c1_10" in housing else "mismatch"},
         {"check":"C1_10 code convention","decision_or_prior_reference":"D-04b researcher-provided cleaned-file codebook overrides questionnaire convention for this file only","observed":"0=not shared; 1=shared; other/missing=unknown","status":"applied to C1_10 only"},
-        {"check":"material durability source","decision_or_prior_reference":"D-03: only exact mappings and local DCS 2024 rule","observed":"DCS rule table not located in repository; D1 audit cites external report","status":"open question; durability left blank"},
+        {"check":"material durability mapping","decision_or_prior_reference":"D-03a researcher-specified lookup","observed":"C1_04: 1/2/3 durable, 4 non_durable; C1_05: 1/2/6 durable, 3/4/5 non_durable; C1_06: 1/2/3 durable, 6 non_durable; all other rows blank","status":"applied exactly"},
     ]
     output_table(decision_rows,"decision_log_comparison.csv")
     # Part A may identify additional cases needing careful interpretation; write questions before Part B.
     questions=[
-       "**DCS material durability:** no DCS 2024 classification table/report is present in the repository file set. The prior D1 audit cites an external DCS report, but this stage is instructed to use a local table only. Material lookup durability cells therefore remain blank and all derived durability values are `unknown` until researcher completion.",
        "**C1_08 free text:** among 22 households coded 999, 22 have nonblank text and 13 distinct values; across all codes, 24 records have nonblank Other text and 15 distinct values. Raw text is withheld under the hard privacy rule. Checks contain redacted category IDs and frequencies only; no ID-to-text map is written.",
        "**FIES both/neither forms:** `fies_valid_items_n` is not form-specific for both-form or no-form households. To avoid combining or selecting forms, that field remains blank in those cases; raw items remain separate. No score is created for both forms.",
-       "**Asset coding correction:** the user-designated authoritative `docs/codebook_crosscheck_v0_1.md` is not present in the workspace. The explicit instruction supplied with this task is applied to d_12-d_16 only: 0=No, 1=Yes, and owned=1. This coding is not applied to any other variable.",
-       "**Roster flag rules:** b0_01a/b0_01b counterfactuals in checks/A8 are diagnostics only. Since the named codebook file is unavailable, `flag=0` is stated as the assumed failure rule for the counts; no flag exclusion is applied to household size, age counts, or dependency.",
+       "**Codebook cross-check:** `component1_audit/docs/codebook_crosscheck_v0_1.md` is authoritative for the cleaned-file codes and agrees with the current handling of C1_10, d_12-d_16, the 18-item asset set, FIES codes, and `hh_type`. d_12-d_16 use 0=No, 1=Yes, owned=1; this recoding applies only to these five assets.",
+       "**Roster flag rules:** the codebook defines b0_01a as lived in the household at least 6 months and b0_01b as ate from the same pot in the past 7 days, but does not decide whether either flag changes roster_member_count or age counts. Checks/A8 reports the requested flag=0 counterfactual only; no flag exclusion is applied.",
        "**Age sensitivity ratios:** age counts use the years field and requested bands. Sensitivity ratios use the literal bands in their names: youth / observed working-age 15-64, old-age 65+ / 15-64, and (under15 + 60+)/15-59. Households with no observed working-age member have blank ratios and flag=1 as specified; if ages are missing, the flag reflects absence of an observed in-band member, not verified absence of such a person.",
        "**C1_08 proposed codes 5 and 10:** the supplied sanitation mapping is applied as proposed for traceable output, but lookup `mapping_confirmed` is FALSE for these codes and their classes must not be treated as confirmed.",
        "**D-04b correction:** the researcher-provided cleaned-file codebook overrides the questionnaire's 1=No/2=Yes convention for C1_10 only: 0=not shared and 1=shared; other/missing=unknown. Stage 3 applies this mapping only to C1_10. C1_08 type classes are unchanged.",
-       "**Stage 3 decision-log file:** the expected named `Spec v0.1 and Decision Log` was not found as a standalone repository file. This build follows the approved rules supplied in the task and the available approval/decision registers; no absent rule is inferred.",
+       "**Decision log:** `component1_audit/docs/spec_v0_1_decision_log.md` is included as an input. The codebook cross-check confirms cleaned-file meanings; it does not change the other approved rules.",
     ]
     unexpected_a=[r["variable"]+": "+r["unexpected_values"] for r in itemrows if r["unexpected_values"] and not r["variable"] in {"d_12","d_13","d_14","d_15","d_16"}]
     if unexpected_a: questions.append("**Other asset value exceptions:** "+"; ".join(unexpected_a)+". Affected owned fields remain blank pending code clarification.")
     questions=[q for q in questions if not q.startswith("**FIES unexpected codes:")]
     (OUT/"open_questions.md").write_text("# Stage 3 open questions\n\nThese items are stopped or explicitly scoped pending evidence; other unambiguous engineering steps may proceed.\n\n"+"\n\n".join(f"{i}. {q}" for i,q in enumerate(questions,1))+"\n",encoding="utf-8")
+    confirmation=[
+      "Research output - not an eligibility determination", "", "# Codebook rule confirmation", "",
+      "| Rule checked | Applied in rebuild | Authoritative crosscheck |", "|---|---|---|",
+      "| C1_10 toilet sharing | 0 = not shared; 1 = shared; any other value unknown | `codebook_crosscheck_v0_1.md`, line 9 |",
+      "| d_12-d_16 binary assets | 0 = no; 1 = yes; owned when 1 | `codebook_crosscheck_v0_1.md`, line 10 |",
+      "| Asset inventory | Exactly 18 direct items; d_07/d_09/d_11 and all listed follow-ups excluded | `codebook_crosscheck_v0_1.md`, lines 29-31 |",
+      "| FIES | 1 = Yes; 2 = No; 3/4 = missing for scoring | `codebook_crosscheck_v0_1.md`, line 16 |",
+      "| FIES form cross-tab key | `hh_type` (not `hhtype`) | `codebook_crosscheck_v0_1.md`, line 32 |", "",
+      "No conflict was found between these crosscheck rules and the corresponding Stage 3 handling. The decision log retains an old follow-up reference to `hhtype`; the authoritative crosscheck and rebuilt table use `hh_type`.", ""]
+    (OUT/"codebook_rule_confirmation.md").write_text("\n".join(confirmation),encoding="utf-8")
     return {"master":master,"housing":housing,"roster":roster,"fies":fies,"assets":assets,"h":h,"age_summary":age_summary,"assetrows":itemrows}
 
 def fies_one(flag1,flag2,items1,items2):
@@ -255,8 +266,11 @@ def tenure_class(code):
     return "unknown"
 
 def material_class(value, lookup):
-    # Until a local DCS rule populates the durability field, exactness alone is insufficient.
-    return "unknown"
+    if pd.isna(value): return "unknown"
+    x=num(pd.Series([value])).iloc[0]
+    if pd.isna(x): return "unknown"
+    key=str(int(x)) if float(x).is_integer() else str(x)
+    return lookup.get(key,"unknown")
 
 def asset_owned(value,item,is_count):
     if pd.isna(value): return pd.NA
@@ -275,11 +289,15 @@ def asset_owned(value,item,is_count):
 def build_material_lookup():
     source=read(HOUSING_XWALK)
     rows=[]
-    dcs_local=False  # repository search found no local DCS 2024 table/report
+    approved={
+      "c1_04":{"1":"durable","2":"durable","3":"durable","4":"non_durable"},
+      "c1_05":{"1":"durable","2":"durable","6":"durable","3":"non_durable","4":"non_durable","5":"non_durable"},
+      "c1_06":{"1":"durable","2":"durable","3":"durable","6":"non_durable"},
+    }
     for _,r in source[source.bright_variable.isin(["C1_04","C1_05","C1_06"])].iterrows():
         code="" if str(r.response_code)=="[MISSING]" else str(r.response_code)
         status=str(r.mapping_status)
-        durability="" if not (status=="exact" and dcs_local) else ""
+        durability=approved.get(str(r.bright_variable).lower(),{}).get(code,"")
         rows.append({"variable":str(r.bright_variable).lower(),"code":code,"label":str(r.original_questionnaire_label),"crosswalk_mapping_status":status,"durability":durability})
     pd.DataFrame(rows,columns=["variable","code","label","crosswalk_mapping_status","durability"]).to_csv(OUT/"lookups/material_durability_lookup.csv",index=False,encoding="utf-8-sig")
     return pd.DataFrame(rows)
@@ -351,8 +369,15 @@ def build():
     x=x.merge(dd,on="hhcode",how="left",validate="one_to_one",sort=False)
     x=x.merge(ag,on="hhcode",how="left",validate="one_to_one",sort=False)
     if len(x)!=6847 or x.hhcode.tolist()!=core.hhcode.tolist() or x.hhcode.isna().any() or x.hhcode.duplicated().any(): raise AssertionError("Household core key/row preservation failed")
-    # B2 material: no local DCS rule exists; do not classify even exact crosswalk labels.
-    for c in ["c1_04","c1_05","c1_06"]: x[c+"_durability_class"]="unknown"
+    # B2 material: apply D-03a exactly; unlisted/missing codes stay unknown.
+    material_rules={}
+    for variable,group in mat.groupby("variable",sort=False):
+        material_rules[variable]={}
+        for _,row in group.iterrows():
+            if pd.notna(row.durability) and str(row.durability).strip():
+                material_rules[variable][str(row.code).strip()]=str(row.durability).strip()
+    for c in ["c1_04","c1_05","c1_06"]:
+        x[c+"_durability_class"]=[material_class(v,material_rules.get(c,{})) for v in x[c]]
     # B3 proposed toilet grouping; codes 5 and 10 remain explicitly unconfirmed in lookup.
     x["toilet_type_class"]=x.c1_08.map(toilet_type)
     x["toilet_service_class"]=[toilet_service(c,s) for c,s in zip(x.c1_08,x.c1_10)]
@@ -397,7 +422,7 @@ def build():
       "n_under15/n_15_64/n_65plus/n_age_missing/n_15_59/n_60plus":"d3_person_items_pending.csv:b0_04_years"}
     for c in model.columns:
         source=raw_sources.get(c, "mod_d_assets.csv:"+c.removesuffix("_owned") if c.endswith("_owned") else "derived within Stage 3 from listed source columns")
-        decision="S-01" if c in ["hhcode","roster_member_count"] else "D-01/D-02" if c.startswith("fies_") else "D-03" if c.endswith("durability_class") or c in ["c1_04","c1_05","c1_06"] else "D-04b" if c in ["c1_10","toilet_service_class"] else "D-04" if c=="toilet_type_class" or c=="c1_08" else "D-05" if c=="tenure_class" or c=="c1_07" else "D-06" if c.startswith("c1_02") or c in ["c1_03","persons_per_bedroom"] else "D-07" if c.startswith(("n_under","n_15_","n_65","n_age","dependency_","no_working","n_60","youth_","old_age_")) else "D-09" if c.startswith("h1_17") or c=="income_status" else "D-10" if c in ASSETS or c.endswith("_owned") or c.startswith("asset_") else "S-01"
+        decision="S-01" if c in ["hhcode","roster_member_count"] else "D-01/D-02" if c.startswith("fies_") else "D-03a" if c.endswith("durability_class") else "D-03" if c in ["c1_04","c1_05","c1_06"] else "D-04b" if c in ["c1_10","toilet_service_class"] else "D-04" if c=="toilet_type_class" or c=="c1_08" else "D-05" if c=="tenure_class" or c=="c1_07" else "D-06" if c.startswith("c1_02") or c in ["c1_03","persons_per_bedroom"] else "D-07" if c.startswith(("n_under","n_15_","n_65","n_age","dependency_","no_working","n_60","youth_","old_age_")) else "D-09" if c.startswith("h1_17") or c=="income_status" else "D-10" if c in ASSETS or c.endswith("_owned") or c.startswith("asset_") else "S-01"
         rule="Preserved from v0.1 household core; unique hhcode." if c in ["hhcode","roster_member_count"] else "See stage3_summary.md and open_questions.md; raw codes never imputed." 
         if c=="fies_raw_score": rule="Count code 1 only when one form used and all eight items on that form are 1/2; otherwise blank. Both forms are not selected."
         if c=="fies_valid_items_n": rule="Count 1/2 on the single answered form; blank for both/no form because no approved combined denominator."
@@ -405,7 +430,7 @@ def build():
         if c=="dependency_ratio_60": rule="(n_under15+n_60plus)/n_15_59 when n_15_59>=1; sensitivity definition."
         if c=="youth_ratio": rule="n_under15/n_15_64 when n_15_64>=1; sensitivity definition."
         if c=="old_age_ratio_65": rule="n_65plus/n_15_64 when n_15_64>=1; sensitivity definition."
-        if c.endswith("_durability_class"): rule="unknown until local DCS 2024 rule is supplied and lookup populated."
+        if c.endswith("_durability_class"): rule="D-03a exact code lookup; unlisted and missing source codes remain unknown."
         if c=="toilet_type_class": rule="D-04 proposed JMP C1_08 code groups; codes 5 and 10 mapping_confirmed=FALSE; unchanged by D-04b."
         if c=="c1_10": rule="D-04b cleaned-file codebook: 0=not shared; 1=shared; other or missing=unknown. Applies only to C1_10."
         if c=="toilet_service_class": rule="D-04b: c1_08=999 or c1_10 outside 0/1 -> unknown; improved + c1_10=0 -> basic; improved + c1_10=1 -> limited; unimproved/open_defecation retain type class."
@@ -431,6 +456,7 @@ def build():
     summary=["# Stage 3 modelling inputs v0.1 — engineering audit", "",
       "## Scope and outputs", "", f"Built a household-level table with {len(model):,} rows and {len(model.columns)} columns, preserving the 6,847-row v0.1 household core. The work is data engineering only. No model, vulnerability ranking/score, imputation, or eligibility decision was created. `pc_cons` and `label_high_vuln` are excluded. FIES item responses remain in a separate raw-response extract.", "",
       "Outputs include `modelling_inputs_v0_1.csv`, `fies_item_responses_pending.csv`, three lookups, a column dictionary, missingness report, Part A checks, and a SHA-256 manifest.", "",
+      "The cleaned-file rule confirmation table is in `codebook_rule_confirmation.md`; the codebook crosscheck and decision log are both hashed in the manifest.", "",
       "## Part A checks and decision-log comparison", "",
       f"- FIES form coverage: {dict(zip(a1.form_answer_pattern,a1.households_n))} households (master denominator 6,847).", 
       f"- Code 999 counts: {dict(zip(a2.variable,a2.code_999_households_n))}.",
@@ -440,13 +466,13 @@ def build():
       f"- Roster flag counterfactuals (flag=0 assumed failing, not applied): {a8.iloc[0].flag} has {a8.iloc[0].roster_members_flagged_fail_n} failing roster rows; size would change in {a8.iloc[0].households_household_size_would_change_n} households and dependency ratio in {a8.iloc[0].households_dependency_ratio_would_change_n}. {a8.iloc[1].flag} has {a8.iloc[1].roster_members_flagged_fail_n} failing roster rows; size would change in {a8.iloc[1].households_household_size_would_change_n} households and dependency ratio in {a8.iloc[1].households_dependency_ratio_would_change_n}.",
       "- The A2 code-999 count matches the prior 22-household register figure; all-code C1_08 Other text frequency totals match the previously reported 24. Raw free text is suppressed.",
       "- D-04b codebook correction applied to C1_10 only: 0=not shared; 1=shared; other/missing=unknown. The questionnaire convention remains 1=No/2=Yes but is overridden for this cleaned file; C1_08 type classes are unchanged.",
-      "- DCS durability classification is unavailable locally; all three material outputs remain unknown.", "",
+      "- D-03a material lookup is applied exactly; all unlisted source codes remain unknown.", "",
       "These checks do not validate or approve any indicator for a model. Decision references and item-level details are in `checks/decision_log_comparison.csv` and the check tables.", "",
-      "## Open questions", "", "See `open_questions.md`; the C1_10 questionnaire/export discrepancy is resolved for this file by the researcher-provided D-04b codebook. The named codebook_crosscheck_v0_1.md is unavailable in the workspace; this task's explicit d_12-d_16 facts were applied as given. Roster flag counters are hypothetical with flag=0 treated as failing and were not applied. Remaining questions are local DCS rule availability; suppressed C1_08 Other text; FIES denominator for both/no form; sensitivity-ratio definitions; proposed C1_08 codes 5 and 10; and the missing standalone decision-log file.", ""]
+      "## Open questions", "", "See `open_questions.md`; the crosscheck agrees with the applied C1_10, d_12-d_16, 18-item asset, FIES and `hh_type` rules. The decision log's stale `hhtype` follow-up is recorded; the crosscheck's `hh_type` name is used. Roster flag inclusion remains undecided, so flag counterfactuals are reported but not applied. Other questions are suppressed C1_08 Other text; FIES denominator for both/no form; sensitivity-ratio definitions; and proposed C1_08 codes 5 and 10.", ""]
     (OUT/"stage3_summary.md").write_text("\n".join(summary),encoding="utf-8")
     # Manifest records all direct inputs and generated outputs; hashes do not expose identifiers.
     input_paths=[CLEAN/"mod_a_household_identification.csv",CLEAN/"mod_c_housing.csv",CLEAN/"mod_b0_roster_long.csv",CLEAN/"mod_d_assets.csv",CLEAN/"mod_h1_primary_employment_long.csv",CLEAN/"mod_l1_food_security_w.csv",CLEAN/"mod_l2_food_security_m.csv",
-       PIPE/"household_core.csv",PIPE/"fies_item_responses_pending.csv",PIPE/"d1_observed_candidates_pending.csv",PIPE/"d3_person_items_pending.csv",BASE/"pipeline_v0/manifest.json",REG,DEC,HOUSING_XWALK]
+       PIPE/"household_core.csv",PIPE/"fies_item_responses_pending.csv",PIPE/"d1_observed_candidates_pending.csv",PIPE/"d3_person_items_pending.csv",BASE/"pipeline_v0/manifest.json",REG,DEC,HOUSING_XWALK,CODEBOOK,SPEC]
     input_meta={}
     for p in input_paths:
         item={"sha256":sha(p)}
@@ -460,12 +486,11 @@ def build():
         meta={"sha256":sha(p)}
         if p.suffix.lower()==".csv": meta["rows"]=int(sum(1 for _ in p.open(encoding="utf-8-sig"))-1)
         out_meta[str(p.relative_to(OUT))]=meta
-    manifest={"pipeline_version":"0.2.0","scope":"Data engineering only; no fuzzy/Bayesian model, scoring, ranking, imputation or eligibility decisions.","household_rows":len(model),"unique_nonmissing_hhcode":bool(model.hhcode.notna().all() and model.hhcode.is_unique),"inputs":input_meta,"outputs":out_meta,"proxy_excluded_from_modelling_table":["pc_cons","label_high_vuln"],"notes":["fies_item_responses_pending.csv remains a separate raw-form extract.","material durability remains unknown because DCS rule is unavailable locally.","all joins are one-to-one validated and preserve the 6,847-row household core."]}
+    manifest={"pipeline_version":"0.2.0","scope":"Data engineering only; no fuzzy/Bayesian model, scoring, ranking, imputation or eligibility decisions.","household_rows":len(model),"unique_nonmissing_hhcode":bool(model.hhcode.notna().all() and model.hhcode.is_unique),"inputs":input_meta,"outputs":out_meta,"proxy_excluded_from_modelling_table":["pc_cons","label_high_vuln"],"notes":["fies_item_responses_pending.csv remains a separate raw-form extract.","D-03a material lookup applied exactly; every unspecified material row remains blank/unknown.","codebook crosscheck and decision log are included as input references.","all joins are one-to-one validated and preserve the 6,847-row household core."]}
     (OUT/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     # Final validations.
     if len(model)!=6847 or model.hhcode.isna().any() or model.hhcode.duplicated().any(): raise AssertionError("Model input key/row validation failed")
     if {"pc_cons","label_high_vuln","pc_cons_prepared_unvalidated","label_high_vuln_prepared_unvalidated"}&set(model.columns): raise AssertionError("Proxy leaked into modelling table")
-    if not model["c1_04_durability_class"].eq("unknown").all() or not model["c1_05_durability_class"].eq("unknown").all() or not model["c1_06_durability_class"].eq("unknown").all(): raise AssertionError("Unapproved material classification detected")
     for xcol in owned_cols:
         if not set(model[xcol].dropna().unique()).issubset({0,1}): raise AssertionError(f"Invalid owned flag {xcol}")
     print(f"Stage 3 outputs built: {len(model)} household rows; {len(model.columns)} columns; unique hhcode={model.hhcode.is_unique}")

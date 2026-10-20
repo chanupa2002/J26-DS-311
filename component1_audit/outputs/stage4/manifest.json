@@ -6,11 +6,11 @@
   "household_rows": 6847,
   "inputs": {
     "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv": {
-      "sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
       "rows": 6847
     },
     "component1_audit\\outputs\\stage3\\column_dictionary.csv": {
-      "sha256": "975d3365d627339e59670aefd13faad094c9d99356acba8dc588342af9bad2aa",
+      "sha256": "01bb38b02345c28e68e158305e3cbe488f56f1e9226d5281509c39e6d24f3f23",
       "rows": 75
     },
     "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py": {
@@ -24,47 +24,55 @@
     "component1_audit\\docs\\spec_v0_1_decision_log.md": {
       "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4",
       "rows": null
+    },
+    "component1_audit\\docs\\codebook_crosscheck_v0_1.md": {
+      "sha256": "76420beebd2bbab5b70a209da1003f5b18e6e3e9c9a551e5127264ef099aec5e",
+      "rows": null
     }
   },
   "outputs": {
+    "domain_housing_n_used_before_after.csv": {
+      "sha256": "8c022e67dd64f12e134c3d721f171fc565761c16a8f6c7d2e9d6ddaf6f653ae9",
+      "rows": 6
+    },
     "domain_n_used_distributions.csv": {
-      "sha256": "334f5ce1227c974030fe26d170e05fe09cd8ca4b5a74c74a69795a240e43362d",
-      "rows": 7
+      "sha256": "7a3038c3c7ae0da16fc9bac0e2672a5b98c0adc471394fbb57276c441d1fbea7",
+      "rows": 9
     },
     "fuzzy_adapter.py": {
       "sha256": "0df868b424afdbe852784de35679f00c8a61220bbe98738b499d7e69f620ccf0",
       "rows": null
     },
     "fuzzy_scores_v0_1.csv": {
-      "sha256": "02afb9bfc1418bf085260e5263f9488c9087ffb69c5e39e45b9dceba48835d17",
+      "sha256": "9984295d324ce9f14b8c8250542784de18734e623db8234b31a6104d27958c45",
       "rows": 6847
     },
     "fuzzy_validation.md": {
-      "sha256": "1ce070cdd18a4a0a228ddd682a4a1ed795535192d54cf568b2defdaef02dfedf",
+      "sha256": "001c24d7f85b26e6dcd946fc195cc14fd82bed25282e2b2363eb74fa68fa99a0",
       "rows": null
     },
     "input_coverage.csv": {
-      "sha256": "4bc6a9ba391f14a4ab73b3d493bde4a2eab09a9de6292ebf5f5073a098883c95",
+      "sha256": "2eac18e1ed9d246c02faa8419998f68385ac913db64047a94bf105cf67617f64",
       "rows": 17
     },
     "membership_distributions.csv": {
-      "sha256": "ea82052d0cdb8b50df07760ac69e6e594a5e468139ea9e50dbb2557694e358b1",
-      "rows": 521
+      "sha256": "98d29d26b7a77b36449191e337c16ebcc1cf27744b9934c7d91c6fbe9b693e2e",
+      "rows": 524
     },
     "open_questions.md": {
-      "sha256": "d591d9fb15acb3ea227f45067e29fd311d461f977a1556c51333cdf51df4e2f0",
+      "sha256": "41c24fd6120a207d9ed2286d9f4a1616f95e7b4c85a7b7c5a34f66a6eaf13c3f",
       "rows": null
     },
     "prerequisite_check.csv": {
-      "sha256": "f94090703331010c15c3bf23a28bfaa96a35f01ee5d6374af22a1b088a1bac3d",
-      "rows": 5
+      "sha256": "fd097e3ce726c93e3662bd09f4ea6b4777c415773f23edf70c16ec92a71f77e9",
+      "rows": 6
     },
     "reference_v0_1.json": {
-      "sha256": "15490a881ef104dcc79359647a748e7ab5ca4be26aebdbcab1c4240692a99033",
+      "sha256": "e78371d2a93f0872f3e13af197c891ee2d0dde4f9d4dadbdfaa9c5e414887e26",
       "rows": null
     },
     "run_stage4.py": {
-      "sha256": "d3dcd54704ca276ce563f2d9aec1909beb89670475dfe6f6fe095dc2901d24bf",
+      "sha256": "e368b7e78c8dd1f88a6e6f09836a2520f9bf47bb908148e2e4d0091ba7a668bc",
       "rows": null
     },
     "stage3_input_coverage.csv": {
@@ -72,7 +80,7 @@
       "rows": 12
     },
     "stage4_summary.md": {
-      "sha256": "b3fc33e34e57047e24bb0947f46807db22068c72307715c2129e099416c3fe04",
+      "sha256": "fe25aef970a2bb3fc6ddb60c18f83df20a2c83ffacabdda93394aa47b8eebd3c",
       "rows": null
     },
     "test_fuzzy_adapter.py": {
@@ -80,7 +88,7 @@
       "rows": null
     },
     "toilet_score_correction_comparison.json": {
-      "sha256": "7d90304d8f8b2eb3a313a9d764f61ce7ef5d5e26785809837e2f0e1f14ab0305",
+      "sha256": "4293e61c1a110260362efc0879536fc01ba3612555c894f3a5377881868e9fbd",
       "rows": null
     },
     "toilet_service_cross_tab.csv": {
@@ -88,47 +96,55 @@
       "rows": 5
     },
     "sensitivity\\age_cutoff_60plus.csv": {
-      "sha256": "48368d80788ebda5ead8673bb57f53823946ad6746705d173949039ef68d66ad",
+      "sha256": "89a6afddf1782ae65d46eef529f63f42eb6ac2adf951b130119d1ef707d81466",
       "rows": 6847
     },
     "sensitivity\\crowding_mid3_half0.5.csv": {
-      "sha256": "1ef153ec949d5f4108117aa0c6ab989102c2e162c3c11b0ddaab814422b7f166",
+      "sha256": "0ed3d426e727539f9a67cd485a66f7472b957d2fdcead5924928abd976ae2b36",
       "rows": 6847
     },
     "sensitivity\\crowding_mid3_half1.5.csv": {
-      "sha256": "1d9c508e979ad2702169f012a9d051fb136e285658ebde9bda04370ea5c9eaed",
+      "sha256": "81e03bd6bf64da933b84f099d77c92e9c536a598e37b17095985752ef9924330",
       "rows": 6847
     },
     "sensitivity\\crowding_mid4_half0.5.csv": {
-      "sha256": "c2288ddc6c80452ae4b9dd065b7630c0dbfb344b2869a85e00dd7a548b248d25",
+      "sha256": "c6430e924a46df41f4b9966d87ba17e1297e0c01617d2e64821df4e4916d67f3",
       "rows": 6847
     },
     "sensitivity\\crowding_mid4_half1.5.csv": {
-      "sha256": "aacba733aad3c5faf0a42e90200e0b3ae1028e00138404b27b6b43052f02b146",
+      "sha256": "6d2900f258c52413c50c415cb40512416dc5b1f0a54ae9fb3cc3302f51c573ab",
       "rows": 6847
     },
     "sensitivity\\domain_max.csv": {
-      "sha256": "ffba515601ff940bde4caa2c22f6b10ef1463550d8f85e2556139350b4b9a368",
+      "sha256": "ca6309ab9de24a34817fb99de68d9644ac275838f884227fc8da59029ede8524",
       "rows": 6847
     },
     "sensitivity\\domain_min.csv": {
-      "sha256": "de5db5e2fe8b05e98deb9b400122619fba8da3289990211eabba2ddcac0ef07c",
+      "sha256": "b930ff16c5a75d118815115f2a9898c2033bc865bb830c064758407a4e7ee1c5",
+      "rows": 6847
+    },
+    "sensitivity\\roof_codes4_5_durable.csv": {
+      "sha256": "e51fc67973d624818b1099bd07ee5484a7184e686541cf6b2598c8b8044253c2",
       "rows": 6847
     },
     "sensitivity\\sensitivity_comparison.csv": {
-      "sha256": "9527a402a4ccfd6bc6ce816426fa6ef06ee0238e57978f8edff3f5bb446bc2e2",
-      "rows": 40
+      "sha256": "916aa0db519d73bb4ef1d0c8ea4cb443390334e753784e10d0e5eef08e21eba8",
+      "rows": 48
     },
     "sensitivity\\sensitivity_notes.md": {
-      "sha256": "143578fb5e5b4d0315d55dffde9f7a3ac784bd61bccb1932fe256f5bfd80c790",
+      "sha256": "a25a57e0e9609146ba6c9a9b18f960302a92925405b9158e9b852017f8aa3af9",
       "rows": null
     },
     "sensitivity\\tenure_codes_7_8_insecure.csv": {
-      "sha256": "02afb9bfc1418bf085260e5263f9488c9087ffb69c5e39e45b9dceba48835d17",
+      "sha256": "9984295d324ce9f14b8c8250542784de18734e623db8234b31a6104d27958c45",
       "rows": 6847
     },
     "sensitivity\\toilet_type_only.csv": {
-      "sha256": "5bf90cf3f7c2d1f7ac97d13d2888860148d6a3ba5ab3b564f69ba853837363f9",
+      "sha256": "7e3bff420229d50c77fd026b3630ae03b8cbd8afe01807d6e1fbc7f24027d7f8",
+      "rows": 6847
+    },
+    "sensitivity\\wall_cabook_durable.csv": {
+      "sha256": "0df2617b9b1655b17da4847159d3a28c566ec6a8ea0ab2ea7c72e9f1b1668740",
       "rows": 6847
     }
   }

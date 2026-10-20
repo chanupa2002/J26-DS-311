@@ -19,6 +19,7 @@ INPUT = STAGE3 / "modelling_inputs_v0_1.csv"
 DICTIONARY = STAGE3 / "column_dictionary.csv"
 ENGINE_FILE = ENGINE_DIR / "fuzzy_v0_1.py"
 SPEC = ROOT / "component1_audit/docs/spec_v0_1_decision_log.md"
+CODEBOOK = ROOT / "component1_audit/docs/codebook_crosscheck_v0_1.md"
 SENS = OUT / "sensitivity"
 
 def sha(path):
@@ -96,6 +97,16 @@ def comparison_rows(baseline, scenario, name):
                      "level_change_share": changed, "level_comparison_n": int(comparable.sum()), "status": "run"})
     return rows
 
+def housing_n_used_rows(scores, stage):
+    rows=[]
+    if scores is None or "dom_housing_n_used" not in scores:
+        return rows
+    vc=scores["dom_housing_n_used"].value_counts(dropna=False).sort_index()
+    for n_used,count in vc.items():
+        rows.append({"research_label":LABEL,"stage":stage,"domain":"housing",
+                     "n_used":int(n_used),"households_n":int(count),"n_total":len(engine.DOMAINS["housing"])})
+    return rows
+
 def baseline_validation(stage3, engine_input, memberships, scores, refs):
     blocks=[]
     for col in memberships.columns:
@@ -161,7 +172,19 @@ def run_sensitivities(stage3, adapted, refs, baseline):
     ten=engine.score_households(tenure,refs)
     save_csv(pd.concat([adapted[["hhcode"]].reset_index(drop=True),ten.drop(columns=["hhcode"],errors="ignore").reset_index(drop=True)],axis=1),SENS/"tenure_codes_7_8_insecure.csv")
     comparisons += comparison_rows(baseline,ten,"tenure_codes_7_8_insecure")
-    # (d) Toilet type only: deliberately ignore sharing and map type to the
+    # (d) D-03a sensitivity: treat the C1_04 Cabook code 4 as durable.
+    wall_cabook=as_scoring_input(adapted).copy()
+    wall_cabook.loc[pd.to_numeric(stage3["c1_04"],errors="coerce").eq(4),"wall_durability"]="durable"
+    wall_score=engine.score_households(wall_cabook,refs)
+    save_csv(pd.concat([adapted[["hhcode"]].reset_index(drop=True),wall_score.drop(columns=["hhcode"],errors="ignore").reset_index(drop=True)],axis=1),SENS/"wall_cabook_durable.csv")
+    comparisons += comparison_rows(baseline,wall_score,"wall_cabook_durable")
+    # (e) D-03a sensitivity: treat roof codes 4 and 5 as durable.
+    roof_alt=as_scoring_input(adapted).copy()
+    roof_alt.loc[pd.to_numeric(stage3["c1_06"],errors="coerce").isin([4,5]),"roof_durability"]="durable"
+    roof_score=engine.score_households(roof_alt,refs)
+    save_csv(pd.concat([adapted[["hhcode"]].reset_index(drop=True),roof_score.drop(columns=["hhcode"],errors="ignore").reset_index(drop=True)],axis=1),SENS/"roof_codes4_5_durable.csv")
+    comparisons += comparison_rows(baseline,roof_score,"roof_codes4_5_durable")
+    # (f) Toilet type only: deliberately ignore sharing and map type to the
     # corresponding type-level service degree for this requested sensitivity.
     toilet_only=as_scoring_input(adapted).copy()
     t=stage3["toilet_type_class"].astype("string")
@@ -169,12 +192,12 @@ def run_sensitivities(stage3, adapted, refs, baseline):
     type_score=engine.score_households(toilet_only,refs)
     save_csv(pd.concat([adapted[["hhcode"]].reset_index(drop=True),type_score.drop(columns=["hhcode"],errors="ignore").reset_index(drop=True)],axis=1),SENS/"toilet_type_only.csv")
     comparisons += comparison_rows(baseline,type_score,"toilet_type_only")
-    # (e) No approved prorating formula specifies how to scale one/two invalid items.
+    # (g) No approved prorating formula specifies how to scale one/two invalid items.
     comparisons += [{"research_label":LABEL,"scenario":"fies_prorated_1_or_2_invalid_not_run","domain":domain,
                      "spearman_rho":np.nan,"spearman_n":0,"level_change_share":np.nan,
                      "level_comparison_n":0,"status":"not_run: prorating formula unspecified"}
                     for domain in engine.DOMAINS]
-    # (f) Domain aggregation alternatives, preserving the same memberships.
+    # (h) Domain aggregation alternatives, preserving the same memberships.
     for op in ["min","max"]:
         op_score=score_operator(as_scoring_input(adapted),refs,op)
         save_csv(pd.concat([adapted[["hhcode"]].reset_index(drop=True),op_score.drop(columns=["hhcode"],errors="ignore").reset_index(drop=True)],axis=1),SENS/f"domain_{op}.csv")
@@ -183,7 +206,7 @@ def run_sensitivities(stage3, adapted, refs, baseline):
     save_csv(comparison,SENS/"sensitivity_comparison.csv")
     (SENS/"sensitivity_notes.md").write_text(
       f"{LABEL}\n\n# Sensitivity notes\n\n"
-      "Crowding runs use the specified midpoint/half-width grid and the frozen baseline references. The 60+ age run uses n_15_59/n_60plus and re-fits only the dependency reference to the alternate dependency-ratio distribution. Tenure codes 7/8 as insecure reproduces the approved D-05 baseline mapping and is expected to be a no-op. The toilet-type-only sensitivity ignores sharing by assigning the engine's basic degree to improved toilet types. Domain min/max operators replace the approved mean only for the sensitivity files.\n\n"
+      "Crowding runs use the specified midpoint/half-width grid and the frozen baseline references. The 60+ age run uses n_15_59/n_60plus and re-fits only the dependency reference to the alternate dependency-ratio distribution. Tenure codes 7/8 as insecure reproduces the approved D-05 baseline mapping and is expected to be a no-op. Labelled D-03a sensitivities treat C1_04 code 4 (Cabook) as durable and C1_06 codes 4/5 as durable; each has its own scored file. The toilet-type-only sensitivity ignores sharing by assigning the engine's basic degree to improved toilet types. Domain min/max operators replace the approved mean only for the sensitivity files.\n\n"
       "FIES prorating was not run: the approved decision log calls for a one/two-item prorated-score sensitivity but does not specify the prorating formula or the denominator treatment. No new formula was assumed.\n",encoding="utf-8")
 
 def main():
@@ -194,12 +217,14 @@ def main():
         raise ValueError("Stage 3 input must have 6,847 unique nonmissing household keys")
     if {"pc_cons","label_high_vuln"} & set(stage3.columns):
         raise ValueError("Proxy columns are forbidden in every Stage 4 input")
+    previous_score_path=OUT/"fuzzy_scores_v0_1.csv"
+    before_score=pd.read_csv(previous_score_path,low_memory=False) if previous_score_path.is_file() else None
     adapted,coverage=adapt(stage3)
     if adapted.hhcode.isna().any() or adapted.hhcode.duplicated().any(): raise ValueError("Adapter key check failed")
     save_csv(coverage,OUT/"input_coverage.csv")
     prereq=[]
     for name,path in [("Stage 3 modelling input",INPUT),("Stage 3 column dictionary",DICTIONARY),
-                      ("Reference fuzzy engine",ENGINE_FILE),("Reference engine tests",ENGINE_DIR/"test_fuzzy_v0_1.py"),("Approved decision log",SPEC)]:
+                      ("Reference fuzzy engine",ENGINE_FILE),("Reference engine tests",ENGINE_DIR/"test_fuzzy_v0_1.py"),("Approved decision log",SPEC),("Authoritative codebook crosscheck",CODEBOOK)]:
         prereq.append({"research_label":LABEL,"input":str(path.relative_to(ROOT)),
                        "status":"present" if path.is_file() else "missing",
                        "sha256":sha(path) if path.is_file() else "",
@@ -229,6 +254,8 @@ def main():
     score=pd.concat([adapted[["hhcode"]].reset_index(drop=True),baseline.reset_index(drop=True)],axis=1)
     score.insert(0,"research_label",LABEL)
     save_csv(score,OUT/"fuzzy_scores_v0_1.csv")
+    n_used_rows=housing_n_used_rows(before_score,"before rebuild")+housing_n_used_rows(baseline,"after rebuild")
+    save_csv(pd.DataFrame(n_used_rows),OUT/"domain_housing_n_used_before_after.csv")
     service_tab=pd.crosstab(stage3["toilet_service_class"],stage3["toilet_type_class"],dropna=False)
     service_tab.index.name="toilet_service_class"
     save_csv(service_tab.reset_index(),OUT/"toilet_service_cross_tab.csv")
@@ -259,8 +286,8 @@ def main():
     open_questions=[
       "D-04b correction applied: C1_10 codebook is 0=not shared and 1=shared for this cleaned file only; other values are unknown. This overrides the questionnaire's 1/2 convention for C1_10, with no other variable recoded.",
       "FIES prorated score sensitivity not run because D-01 does not specify how to prorate a raw score with one or two invalid items; no formula was invented.",
-      "Stage 3 material durability fields are all the literal value `unknown` because the local DCS rule was unavailable in Stage 3; the adapter passes these as NaN. No material memberships can be observed.",
-      "The supplied codebook rule for d_12-d_16 (0=No, 1=Yes; owned=1) is applied in Stage 3 only to those five variables. Stage 4 consumes the resulting asset_types_owned_n and asset_items_valid_n. The named docs/codebook_crosscheck_v0_1.md was not present in the workspace, so this build relies on the explicit code facts in the task.",
+      "D-03a material durability classes use the specified Stage 3 lookup; all other codes remain unknown and are passed as NaN.",
+      "The authoritative codebook crosscheck agrees with the Stage 3 handling of C1_10, d_12-d_16, the 18-item asset set, FIES codes, and hh_type. See stage3/codebook_rule_confirmation.md for the line references. The Stage 4 manifest hashes the crosscheck file.",
       "Stage 3 reports b0_01a/b0_01b failure counts and household-size/dependency counterfactuals in checks/A8_roster_flag_counterfactuals.csv, assuming raw flag=0 means fail for the diagnostic. Neither flag is applied to Stage 3 or Stage 4 inputs.",
       "The engine default MIN_VALID_ASSETS=None is retained: no minimum asset-item completeness threshold is enforced. D-10 leaves the denominator rule open; Stage 4 does not add a threshold.",
       "The crowding midpoint 3/half-width 1, TENURE_DEGREE and TOILET_DEGREE equal-spaced ordinal mappings, and soft low/medium/high boundaries are researcher judgements retained from the reference engine, not validated standards. The requested crowding perturbations are reported separately.",
@@ -273,13 +300,15 @@ def main():
     summary=(f"{LABEL}\n\n# Stage 4 fuzzy layer v0.1 summary\n\n"
       f"Integrated engine `{engine.MODEL_VERSION}` with {len(stage3):,} Stage 3 households. Created frozen income, asset and dependency empirical references; per-input memberships, domain degrees, n_used/n_total and soft levels; validation and sensitivity artifacts. No overall vulnerability score or ranking was produced.\n\n"
       f"Validation: unique household keys and expected row count passed; proxy columns absent; single-household/full-batch equivalence={validation['single_equals_batch']}; all-domain-unknown households={all_unknown:,}. Per-output [0,1] checks are recorded in `fuzzy_validation.md`.\n\n"
-      f"Toilet correction: `mu_toilet` is observed for {int(baseline.mu_toilet.notna().sum()):,} households. Compared with the previous score, {toilet_change.get('households_with_changed_mu_toilet','not available')} households changed; details are in `toilet_score_correction_comparison.json`.\n\n"
+      f"Membership coverage: mu_toilet={int(baseline.mu_toilet.notna().sum()):,}; mu_wall={int(baseline.mu_wall.notna().sum()):,}; mu_floor={int(baseline.mu_floor.notna().sum()):,}; mu_roof={int(baseline.mu_roof.notna().sum()):,}.\n\n"
+      f"Toilet correction: compared with the previous score, {toilet_change.get('households_with_changed_mu_toilet','not available')} households changed; details are in `toilet_score_correction_comparison.json`.\n\n"
+      "The housing-domain n_used distribution before and after the rebuild is in `domain_housing_n_used_before_after.csv`.\n\n"
       "The `toilet_service_class` by `toilet_type_class` cross-tab is in `toilet_service_cross_tab.csv`.\n\n"
-      "Sensitivity includes four crowding ramp combinations, alternate 60+ age definition, D-05 tenure recoding, toilet type-only (sharing ignored), and domain min/max operators. Sensitivity Spearman correlations and largest-soft-membership level change shares are in `sensitivity/sensitivity_comparison.csv`. FIES prorating was not run because its scaling rule is unspecified.\n\n"
+      "Sensitivity includes four crowding ramp combinations, alternate 60+ age definition, D-05 tenure recoding, Cabook-durable wall, roof codes 4/5 durable, toilet type-only (sharing ignored), and domain min/max operators. Sensitivity Spearman correlations and largest-soft-membership level change shares are in `sensitivity/sensitivity_comparison.csv`. FIES prorating was not run because its scaling rule is unspecified.\n\n"
       "## Open questions\n\n"
       "1. FIES prorating for one or two invalid items remains unrun because D-01 does not specify a prorating formula.\n"
-      "2. All three Stage 3 material durability fields remain unknown because the local DCS rule was unavailable; no material memberships are observed.\n"
-      "3. Binary ownership fields d_12-d_16 remain partly missing under the registered 1/2 versus cleaned 0/1 mismatch; Stage 4 uses the existing asset aggregate unchanged.\n"
+      "2. D-03a leaves unspecified material response codes blank in the lookup; those households remain unknown for the corresponding material membership.\n"
+      "3. d_12-d_16 use the codebook 0/1 rule (owned=1) in Stage 3 only; the codebook confirms this applies only to these five asset variables.\n"
       "4. `MIN_VALID_ASSETS=None` is retained; D-10 leaves the valid-item denominator threshold open, so no threshold is enforced.\n"
       "5. Crowding midpoint 3/half-width 1, equal-spaced TENURE_DEGREE and TOILET_DEGREE, and triangular soft low/medium/high boundaries are researcher judgements retained from the engine, not validated standards; crowding alternatives are reported in sensitivity outputs.\n"
       "6. Sanitation codes 5 and 10 remain unconfirmed by Stage 3; the toilet-type-only run does not resolve them.\n"
@@ -288,7 +317,7 @@ def main():
     (OUT/"stage4_summary.md").write_text(summary,encoding="utf-8")
     # Manifest is assembled last; household-level CSVs are git-ignored by the project.
     files=[p for p in OUT.rglob("*") if p.is_file() and p.name!="manifest.json" and "__pycache__" not in p.parts and p.suffix!=".pyc"]
-    inputs=[INPUT,DICTIONARY,ENGINE_FILE,ENGINE_DIR/"test_fuzzy_v0_1.py",SPEC]
+    inputs=[INPUT,DICTIONARY,ENGINE_FILE,ENGINE_DIR/"test_fuzzy_v0_1.py",SPEC,CODEBOOK]
     manifest={"research_label":LABEL,"stage_version":"4.0.1","engine_model_version":engine.MODEL_VERSION,
       "spec_version":engine.SPEC_VERSION,"household_rows":len(stage3),"inputs":{},"outputs":{}}
     for p in inputs:

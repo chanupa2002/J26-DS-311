@@ -3,7 +3,7 @@
   "model_version": "fuzzy-0.1.0",
   "spec_version": "0.1",
   "stage3_input": "component1_audit/outputs/stage3/modelling_inputs_v0_1.csv",
-  "stage3_input_sha256": "fe77147166a0093fbdd64215be9cc85d949f87c77a120e1da1246721318a6f47",
+  "stage3_input_sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
   "fit_rows": 6847,
   "reference_method": "Engine Reference empirical mid-rank CDF; income, asset_types_owned_n, dependency_ratio; no-worker dependency excluded from fit as engine defines.",
   "defaults": {

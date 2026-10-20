@@ -33,6 +33,10 @@ class Stage3DerivationTests(unittest.TestCase):
         self.assertEqual(s.tenure_class(5), "intermediate")
         self.assertEqual(s.tenure_class(8), "insecure")
         self.assertEqual(s.material_class(1, {}), "unknown")
+        self.assertEqual(s.material_class(4, {"4": "non_durable"}), "non_durable")
+        self.assertEqual(s.material_class(5, {"4": "non_durable"}), "unknown")
+        self.assertEqual(s.material_class(4, {"4": "non_durable"}), "non_durable")
+        self.assertEqual(s.material_class(5, {"4": "non_durable"}), "unknown")
 
     def test_d04b_c1_10_codebook_mapping(self):
         self.assertEqual(s.toilet_sharing_class(0), "not shared")

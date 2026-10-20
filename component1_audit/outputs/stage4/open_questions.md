@@ -6,9 +6,9 @@ Research output - not an eligibility determination
 
 2. FIES prorated score sensitivity not run because D-01 does not specify how to prorate a raw score with one or two invalid items; no formula was invented.
 
-3. Stage 3 material durability fields are all the literal value `unknown` because the local DCS rule was unavailable in Stage 3; the adapter passes these as NaN. No material memberships can be observed.
+3. D-03a material durability classes use the specified Stage 3 lookup; all other codes remain unknown and are passed as NaN.
 
-4. The supplied codebook rule for d_12-d_16 (0=No, 1=Yes; owned=1) is applied in Stage 3 only to those five variables. Stage 4 consumes the resulting asset_types_owned_n and asset_items_valid_n. The named docs/codebook_crosscheck_v0_1.md was not present in the workspace, so this build relies on the explicit code facts in the task.
+4. The authoritative codebook crosscheck agrees with the Stage 3 handling of C1_10, d_12-d_16, the 18-item asset set, FIES codes, and hh_type. See stage3/codebook_rule_confirmation.md for the line references. The Stage 4 manifest hashes the crosscheck file.
 
 5. Stage 3 reports b0_01a/b0_01b failure counts and household-size/dependency counterfactuals in checks/A8_roster_flag_counterfactuals.csv, assuming raw flag=0 means fail for the diagnostic. Neither flag is applied to Stage 3 or Stage 4 inputs.
 
