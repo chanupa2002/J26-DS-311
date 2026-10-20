@@ -1,6 +1,6 @@
 # market_risk — Backend Implementation Plan
 
-Status: plan agreed (step 2). The open questions are answered in §5. In step 2 the notebook outputs were cleared and `sample_data/predict_request_example.json` was added. No API code has been written yet.
+Status: **ALL STEPS DONE** (step 8, final). See §7 for progress. The NDA check is **pending supervisor sign-off**.
 Owner: @Chamosithmini. Every file below is inside `backend/app/components/market_risk/`.
 
 ---
@@ -14,7 +14,7 @@ Owner: @Chamosithmini. Every file below is inside `backend/app/components/market
 | The 3M and 6M models use **identical** `feature_names_in_order`, `numeric_features`, `categorical_levels` and `feature_schema.json`. | diff of both `metadata.json` / `feature_schema.json` | One request schema serves both horizons |
 | The pipeline is `ColumnTransformer` → numeric: `SimpleImputer(median, add_indicator=True)` + `StandardScaler`; categorical: `SimpleImputer(constant "missing")` + `OneHotEncoder(handle_unknown="ignore")` → `RandomForestClassifier`. `classes_ = [0,1,2]` → Low/Medium/High via `metadata.classes`. | `joblib.load` inspection | Null numerics are safe (median-imputed). Null or unknown categories are safe (encoded as all zeros). No extra preprocessing is needed in the API |
 | Both models are `deployment_status: "NOT_READY"` with different `deployment_reason`s. | `metadata.json` | Each per-horizon result carries its own `model_status` and `deployment_reason` |
-| `metadata.json` has a `category_mapping` (raw survey names such as `"TRADE"` → `"Trade"`). | `metadata.json` | Optional: accept raw names and map them (see open question Q3) |
+| `metadata.json` has a `category_mapping` (raw survey names such as `"TRADE"` → `"Trade"`). | `metadata.json` | Decided (Q3): raw names are accepted and converted, with a warning |
 | `ml/sustain_predict.py` reloads the model from disk on **every** `predict()` call and reports issues through `warnings.warn`. Its `validate_input(df, meta)` returns `(X, issues)`. | `ml/sustain_predict.py` | Reuse `validate_input` as it is. Add cached loading in `ml/loader.py`. Do not call `sustain_predict.predict()` from the API |
 | The model was trained with scikit-learn 1.6.1, which matches `requirements.txt`. joblib is 1.6.0 at training vs 1.4.2 pinned; numpy is 2.1.3 vs 2.0.2 pinned. Loading was already tested and works. | `metadata.software_versions`, `requirements.txt` | The loader checks the sklearn version strictly, like livelihood's loader. joblib/numpy differences are only noted |
 | `livelihood_planning`'s loader raises `RuntimeError` on an sklearn version mismatch and uses `lru_cache(maxsize=1)`. Its router dumps the request with `model_dump()` and calls a function. Its responses carry `placeholder`, `confidence` and `notes`. | `livelihood_planning/router.py`, `schemas.py`, `model_1_recommend/loader.py` | Same style here |
@@ -107,7 +107,7 @@ All of these live on the existing `router = APIRouter(prefix="/api/risk", tags=[
 | Bad `horizon`, wrong type, extra or missing key | 422 | FastAPI's default validation error |
 | Model file, metadata or feature schema missing | 503 | `{"detail": "market_risk model 3M is unavailable: <reason>"}` |
 | Installed sklearn ≠ 1.6.1 | 503 | `{"detail": "... requires scikit-learn 1.6.1, but X is installed"}` |
-| `validate_input` raises `ValueError` (should be unreachable after pydantic) | 422 | `{"detail": "<message>"}` |
+| Any other unexpected server error (for example `metadata.json` missing a key, which the loader raises as `ValueError`) | 500 | FastAPI's generic `Internal Server Error`, with no stack trace |
 
 ### 1.3 `GET /api/risk/model-info` (new, optional)
 
@@ -152,23 +152,25 @@ Query: `?horizon=3M|6M` (optional; returns both if omitted). This reads only the
 
 | File | Action | Contents |
 |---|---|---|
-| `ml/loader.py` | **Edit** (replace the template `NotImplementedError`) | `MODELS_DIR = ML_DIR / "models"`, `HORIZONS = ("3M", "6M")`. `load_metadata(horizon)` (lru_cache) reads `metadata.json` + `feature_schema.json` and needs no sklearn. `load_model(horizon)` (lru_cache) checks that the files exist (`FileNotFoundError`), checks `sklearn.__version__ == metadata.software_versions["scikit-learn"]` (`RuntimeError`, as livelihood does), then calls `joblib.load`. Heavy imports stay inside the function, so the server starts fast. Rejects any horizon that is not in `HORIZONS` |
-| `ml/sustain_predict.py` | **No change** | This is the Colab export. The API imports only `validate_input`. It stays as the record of the notebook's logic |
-| `schemas.py` | **Edit** (keep `HealthResponse`) | `Horizon = Literal["3M","6M"]`, `HorizonOption = Literal["3M","6M","both"]`. `MarketRiskFeatures(BaseModel)` has 53 explicit fields (51 `float \| None`, 2 `str \| None`, all **required with no default**, per Q1) in the same order as metadata, with `model_config = ConfigDict(extra="forbid")` and a `Field(description=...)` taken from `feature_schema.json`, so Swagger documents each one. `PredictRequest {horizon: HorizonOption = "both", features: MarketRiskFeatures}` with a `json_schema_extra` example. `HorizonPrediction`, `PredictResponse`, `ModelSummary`, `FeatureInfo`, `ModelInfoResponse` match §1. Fields are written out explicitly, not made with `create_model`, so the contract is readable and diff-able. A test guards it against drift from metadata |
-| `services.py` | **Edit** (keep `get_status`) | Public `predict_market_risk(features: dict, horizon: str = "both") -> dict` replaces the placeholder and returns the §1.2 response dict. Steps: resolve horizons → convert `F_Category` with `category_mapping` and add a warning when it converts (Q3; private helper `_normalise_category`) → build a 1-row `pd.DataFrame` in `feature_names_in_order` → collect the null-numeric warning → for each horizon `load_model`, `validate_input` (with `warnings.catch_warnings()`, so issues are returned rather than printed twice) → `predict_proba` → map class indices through `metadata.classes`. Public `get_model_info(horizon: str \| None = None) -> dict`. The module docstring documents both functions for `docs/CONTRACTS.md` |
-| `router.py` | **Edit** (keep `/health`) | `POST /predict` (`response_model=PredictResponse`) calls `services.predict_market_risk(request.features.model_dump(), request.horizon)`. `GET /model-info` (`response_model=ModelInfoResponse`, `horizon: Horizon \| None = None`). This file maps `FileNotFoundError` / `RuntimeError` → `HTTPException(503)` and `ValueError` → `HTTPException(422)` |
-| `run_dev.py` | **No change** | It already includes `router` (port 8004) |
-| `tests/test_health.py` | **No change** | It must keep passing |
-| `tests/test_predict.py` | **Create** | Inputs are built **inline** from `ml/models/3M/metadata.json` (`feature_names_in_order`: numerics = 0.0, `F_Category` / `F_District` = first allowed level). It never reads a CSV. Tests: predict 3M / 6M / both (status 200, 1 or 2 items, keys Low/Medium/High, sum ≈ 1, `predicted_risk` is in the classes, `model_status == "NOT_READY"`, `deployment_reason` is not empty); all numerics null → 200 + warning; unknown district → 200 + warning that mentions `F_District`; `F_Category: "TRADE"` → 200 + conversion warning, with the same probabilities as `"Trade"`; `F_Category: "TRANSPORT & LOGISTICS"` → 200 + unseen-category warning; bad horizon → 422; extra key → 422; missing key → 422 (Q1); `/model-info` returns both models, 53 features, levels; **drift guard**: `list(MarketRiskFeatures.model_fields) == metadata["feature_names_in_order"]` for both horizons; `services.predict_market_risk` called directly (the public contract) |
-| `tests/test_loader.py` | **Create** (small) | `load_model("3M")` is cached (same object twice), an unknown horizon raises, and 3M/6M metadata agree on features and levels (this guards the "one schema" assumption) |
-| `ml/model_info.json` | **Edit** | Fill in `model_name` (both), `trained_on: "SYNTHETIC panel (58 households, 2026-01..2026-09)"`, `trained_in: "Google Colab"`, test metrics per horizon, `library_versions` (from `software_versions`), `deployment_status: "NOT_READY"`, `download_location: null` (files are small: 364 KB / 316 KB) |
-| `ml/DATA_DESCRIPTION.md` | **Edit** | Dataset name, source and target (`Risk_Label_3M/6M`, rule v1.0), the 53 feature names / types / meanings from `feature_schema.json`, cleaning summary, known issues (from `Methodology_Results_Summary.md`). **No real values or rows** |
+| `ml/loader.py` | ✅ **Done (step 3)** | `MODELS_DIR = ML_DIR / "models"`, `HORIZONS`. `load_metadata` / `load_feature_schema` (cached, return copies, no sklearn). `get_model_status` → `{model_status, deployment_reason}`. `load_model(horizon)` → `(model, metadata)`, cached: `FileNotFoundError` if a file is missing, `RuntimeError` if sklearn ≠ the training version or the model doesn't match its metadata. Logs a warning when the model is not READY. `clear_cache()` for tests |
+| `ml/sustain_predict.py` | ✅ **No change** | Colab export. The API imports only `validate_input`. Its `load_model`/`predict` are unused by the API and kept as the notebook record |
+| `schemas.py` | ✅ **Done (step 4)** | `HealthResponse` unchanged. `MarketRiskFeatures` has 53 explicit required, nullable fields (`extra="forbid"`, `allow_inf_nan=False`) with descriptions written from notebook §13, because `feature_schema.json` descriptions are generic. `PredictRequest` uses an example equal to the sample JSON. `RiskProbabilities`, `HorizonPrediction`, `PredictResponse`, `ModelSummary`, `FeatureInfo`, `ModelInfoResponse` |
+| `services.py` | ✅ **Done (step 5)** | `get_status` unchanged. `predict_market_risk(request: PredictRequest \| dict) -> PredictResponse`: per horizon it converts the category, warns about nulls, builds a 1-row DataFrame, runs `validate_input` → `predict_proba`, then maps classes. Warnings are deduplicated. `validate_input`'s own `warnings.warn` is **not** silenced, because `catch_warnings` is not thread-safe. `get_model_info(horizon=None) -> ModelInfoResponse` (metadata only) |
+| `router.py` | ✅ **Done (step 6)** | `/health` unchanged. `POST /predict` and `GET /model-info?horizon=` have summaries and descriptions that mention NOT_READY. `FileNotFoundError` / `RuntimeError` → 503 with a fixed message (the details are logged on the server only). Input errors → FastAPI 422 |
+| `run_dev.py` | ✅ **No change** | It already includes `router` (port 8004) |
+| `tests/test_health.py` | ✅ **No change** | It still passes |
+| `tests/conftest.py`, `tests/test_services.py`, `tests/test_endpoints.py` | ✅ **Done (step 7)** (they replace the planned `test_predict.py`) | Inline inputs from `metadata.json` (no CSV, no `sample_data/`). Services: horizons, probabilities, NOT_READY, warnings, TRADE conversion, all-null, schema-order drift guard, `get_model_info` does not load the models. Endpoints: 200 / 422 (extra, missing, bad horizon, non-numeric) / 503 (missing files, sklearn mismatch) / no internals leaked |
+| `tests/test_loader.py` | ✅ **Done (step 7)** | Load + cache, 3M/6M metadata consistency, copies cannot change the cache, status exposed, unknown horizon, missing model/metadata → `FileNotFoundError`, sklearn mismatch → `RuntimeError` |
+| `ml/model_info.json` | ✅ **Done (step 8)** | Model names, type, target, trained 2026-10-20 in Google Colab, synthetic data basis, NOT_READY, repo locations, per-horizon test metrics + persistence baseline, library versions + notes, NDA pending, `download_location: null` (364 KB / 316 KB) |
+| `ml/DATA_DESCRIPTION.md` | ✅ **Done (step 8)** | Dataset, source, row counts (99 real / 448 synthetic), period, targets, column groups, the 53 features, cleaning, known issues. **No real values or rows**. Two cells are marked "owner to confirm" |
 | `sample_data/predict_request_example.json` | **Created in step 2** | One `PredictRequest` body (`horizon: "both"`) built from synthetic example row 1 of the former `example_input_3M.csv`. Floats are rounded to 4 decimals, blanks become `null` (12 nulls), and keys are in metadata order. Both models score it without error. For Swagger, Postman and the docs only: **tests do not read it** (they build their input inline) |
 | `sample_data/example_input_3M.csv`, `example_input_6M.csv` | **Deleted in step 2** | CSV files are not allowed in `sample_data/` (DATA_AND_MODELS_RULES §5). They were gitignored, so nothing was tracked. `ml/models/*/example_input.csv` stay on this machine only, still gitignored |
 | `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb` | **Outputs cleared in step 2** | `outputs: []` and `execution_count: null` in all code cells (45 had outputs). All 86 cell sources were checked as unchanged, and the JSON formatting (indent 2, UTF-8) was kept |
-| `IMPLEMENTATION_PLAN.md` | This file | |
+| `README.md` | ✅ **Done (step 8)** | What it does, endpoints with examples, run and test commands, features, limitations |
+| `CONTRACTS_UPDATE.md` | ✅ **Done** | Ready-to-paste `docs/CONTRACTS.md` §2 rows for the team lead |
+| `IMPLEMENTATION_PLAN.md` | ✅ This file | |
 
-Commit order: (1) plan ✅ → (2) answered plan + cleared notebook + sample JSON ✅ → (3) `ml/loader.py` + `tests/test_loader.py` → (4) `schemas.py` → (5) `services.py` → (6) `router.py` + `tests/test_predict.py` → (7) `model_info.json` + `DATA_DESCRIPTION.md`.
+Commit order: see §7.
 
 ---
 
@@ -210,14 +212,33 @@ Commit order: (1) plan ✅ → (2) answered plan + cleared notebook + sample JSO
 
 ---
 
-## 6. CHANGES NEEDED OUTSIDE MY FOLDER
+## 6. CHANGES NEEDED OUTSIDE MY FOLDER (final list)
 
-None of these is required to make the endpoints work. Router registration is already automatic. All of them need the project leader's approval, and I will not make any of them.
+None of these is needed for the endpoints to work (router registration is automatic). All of them need the project leader's approval, and none has been made.
 
 | # | File | Exact change | Why |
 |---|---|---|---|
-| 1 | `docs/CONTRACTS.md`, §2 table, row `market_risk \| predict_market_risk \| TBD \| TBD \| Not started` | Input: `features: dict (53 F_* keys, see GET /api/risk/model-info), horizon: "3M"\|"6M"\|"both"`. Output: `{horizon, predictions:[{horizon, model_name, predicted_risk, probabilities{Low,Medium,High}, model_status, deployment_reason}], warnings[], placeholder}`. Status: `In progress (models NOT_READY)`. Add a row for `get_model_info(horizon=None) -> dict` | CONTRACTS §2 says public functions must be listed there. Leader-only (CONTRACTS §4) |
-| 2 | `J26-DS-311.postman_collection.json`, `"market_risk"` folder (currently `"item"` is missing or empty) | Add `risk_health` GET `http://127.0.0.1:8000/api/risk/health`, `risk_predict` POST `.../api/risk/predict` (body = `backend/app/components/market_risk/sample_data/predict_request_example.json`), `risk_model_info` GET `.../api/risk/model-info` | Team testing. It is a repo-root shared file |
-| 3 | ~~Git history of the notebook~~ | **Not needed.** The owner checked that the outputs contain no real row-level data. They were cleared in place in step 2, and history is not rewritten | — |
-| 4 | `docs/DATA_AND_MODELS_RULES.md` §4 | Tick `[ ] Confirmed on ____ by ____` once the supervisor agrees (**pending supervisor sign-off**) | NDA check for committed models |
-| 5 | `backend/requirements.txt`, `# === market_risk (@Chamosithmini) ===` section (optional) | Add the comment line `# uses scikit-learn, numpy, pandas, joblib pinned in livelihood_planning section` and **no package lines** | Records the dependency without duplicating or changing anyone's pins (REQUIREMENTS_RULES 3). This can be skipped entirely |
+| 1 | `docs/CONTRACTS.md`, §2 | Replace the row `\| market_risk \| predict_market_risk \| TBD \| TBD \| Not started \|` with the two rows in `backend/app/components/market_risk/CONTRACTS_UPDATE.md` (`predict_market_risk` and `get_model_info`) | Public functions must be listed there. Leader-only (CONTRACTS §4) |
+| 2 | `J26-DS-311.postman_collection.json`, `"market_risk"` folder (empty) | Add `risk_health` GET `http://127.0.0.1:8000/api/risk/health`; `risk_predict` POST `http://127.0.0.1:8000/api/risk/predict` (raw JSON body = `sample_data/predict_request_example.json`); `risk_model_info` GET `http://127.0.0.1:8000/api/risk/model-info` (optional `?horizon=3M`) | Team testing. Repo-root shared file |
+| 3 | `docs/DATA_AND_MODELS_RULES.md`, §4 | Tick `[ ] Confirmed on ____ by ____` once the supervisor agrees | NDA check for committed models: **pending supervisor sign-off** |
+| 4 | `backend/requirements.txt`, `# === market_risk (@Chamosithmini) ===` (optional) | At most a comment line `# uses scikit-learn, numpy, pandas, joblib pinned in livelihood_planning section`; **no package lines** | Records the dependency without duplicating anyone's pins (REQUIREMENTS_RULES 3). Can be skipped |
+| — | Not needed: git history of the notebook | The owner confirmed the old outputs had no real row-level data. They were cleared in place, and history is not rewritten | — |
+
+Owner decision (inside my folder, not done): the notebook source still has Colab / Google Drive paths in cells 1, 3, 5 and 84–85 (`/content/drive` mount, `/content/drive/MyDrive/NEW DATA/...`, `/content/SUSTAIN_outputs`). DATA_AND_MODELS_RULES §2 says "Do not hard-code private file paths". Cell source was left unchanged as instructed. Moving these paths behind the existing `SUSTAIN_INPUT` / `SUSTAIN_OUTPUT` environment variables would need a source edit.
+
+---
+
+## 7. Progress
+
+| Step | What | Status |
+|---|---|---|
+| 1 | Implementation plan | ✅ Done |
+| 2 | Decisions; notebook outputs cleared; sample JSON; local CSVs deleted | ✅ Done |
+| 3 | `ml/loader.py` | ✅ Done |
+| 4 | `schemas.py` | ✅ Done |
+| 5 | `services.py` (+ `CONTRACTS_UPDATE.md`) | ✅ Done |
+| 6 | `router.py` | ✅ Done |
+| 7 | Tests (`conftest.py`, `test_loader.py`, `test_services.py`, `test_endpoints.py`) | ✅ Done: 38 passed |
+| 8 | Review; `model_info.json`; `DATA_DESCRIPTION.md`; `README.md`; this plan | ✅ Done |
+| — | NDA supervisor sign-off (Q7) | ⏳ **Pending supervisor sign-off** |
+| — | Leader-approved shared changes (§6) | ⏳ Waiting for the leader |
