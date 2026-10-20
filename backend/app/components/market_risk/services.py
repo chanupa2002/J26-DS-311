@@ -15,6 +15,14 @@ get_model_info(horizon=None) -> ModelInfoResponse
     Model metadata, the 53 input features and the allowed category levels.
     Reads metadata files only; does not load the models.
 
+identify_current_risk(request) -> IdentifyResponse
+    request is an IdentifyRequest (or a dict with the same shape):
+    {"business_not_running", "no_profit_last_month", "not_progressing_well",
+    "market_stress_any"}, each 0, 1 or null. Applies SUSTAIN-HH-Risk-Rule v1.0
+    (notebook section 12, variant A) and returns risk_class
+    (Low/Medium/High/Unassigned), risk_ord, signal_count, unknown_count,
+    reasons and rule_version. Rule-based; no ML model.
+
 To use the database:  from app.core.database import get_supabase
 """
 
@@ -26,6 +34,8 @@ from app.components.market_risk.schemas import (
     FeatureInfo,
     Horizon,
     HorizonPrediction,
+    IdentifyRequest,
+    IdentifyResponse,
     MarketRiskFeatures,
     ModelInfoResponse,
     ModelSummary,
@@ -34,6 +44,16 @@ from app.components.market_risk.schemas import (
 )
 
 CATEGORY_FEATURE = "F_Category"
+
+RULE_VERSION = "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
+RISK_CLASSES = ("Low", "Medium", "High")
+# The three stress signals of rule variant A, with plain-English labels.
+STRESS_SIGNALS = (
+    ("no_profit_last_month", "No profit last month"),
+    ("not_progressing_well", "Not progressing well"),
+    ("market_stress_any", "Market stress"),
+)
+HIGH_SIGNAL_COUNT = 2
 
 
 def get_status() -> dict:
@@ -154,4 +174,58 @@ def get_model_info(horizon: Horizon | None = None) -> ModelInfoResponse:
         models=models,
         features=features,
         categorical_levels=metadata["categorical_levels"],
+    )
+
+
+def _class_from_count(n_positive: int) -> int:
+    if n_positive >= HIGH_SIGNAL_COUNT:
+        return 2
+    return 1 if n_positive >= 1 else 0
+
+
+def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
+    """Current risk class by SUSTAIN-HH-Risk-Rule v1.0 (notebook section 12, variant A).
+
+    A class is assigned only if it is the same with blanks counted as 0 and as 1.
+    Business not running -> High. Business status blank -> Unassigned unless the
+    signals alone already give High (as in the notebook's risk_rule).
+    """
+    if not isinstance(request, IdentifyRequest):
+        request = IdentifyRequest.model_validate(request)
+    values = request.model_dump()
+    business_not_running = values["business_not_running"]
+
+    positive = [label for key, label in STRESS_SIGNALS if values[key] == 1]
+    unknown = [label for key, label in STRESS_SIGNALS if values[key] is None]
+    best_case = _class_from_count(len(positive))
+    worst_case = _class_from_count(len(positive) + len(unknown))
+
+    if business_not_running == 1:
+        risk_ord, decision = 2, "Business not running -> High"
+    elif best_case != worst_case:
+        risk_ord, decision = None, "Blank answers could change the class -> Unassigned"
+    elif business_not_running is None and best_case < 2:
+        risk_ord, decision = None, "Business status not answered -> Unassigned"
+    else:
+        risk_ord = best_case
+        decision = {
+            0: "Business running and all three signals answered No -> Low",
+            1: "Exactly one risk signal -> Medium",
+            2: f"{HIGH_SIGNAL_COUNT} or more risk signals -> High",
+        }[risk_ord]
+
+    reasons: list[str] = []
+    if business_not_running is None and not decision.startswith("Business status"):
+        reasons.append("Business status not answered")
+    reasons += positive
+    reasons += [f"Not answered: {label.lower()}" for label in unknown]
+    reasons.append(decision)
+
+    return IdentifyResponse(
+        risk_class="Unassigned" if risk_ord is None else RISK_CLASSES[risk_ord],
+        risk_ord=risk_ord,
+        signal_count=len(positive),
+        unknown_count=len(unknown),
+        reasons=reasons,
+        rule_version=RULE_VERSION,
     )

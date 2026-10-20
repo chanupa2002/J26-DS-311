@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 Horizon = Literal["3M", "6M"]
 HorizonOption = Literal["3M", "6M", "both"]
 RiskClass = Literal["Low", "Medium", "High"]
+CurrentRiskClass = Literal["Low", "Medium", "High", "Unassigned"]
+SignalValue = Literal[0, 1] | None
 
 # Values from sample_data/predict_request_example.json (synthetic example row).
 EXAMPLE_FEATURES: dict[str, float | str | None] = {
@@ -202,3 +204,35 @@ class ModelInfoResponse(BaseModel):
     models: list[ModelSummary]
     features: list[FeatureInfo]
     categorical_levels: dict[str, list[str]]
+
+
+class IdentifyRequest(BaseModel):
+    """Current-visit signals for SUSTAIN-HH-Risk-Rule v1.0. Each is 0, 1 or null (blank)."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "business_not_running": 0,
+                    "no_profit_last_month": 1,
+                    "not_progressing_well": 0,
+                    "market_stress_any": None,
+                }
+            ]
+        },
+    )
+
+    business_not_running: SignalValue = Field(description="1 if the business is not running at this visit, 0 if running, null if not answered.")
+    no_profit_last_month: SignalValue = Field(description="1 if no profit last month, 0 if profit, null if not answered.")
+    not_progressing_well: SignalValue = Field(description="1 if the business is not progressing well, 0 otherwise, null if not answered.")
+    market_stress_any: SignalValue = Field(description="1 if any market stress (sales below expected, high input cost or inputs unavailable), 0 if none, null if not answered.")
+
+
+class IdentifyResponse(BaseModel):
+    risk_class: CurrentRiskClass
+    risk_ord: int | None = Field(description="0/1/2 for Low/Medium/High, null if Unassigned; usable as F_Risk_Ord_t.")
+    signal_count: int = Field(description="Number of the three stress signals equal to 1; usable as F_Risk_Signal_Count_t.")
+    unknown_count: int = Field(description="Number of the three stress signals left blank; usable as F_Risk_Unknown_t.")
+    reasons: list[str]
+    rule_version: str
