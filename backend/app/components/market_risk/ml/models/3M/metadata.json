@@ -1,0 +1,219 @@
+{
+  "model_name": "SUSTAIN_Model_3M",
+  "horizon_months": 3,
+  "target": "Risk_Label_3M",
+  "classes": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "class_encoding": {
+    "Low": 0,
+    "Medium": 1,
+    "High": 2
+  },
+  "algorithm": "RandomForest",
+  "best_params": {
+    "max_depth": 3,
+    "min_samples_leaf": 10
+  },
+  "feature_names_in_order": [
+    "F_Business_Not_Running_t",
+    "F_No_Profit_Last_Month_t",
+    "F_Not_Progressing_Well_t",
+    "F_Revenue_Lowest_Band_t",
+    "F_Sales_Below_Expected_t",
+    "F_High_Input_Cost_t",
+    "F_Inputs_Unavailable_t",
+    "F_Market_Stress_Any_t",
+    "F_Risk_Ord_t",
+    "F_Risk_Signal_Count_t",
+    "F_Risk_Unknown_t",
+    "F_Hours_Ord_t",
+    "F_Records_Ord_t",
+    "F_Grant_Status_Ord_t",
+    "F_Borrowed_t",
+    "F_Saved_t",
+    "F_Cyclone_Affected_t",
+    "F_Female_Head",
+    "F_Asset_Lost_t",
+    "F_Storage_Transport_Issue_t",
+    "F_Machinery_Issue_t",
+    "F_Natural_Disaster_t",
+    "F_Age",
+    "F_Female_Participant",
+    "F_Months_Since_Prev_Visit",
+    "F_Prev_Risk_Ord",
+    "F_Prev_No_Profit_Last_Month",
+    "F_Prev_Market_Stress_Any",
+    "F_Prev_Not_Progressing_Well",
+    "F_Prev_Business_Not_Running",
+    "F_Risk_Change_vs_Prev",
+    "F_Tenure_Months",
+    "F_N_Prior_Visits",
+    "F_Risk_Mean_3M_Window",
+    "F_NoProfit_Rate_3M_Window",
+    "F_MarketStress_Rate_3M_Window",
+    "F_High_Count_6M_Window",
+    "F_Months_Since_Grant",
+    "F_Mkt_Pressure_t",
+    "F_Mkt_Volatility_t",
+    "F_Mkt_Pressure_Change_1M",
+    "F_Mkt_Volatility_Change_1M",
+    "F_Mkt_Pressure_Tier_Ord_t",
+    "F_Mkt_Volatility_Tier_Ord_t",
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+    "F_Mkt_Evidence_Missing",
+    "F_Macro_CCPI_YoY_t",
+    "F_Macro_CCPI_YoY_Change_1M",
+    "F_Macro_Food_Index_Change_1M_pct",
+    "F_Macro_Diesel_t",
+    "F_Macro_Diesel_Change_1M_pct",
+    "F_Category",
+    "F_District"
+  ],
+  "numeric_features": [
+    "F_Business_Not_Running_t",
+    "F_No_Profit_Last_Month_t",
+    "F_Not_Progressing_Well_t",
+    "F_Revenue_Lowest_Band_t",
+    "F_Sales_Below_Expected_t",
+    "F_High_Input_Cost_t",
+    "F_Inputs_Unavailable_t",
+    "F_Market_Stress_Any_t",
+    "F_Risk_Ord_t",
+    "F_Risk_Signal_Count_t",
+    "F_Risk_Unknown_t",
+    "F_Hours_Ord_t",
+    "F_Records_Ord_t",
+    "F_Grant_Status_Ord_t",
+    "F_Borrowed_t",
+    "F_Saved_t",
+    "F_Cyclone_Affected_t",
+    "F_Female_Head",
+    "F_Asset_Lost_t",
+    "F_Storage_Transport_Issue_t",
+    "F_Machinery_Issue_t",
+    "F_Natural_Disaster_t",
+    "F_Age",
+    "F_Female_Participant",
+    "F_Months_Since_Prev_Visit",
+    "F_Prev_Risk_Ord",
+    "F_Prev_No_Profit_Last_Month",
+    "F_Prev_Market_Stress_Any",
+    "F_Prev_Not_Progressing_Well",
+    "F_Prev_Business_Not_Running",
+    "F_Risk_Change_vs_Prev",
+    "F_Tenure_Months",
+    "F_N_Prior_Visits",
+    "F_Risk_Mean_3M_Window",
+    "F_NoProfit_Rate_3M_Window",
+    "F_MarketStress_Rate_3M_Window",
+    "F_High_Count_6M_Window",
+    "F_Months_Since_Grant",
+    "F_Mkt_Pressure_t",
+    "F_Mkt_Volatility_t",
+    "F_Mkt_Pressure_Change_1M",
+    "F_Mkt_Volatility_Change_1M",
+    "F_Mkt_Pressure_Tier_Ord_t",
+    "F_Mkt_Volatility_Tier_Ord_t",
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+    "F_Mkt_Evidence_Missing",
+    "F_Macro_CCPI_YoY_t",
+    "F_Macro_CCPI_YoY_Change_1M",
+    "F_Macro_Food_Index_Change_1M_pct",
+    "F_Macro_Diesel_t",
+    "F_Macro_Diesel_Change_1M_pct"
+  ],
+  "categorical_features": [
+    "F_Category",
+    "F_District"
+  ],
+  "categorical_levels": {
+    "F_Category": [
+      "Agriculture & Plantation Crops",
+      "Construction, Building & Repair",
+      "Food Processing & Production",
+      "Garment & Textile / Handicrafts (combined in source)",
+      "Livestock & Animal Husbandry",
+      "Other",
+      "Trade"
+    ],
+    "F_District": [
+      "Ampara",
+      "Badulla",
+      "Colombo",
+      "Monaragala"
+    ]
+  },
+  "target_generation_method": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)",
+  "target_rule": [
+    {
+      "Class": "High",
+      "Condition": "T_Business_Not_Running = 1 OR count{T_No_Profit_Last_Month, T_Not_Progressing_Well, T_Market_Stress_Any = 1} >= 2"
+    },
+    {
+      "Class": "Medium",
+      "Condition": "Business running AND exactly one of the three signals = 1"
+    },
+    {
+      "Class": "Low",
+      "Condition": "Business running AND all three signals answered = 0"
+    },
+    {
+      "Class": "Unassigned",
+      "Condition": "Class differs between blanks=0 and blanks=1 (insufficient evidence); or business status blank"
+    },
+    {
+      "Class": "-",
+      "Condition": "Signals are counted, not netted: a positive signal is never cancelled by another; market tier does not override household answers"
+    },
+    {
+      "Class": "-",
+      "Condition": "Risk_Label_hM = class of same household's visit in calendar month t+h (h=3,6), exact match, no tolerance"
+    }
+  ],
+  "category_mapping": {
+    "AGRICULTURE & PLANTATION CROPS": "Agriculture & Plantation Crops",
+    "LIVESTOCK & ANIMAL HUSBANDRY": "Livestock & Animal Husbandry",
+    "FOOD PROCESSING & PRODUCTION": "Food Processing & Production",
+    "TRADE": "Trade",
+    "GARMENT TEXTILE, HANDICRAFTS": "Garment & Textile / Handicrafts (combined in source)",
+    "CONSTRUCTION, BUILDING AND REPAIR": "Construction, Building & Repair",
+    "OTHER": "Other",
+    "FISHERIES & AQUACULTURE": "Other",
+    "MISCELLANEOUS": "Other"
+  },
+  "training_period": {
+    "prediction_months": "2026-01..2026-03",
+    "target_months": "2026-04..2026-06"
+  },
+  "validation_methodology": "Embargoed: train prediction months whose target month <= test prediction month; test = prediction month 2026-06; tuning by GroupKFold(4) by household within training set",
+  "test_metrics": {
+    "Accuracy": 0.4359,
+    "Macro_Precision": 0.3103,
+    "Macro_Recall": 0.3117,
+    "Macro_F1": 0.3026,
+    "Balanced_Accuracy": 0.3117,
+    "High_Precision": 0.7,
+    "High_Recall": 0.56
+  },
+  "test_macro_f1_95ci": "[0.194, 0.407]",
+  "persistence_baseline_test_macro_f1": 0.3558,
+  "train_n": 102,
+  "test_n": 39,
+  "data_basis": "SYNTHETIC panel (58 households, 2026-01..2026-09)",
+  "deployment_status": "NOT_READY",
+  "deployment_reason": "trained and tested only on SYNTHETIC rows (source: 'do not use them as evidence'); target rule is new and not validated by experts; no real household can be followed over time (no persistent ID); does not beat the persistence baseline on the test month",
+  "input_sha256": "9732f43f0e7add79e696a169159473ab2c12b4f58eb7e7f5ff16522b409344f2",
+  "software_versions": {
+    "python": "3.13.16",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "scikit-learn": "1.6.1",
+    "xgboost": "3.4.1",
+    "shap": "0.54.1",
+    "joblib": "1.6.0"
+  },
+  "created": "2026-10-20T04:23:25"
+}

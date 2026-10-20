@@ -1,0 +1,269 @@
+{
+  "features": [
+    {
+      "name": "F_Business_Not_Running_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_No_Profit_Last_Month_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Not_Progressing_Well_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Revenue_Lowest_Band_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Sales_Below_Expected_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_High_Input_Cost_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Inputs_Unavailable_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Market_Stress_Any_t",
+      "type": "numeric",
+      "description": "value at visit t"
+    },
+    {
+      "name": "F_Risk_Ord_t",
+      "type": "numeric",
+      "description": "0/1/2 = Low/Medium/High at t"
+    },
+    {
+      "name": "F_Risk_Signal_Count_t",
+      "type": "numeric",
+      "description": "count of 1s"
+    },
+    {
+      "name": "F_Risk_Unknown_t",
+      "type": "numeric",
+      "description": "count of blanks"
+    },
+    {
+      "name": "F_Hours_Ord_t",
+      "type": "numeric",
+      "description": "ordinal coding"
+    },
+    {
+      "name": "F_Records_Ord_t",
+      "type": "numeric",
+      "description": "ordinal coding"
+    },
+    {
+      "name": "F_Grant_Status_Ord_t",
+      "type": "numeric",
+      "description": "ordinal coding"
+    },
+    {
+      "name": "F_Borrowed_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Saved_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Cyclone_Affected_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Female_Head",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Asset_Lost_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Storage_Transport_Issue_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Machinery_Issue_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Natural_Disaster_t",
+      "type": "numeric",
+      "description": "Yes=1, No=0, else blank"
+    },
+    {
+      "name": "F_Age",
+      "type": "numeric",
+      "description": "numeric / Female=1"
+    },
+    {
+      "name": "F_Female_Participant",
+      "type": "numeric",
+      "description": "numeric / Female=1"
+    },
+    {
+      "name": "F_Months_Since_Prev_Visit",
+      "type": "numeric",
+      "description": "elapsed months up to t"
+    },
+    {
+      "name": "F_Prev_Risk_Ord",
+      "type": "numeric",
+      "description": "value at previous visit of same household"
+    },
+    {
+      "name": "F_Prev_No_Profit_Last_Month",
+      "type": "numeric",
+      "description": "value at previous visit of same household"
+    },
+    {
+      "name": "F_Prev_Market_Stress_Any",
+      "type": "numeric",
+      "description": "value at previous visit of same household"
+    },
+    {
+      "name": "F_Prev_Not_Progressing_Well",
+      "type": "numeric",
+      "description": "value at previous visit of same household"
+    },
+    {
+      "name": "F_Prev_Business_Not_Running",
+      "type": "numeric",
+      "description": "value at previous visit of same household"
+    },
+    {
+      "name": "F_Risk_Change_vs_Prev",
+      "type": "numeric",
+      "description": "difference"
+    },
+    {
+      "name": "F_Tenure_Months",
+      "type": "numeric",
+      "description": "elapsed months up to t"
+    },
+    {
+      "name": "F_N_Prior_Visits",
+      "type": "numeric",
+      "description": "elapsed months up to t"
+    },
+    {
+      "name": "F_Risk_Mean_3M_Window",
+      "type": "numeric",
+      "description": "mean (or count of High) over visits in months [t-2,t] (3M) or [t-5,t] (6M)"
+    },
+    {
+      "name": "F_NoProfit_Rate_3M_Window",
+      "type": "numeric",
+      "description": "mean (or count of High) over visits in months [t-2,t] (3M) or [t-5,t] (6M)"
+    },
+    {
+      "name": "F_MarketStress_Rate_3M_Window",
+      "type": "numeric",
+      "description": "mean (or count of High) over visits in months [t-2,t] (3M) or [t-5,t] (6M)"
+    },
+    {
+      "name": "F_High_Count_6M_Window",
+      "type": "numeric",
+      "description": "mean (or count of High) over visits in months [t-2,t] (3M) or [t-5,t] (6M)"
+    },
+    {
+      "name": "F_Months_Since_Grant",
+      "type": "numeric",
+      "description": "elapsed months up to t"
+    },
+    {
+      "name": "F_Mkt_Pressure_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Volatility_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Pressure_Change_1M",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Volatility_Change_1M",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Pressure_Tier_Ord_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Volatility_Tier_Ord_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Mkt_Evidence_Missing",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Macro_CCPI_YoY_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Macro_CCPI_YoY_Change_1M",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Macro_Food_Index_Change_1M_pct",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Macro_Diesel_t",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Macro_Diesel_Change_1M_pct",
+      "type": "numeric",
+      "description": "source value or difference (t vs t-1)"
+    },
+    {
+      "name": "F_Category",
+      "type": "categorical",
+      "description": "one-hot in pipeline"
+    },
+    {
+      "name": "F_District",
+      "type": "categorical",
+      "description": "one-hot in pipeline"
+    }
+  ]
+}
