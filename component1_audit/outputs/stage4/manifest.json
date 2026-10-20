@@ -32,8 +32,8 @@
   },
   "outputs": {
     "domain_housing_n_used_before_after.csv": {
-      "sha256": "8c022e67dd64f12e134c3d721f171fc565761c16a8f6c7d2e9d6ddaf6f653ae9",
-      "rows": 6
+      "sha256": "53da9dacb2ee2305bb181f088e1ecfdad9a9db0c646ad53a2567ee5ed7ade5bb",
+      "rows": 8
     },
     "domain_n_used_distributions.csv": {
       "sha256": "7a3038c3c7ae0da16fc9bac0e2672a5b98c0adc471394fbb57276c441d1fbea7",

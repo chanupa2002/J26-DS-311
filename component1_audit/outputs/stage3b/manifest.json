@@ -1,0 +1,240 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "pipeline_version": "0.3.0",
+  "inputs": [
+    {
+      "path": "component1_audit\\outputs\\pipeline_v0\\household_core.csv",
+      "sha256": "af25f6235a53fc7ee161727fd801d1c14b8ecf6fd6e29b74ccde13e821b6af24",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_b0_roster_long.csv",
+      "sha256": "c0080fa9f1da768fb02060bbcffdf77ef31baba0e7d3ac7a2334d51284c47d25",
+      "row_count": 27875
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_n1_debt.csv",
+      "sha256": "77cecdddfea185c05562859891c4dbf6b9d500d277f44e68f7a41f01c207a696",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_n2_savings.csv",
+      "sha256": "d8dafcc3e4ef660e6321f446d7eadf239b460c1d1ea17906ec3bb4a418b67982",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_b3_roster_long.csv",
+      "sha256": "8708de3462b518f6bc9388e36a40b5b3e9b8b5e8ee3ecd99ee772f31fcf96116",
+      "row_count": 27021
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_o1_shocks.csv",
+      "sha256": "c919c7050cc3e11ca9d660b8f9b325774b1c0b172fdd0ae44b20b05ff72dec19",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_o2_coping.csv",
+      "sha256": "740972bda18d0bed5b5e9f9bcb60e8bccdaa1ae512998f93e1caa0263f4ad93e",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_l3_energy_insecurity.csv",
+      "sha256": "de331521762c64618e8d4fc2da07c314a2eb1d2bb25cc8be7721ffcdbf5fd2a1",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_l5_water_security.csv",
+      "sha256": "9857c387692bbfdf35a4761745590f43f6f877f7589b2804a9be43c153d5cba2",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\docs\\codebook_crosscheck_v0_1.md",
+      "sha256": "76420beebd2bbab5b70a209da1003f5b18e6e3e9c9a551e5127264ef099aec5e",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\spec_v0_1_decision_log.md",
+      "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\review_register\\domain_review.md",
+      "sha256": "de668e55bb7ed04fa1d2a6ca0941c4fbd23c357488ea9359c7f126733b70b2e1",
+      "row_count": null
+    },
+    {
+      "path": "Data\\BRIGHT_questionnaire_English.pdf",
+      "sha256": "466f554d464dde004cc13318771030c36c87b1839460f7f8b27392f7a588d4dc",
+      "row_count": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "component1_audit\\outputs\\stage3b\\build_stage3b.py",
+      "sha256": "72eb98e1150aa0683a60638715a2dc478917fc8955812569e965400d3f424a75",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\b3_01_by_b3_03.csv",
+      "sha256": "ada3b3e2403a626d5cd15c9543d4d1452b60205d5c4fb67a9ac1f6ccc589a0af",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\b3_coverage_by_age_band.csv",
+      "sha256": "6acfbf02a1b92bd8d0c74c1249d357b31e02fab5b8e8e44852512a4ec082f66e",
+      "row_count": 3
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\b3_roster_reconciliation.csv",
+      "sha256": "ac196a0dfb9bba8c6bd4c4d6d335e981ec15aa5c62e0ab6554bee966b104d391",
+      "row_count": 3
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\b3_value_counts.csv",
+      "sha256": "850574de842edacedf03087a76bc80a97902ceadc064fd5df83c77450b93c0d6",
+      "row_count": 13
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\expected_item_presence_and_scale.csv",
+      "sha256": "a4bcd87e119c472d82cdc4aa672cf242ba2b769bd87787cefc687fdabeaf6ecd",
+      "row_count": 56
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\l3_all_lead_value_counts.csv",
+      "sha256": "f74d9f7048af0e79b3ffacc297b9692f3942f8fbd3c18220e683dc934a0c2664",
+      "row_count": 591
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\l3_value_counts.csv",
+      "sha256": "58629072b3b92f30e051ef9b99deaf8ad6f1e3e5a0947c27f7e437dea5cd55d7",
+      "row_count": 36
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\l5_all_lead_value_counts.csv",
+      "sha256": "9a8182d7995a6ed4135dea09df39d9881a4d2a6703e2ca88d20df8bee48814d7",
+      "row_count": 458
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\l5_value_counts.csv",
+      "sha256": "3eccc6727f6eb3d25e2dc1741baf00afea584c126fd07e7def3adaa79dfd5f84",
+      "row_count": 124
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\module_coverage.csv",
+      "sha256": "bb4dd34781a950a6465da7bf27140ebcdc457c35c2050ca3abb1597c86017e60",
+      "row_count": 7
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\module_row_structure.csv",
+      "sha256": "b58fa2817d6ef2e3a6162cf25ebe503a394d6cad95b4597da7c07ad34b3b406e",
+      "row_count": 7
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n1_0_by_any_source_flag.csv",
+      "sha256": "abff761b1eb60cbc59f5756ddcafb4db54805ddb4d8b3842a061db4307aa0824",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n1_amount_field_coverage_range.csv",
+      "sha256": "70d2f846e225700998cade0a843f982ea50ade1c3ccd7f325821a1af06e0466f",
+      "row_count": 244
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n1_value_counts.csv",
+      "sha256": "48622655f5779c1ae47b72d25f49008d63d71ff13683b64b8df9d3f47bad2612",
+      "row_count": 35
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n2_01_by_n2_02_flags.csv",
+      "sha256": "f0ec2a55fcc94c9a216df6b3b55874928e99013bd631526d4a1faadfbbef7d89",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n2_value_counts.csv",
+      "sha256": "b32d5499c553e9a78e4d4b586b7783e33aa7da479de2fdae1382613e824b0b10",
+      "row_count": 20
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o1_all_items_valid.csv",
+      "sha256": "a15c8ac89a9099df253b5c0d4f75c97ce675206c4e82253dc50a35fca4258521",
+      "row_count": 1
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o1_item_rates.csv",
+      "sha256": "2327e00f10bb7769970f2fac3166cccec2f9e6bc3a47eb3778b20f7d1f14fb73",
+      "row_count": 20
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o1_value_counts.csv",
+      "sha256": "5527e5a662a5b34deb47a6d548f2bb21da2626ee3da3bde546fdb8b67016a48a",
+      "row_count": 68
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o2_all_lead_value_counts.csv",
+      "sha256": "c3c48bff4d1e3139abd3e0604a3e1a197832614900c3e847c3715306c1e5610b",
+      "row_count": 79
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o2_households_any_code_1.csv",
+      "sha256": "c60515b795d613ce774b1b1742df70b10de9bfaf4490adf8b2054da75a4bd4a0",
+      "row_count": 1
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o2_requested_code_counts.csv",
+      "sha256": "b4a37c043495265c75f3d01125a7e29919c88019f45329abb35ddfbdba71e33c",
+      "row_count": 96
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o2_value_counts.csv",
+      "sha256": "b6f2c8b456e6b46f62e96201f2a0da31d9ab0bfdba8eeaa769388dccb9a1ef59",
+      "row_count": 19
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\read_only_checks.md",
+      "sha256": "42d5250b1530c17ef3b244fb9d7cc689cba47019557702e3514c25f5d8ed1b04",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\column_dictionary.csv",
+      "sha256": "e3cc1399baf725e98592a7e923bd2a5f2b267ffd6397ed86211ed67c55df1500",
+      "row_count": 31
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\missingness_report.csv",
+      "sha256": "365005a6565e51076598990e8f44d7bcf97b9b10d035f6c57095ef6a8400819c",
+      "row_count": 31
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\modelling_inputs_v0_2_additions.csv",
+      "sha256": "0a88311d77d1f5992a96c8b8611315acc8acacc6d0207bcf4b0e5aa5e55a46ec",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\open_questions.md",
+      "sha256": "476d9fbf8a80b1ce905233ac33453fa535396d9a534ace4fb7129a0b8fd68991",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\stage3b_summary.md",
+      "sha256": "828dc9647b8b557f193ddf1a523d586002a691631cc4168637d6783eaa722a26",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\test_stage3b.py",
+      "sha256": "d3323feae597d451831f0c131c01282f3092339707a0b18245e7c1ce851c722d",
+      "row_count": null
+    }
+  ],
+  "household_rows": 6847,
+  "notes": [
+    "No scores/ranks/imputation. label_high_vuln and pc_cons excluded.",
+    "Codebook.zip unavailable."
+  ],
+  "supplemental_user_supplied_inputs": [
+    {
+      "path": "C:\\Users\\ishin\\Downloads\\dataverse_files\\Documentation\\BRIGHT_questionnaire_English.pdf",
+      "sha256": "466f554d464dde004cc13318771030c36c87b1839460f7f8b27392f7a588d4dc",
+      "byte_identical_to_project_copy": true
+    }
+  ]
+}
