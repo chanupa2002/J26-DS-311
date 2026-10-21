@@ -2,7 +2,6 @@ import {
   AssessPage,
   BeneficiariesPage,
   HistoryPage,
-  PlanPage,
   RecommendPage,
   SwotPage,
 } from "./pages"
@@ -11,7 +10,7 @@ export const routes = [
   {
     path: "/livelihood/beneficiaries",
     element: <BeneficiariesPage />,
-    handle: { title: "Livelihood Beneficiaries" },
+    handle: { title: "Beneficiaries" },
   },
   {
     path: "/livelihood/assess",
@@ -19,9 +18,9 @@ export const routes = [
     handle: { title: "Assess" },
   },
   {
-    path: "/livelihood/swot",
-    element: <SwotPage />,
-    handle: { title: "SWOT" },
+    path: "/livelihood/assess/:beneficiaryId",
+    element: <AssessPage />,
+    handle: { title: "Assess" },
   },
   {
     path: "/livelihood/recommend",
@@ -29,13 +28,13 @@ export const routes = [
     handle: { title: "Recommend" },
   },
   {
-    path: "/livelihood/history",
-    element: <HistoryPage />,
-    handle: { title: "Assessment History" },
+    path: "/livelihood/swot",
+    element: <SwotPage />,
+    handle: { title: "SWOT" },
   },
   {
-    path: "/livelihood/plan",
-    element: <PlanPage />,
-    handle: { title: "Plan" },
+    path: "/livelihood/history",
+    element: <HistoryPage />,
+    handle: { title: "History" },
   },
 ]

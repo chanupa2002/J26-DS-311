@@ -1,23 +1,5 @@
-export function BeneficiariesPage() {
-  return null
-}
-
-export function AssessPage() {
-  return null
-}
-
-export function SwotPage() {
-  return null
-}
-
-export function RecommendPage() {
-  return null
-}
-
-export function HistoryPage() {
-  return null
-}
-
-export function PlanPage() {
-  return null
-}
+export { AssessPage } from "./AssessPage"
+export { BeneficiariesPage } from "./BeneficiariesPage"
+export { HistoryPage } from "./HistoryPage"
+export { RecommendPage } from "./RecommendPage"
+export { SwotPage } from "./SwotPage"

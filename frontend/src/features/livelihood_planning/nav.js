@@ -6,8 +6,8 @@ export const nav = {
   items: [
     { title: "Beneficiaries", path: "/livelihood/beneficiaries" },
     { title: "Assess", path: "/livelihood/assess" },
-    { title: "SWOT", path: "/livelihood/swot" },
     { title: "Recommend", path: "/livelihood/recommend" },
+    { title: "SWOT", path: "/livelihood/swot" },
     { title: "History", path: "/livelihood/history" },
     { title: "Plan", path: "/livelihood/plan", disabled: true },
   ],

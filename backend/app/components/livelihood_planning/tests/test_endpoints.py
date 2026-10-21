@@ -295,6 +295,9 @@ def test_list_beneficiaries(monkeypatch):
                     "district": "Badulla",
                     "age": 36,
                     "gender": "Female",
+                    "female_headed": True,
+                    "disability": False,
+                    "aswesuma_category": "Poor",
                     "is_demo": True,
                 }
             ]
@@ -312,6 +315,44 @@ def test_list_beneficiaries(monkeypatch):
             "district": "Badulla",
             "age": 36,
             "gender": "Female",
+            "female_headed": True,
+            "disability": False,
+            "aswesuma_category": "Poor",
+            "is_demo": True,
+        }
+    ]
+
+
+def test_list_beneficiaries_returns_missing_values_as_null(monkeypatch):
+    database = FakeSupabase(
+        {
+            "beneficiaries": [
+                {
+                    "id": "beneficiary-2",
+                    "full_name": "Demo Person Two",
+                    "district": None,
+                    "age": None,
+                    "gender": None,
+                }
+            ]
+        }
+    )
+    monkeypatch.setattr(router_module, "get_supabase", lambda: database)
+
+    response = client.get("/api/livelihood/beneficiaries")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "beneficiary-2",
+            "full_name": "Demo Person Two",
+            "district": None,
+            "age": None,
+            "gender": None,
+            "female_headed": None,
+            "disability": None,
+            "aswesuma_category": None,
+            "is_demo": None,
         }
     ]
 
