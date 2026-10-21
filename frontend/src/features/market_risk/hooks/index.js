@@ -1,1 +1,1 @@
-export {}
+export { useModelInfo } from "./useModelInfo"

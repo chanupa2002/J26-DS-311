@@ -1,6 +1,6 @@
 # market_risk: frontend plan
 
-Status: **PLAN ONLY, no code yet.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
+Status: **decisions made (§6). Step F2 (foundation + Overview) built; Risk Check and Future Risk not yet.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
 
 Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: SYNTHETIC panel (70 households, 9 categories), **NOT_READY**.
 
@@ -31,7 +31,8 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 `routes.jsx`: 3 route objects `{ path, element, handle: { title } }` with the same paths and titles.
 
 ### 1.1 Overview (`/risk/overview`)
-1. **NOT_READY banner** (always at the top): "Synthetic data only, not for real decisions", followed by each model's `model_status` and `deployment_reason`.
+1. **Validation notice** (always at the top, compact, amber, not a red banner): "Prototype model · validation pending", with "Validation pending" badges per horizon (raw `model_status` in a tooltip) and a collapsible "Why" with each `deployment_reason`.
+   **About the data** card (collapsible; the summary line stays visible): trained on a synthetic panel that mirrors the monitoring data, because real records lack a stable household ID; demonstration only, must be validated on real data before use.
 2. **Models:** one `Card` per horizon (3M, 6M) with:
    - `model_name`, `algorithm`, `data_basis`, `training_period`, `created`;
    - test metrics (Macro-F1, High recall, High precision, accuracy) in a `Table`;
@@ -55,11 +56,15 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
   - the `reasons` list;
   - `signal_count` / `unknown_count`;
   - `rule_version` in small text.
+- **"Use in Future Risk" button** (decision Q6): navigates to `/risk/future` with router state `{ prefill: {...} }`. It prefills 7 of the 53 features from this result:
+  - `F_Risk_Ord_t` = `risk_ord`, `F_Risk_Signal_Count_t` = `signal_count`, `F_Risk_Unknown_t` = `unknown_count`;
+  - `F_Business_Not_Running_t`, `F_No_Profit_Last_Month_t`, `F_Not_Progressing_Well_t`, `F_Market_Stress_Any_t` = the 4 submitted signals (0/1/null).
+  Future Risk reads `useLocation().state?.prefill` once, shows "7 fields prefilled from Risk Check", and leaves the other fields blank. A page reload loses the state, which is acceptable.
 - Note under the result: "Rule-based (SUSTAIN-HH-Risk-Rule v1.0, provisional, not validated by experts). No ML model."
 
 ### 1.3 Future Risk (`/risk/future`)
 - **Toolbar:**
-  - **Load sample:** fills the form from `sampleFeatures.js`, a copy of `backend/.../sample_data/predict_request_example.json` (synthetic, rounded);
+  - **Load sample:** fills the form from `sampleFeatures.js`, a copy of `backend/.../sample_data/predict_request_example.json` (synthetic, rounded). The button and a badge on the form say **"Synthetic sample"**;
   - **Clear:** sets all fields to blank (null);
   - **Horizon:** a `Select` with both / 3M / 6M (default both).
 - **Features form (53 fields):**
@@ -68,11 +73,11 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
   - numeric fields are `Input type="number"`, where empty means `null`;
   - `F_Category` / `F_District` are `Select`s filled from `categorical_levels`, plus "Not specified" (null);
   - a counter "N of 53 filled, blanks are median-imputed".
-- **Submit "Predict":** one click sends `/predict` and `/explain` (`top_k: 5`) with the same body, in parallel.
+- **Submit "Predict":** one click sends `/predict` and `/explain` (`top_k: 5`) with the same body, **always in parallel** (decision Q8).
 - **Results:** one `Card` per horizon (side by side on desktop, stacked on mobile):
   - the `predicted_risk` `Badge`;
   - 3 probability bars (Low / Medium / High, percentages, Tailwind divs);
-  - the NOT_READY notice with `model_status` and `deployment_reason`.
+  - the "Validation pending" status badge (raw `model_status` in a tooltip); the page shows one `ValidationNotice` at the top with the reasons.
 - **Warnings:** the `warnings` from `/predict`, e.g. "converted 'TRADE' → 'Trade'" or "12 features median-imputed", in a muted `Card` list.
 - **SHAP "What pushed towards High":**
   - a recharts horizontal `BarChart` of `high_risk_factors` (label, signed contribution; + = towards High, − = away), with the value used in the tooltip;
@@ -88,9 +93,9 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `nav.js` | 3 items (§1) |
 | `routes.jsx` | 3 routes with `handle.title` |
 | `README.md` | Pages, endpoints used, how to test locally (like livelihood's README) |
-| `constants.js` | `BASE_PATH = "/api/risk"`, class order, Badge variant per class, signal options, feature groups (name lists), static trade-off numbers and limitations |
-| `sampleFeatures.js` | The 53-key sample object (synthetic, from the backend sample JSON) |
-| `utils.js` | `toNullableNumber`, `formatPercent`, `formatSigned`, `errorKind(error)` (§5), `buildPredictBody(values, horizon)` |
+| `constants.js` | `BASE_PATH = "/api/risk"`, class order, Badge variant per class, metric labels, signal options, feature groups (name lists), static trade-off numbers and limitations (decision Q2) |
+| `sampleFeatures.js` | The 53-key "Synthetic sample" object, from the backend sample JSON (decision Q3) |
+| `utils.js` | `formatMetric`, `formatPercent`, `formatSigned`, `formatDateTime`, `splitReasons`, `errorKind(error)` (§5); later `toNullableNumber`, `buildPredictBody(values, horizon)` |
 | `api/riskApi.js` | `getRiskModelInfo()`, `identifyCurrentRisk(signals)`, `predictMarketRisk(body)`, `explainMarketRisk(body)`, all via `api()` from `@/lib/api` |
 | `api/index.js` | Re-exports |
 | `hooks/useModelInfo.js` | `useQuery(["risk-model-info"])`, `staleTime: Infinity` (shared by Overview and Future Risk) |
@@ -98,18 +103,21 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `hooks/useFutureRisk.js` | One mutation that runs predict + explain with `Promise.allSettled`. It returns `{ prediction, explanation, explainError }`, so the prediction still shows if only explain fails |
 | `hooks/index.js` | Re-exports |
 | `components/PageState.jsx` | Loading (Skeletons), error (`Card` + Retry), empty. Same pattern as livelihood, own copy |
-| `components/NotReadyNotice.jsx` | `Card role="alert"` with an icon: status + reason(s). Used on all 3 pages (on Risk Check as the "rule is provisional" note) |
-| `components/RiskBadge.jsx` | Class → `Badge` variant + text |
-| `components/ModelSummaryCard.jsx` | One horizon on Overview (metrics `Table`, baseline, tooltip) |
+| `components/ValidationNotice.jsx` | Compact neutral (amber) notice "Prototype model · validation pending", with status badges and a collapsible "Why" listing the reasons (`deployment_reason` or given `reasons`). **Used on all 3 pages instead of a red banner** (on Risk Check with the rule's reasons) |
+| `components/StatusBadge.jsx` | Shows "Validation pending" (or "Ready"); the raw `model_status` is in a tooltip |
+| `components/AboutDataCard.jsx` | Overview: collapsible "About the data". The one-line summary (synthetic panel, demonstration only) is always visible |
+| `components/RiskBadge.jsx` | Class → `Badge` variant + text (built with Risk Check) |
+| `components/ModelMetricsCard.jsx` | One horizon on Overview (metrics `Table`, baseline, tooltip) |
 | `components/TradeOffTable.jsx` | Static 1.0 vs 2.0 walk-forward table |
 | `components/LevelList.jsx` | Category / district `Badge`s |
 | `components/LimitationsList.jsx` | Static list + `Collapsible` |
+| `components/FeatureList.jsx` | Collapsible table of the 53 features (Overview) |
 | `components/SignalForm.jsx` | 4 `Select`s (react-hook-form + zod) |
 | `components/CurrentRiskResult.jsx` | The Risk Check result card |
 | `components/FeatureForm.jsx` | The grouped 53-field form, the category/district `Select`s, filled counter |
 | `components/FeatureField.jsx` | One numeric field with `Label` + description `Tooltip` |
 | `components/ProbabilityBars.jsx` | 3 bars for one horizon |
-| `components/PredictionCard.jsx` | Badge + bars + NOT_READY notice for one horizon |
+| `components/PredictionCard.jsx` | Badge + bars + `StatusBadge` for one horizon |
 | `components/WarningList.jsx` | `/predict` warnings |
 | `components/ShapChart.jsx` | recharts bar chart of `high_risk_factors` |
 | `components/FactorTable.jsx` | `top_factors` table (optional section) |
@@ -127,7 +135,7 @@ No files outside this folder are changed. No `.env` and no new dependencies.
 | Risk Check | `card`, `select`, `label`, `button`, `badge`, `tooltip`, `separator` | `WeakSignalTag` (follow-up needed / blanks), `EvidenceCard` (each reason as `text`, `source` = rule version) | react-hook-form + zod |
 | Future Risk | `card`, `input`, `label`, `select`, `button`, `badge`, `collapsible`, `tabs`, `tooltip`, `table`, `skeleton`, `separator` | `WeakSignalTag` (blank inputs among the top factors; models NOT_READY) | react-hook-form + zod, recharts |
 
-`ConfidenceBadge`, `ScoreRange` and `EstimatedTag` are **not** used: their fixed texts ("Viability score", "District-level monitoring data…") do not match market risk (Q4).
+`ConfidenceBadge`, `ScoreRange` and `EstimatedTag` are **not** used: their fixed texts ("Viability score", "District-level monitoring data…") do not match market risk. Decision Q4: own small components instead.
 
 ## 4. States
 
@@ -136,7 +144,7 @@ No files outside this folder are changed. No `.env` and no new dependencies.
 | Loading | `PageState loading` (Skeletons) while `/model-info` loads | Submit button "Checking…" + disabled | Form waits for `/model-info` (Skeletons). On submit, "Predicting…" + disabled, and Skeletons in the result area |
 | Empty | `PageState empty` if `models` is empty | Before submit: hint text "Choose the answers and press Check risk" | Before submit: "Fill the features or press Load sample". All 53 blank is allowed (the backend imputes), with a notice |
 | Error | `PageState error` + Retry (`refetch`) | Error card under the form + Retry. The form keeps its values | Error card above the results + Retry. If only `/explain` fails, the predictions still show, and the SHAP area shows the error |
-| NOT_READY | Banner always shown | Provisional-rule note always shown | Notice in every prediction card. The page shows nothing as "ready" |
+| Not validated | `ValidationNotice` always shown | `ValidationNotice` with the provisional-rule reasons always shown | `ValidationNotice` at the top + `StatusBadge` in every prediction card. Nothing is shown as "ready" |
 
 ## 5. How 422 and 503 errors are shown
 
@@ -155,13 +163,28 @@ No files outside this folder are changed. No `.env` and no new dependencies.
 
 Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
 
-## 6. Open questions
+## 6. Decisions (formerly open questions)
 
-1. **Shared `api.js` change (leader-only):** to tell 422 from 503 reliably and highlight the field with a 422 error, `api()` would need to attach `status` and `detail` to the thrown error, e.g. `error.status`, `error.detail`. Should I request this? Until then the message-prefix workaround in §5 is used.
-2. **Trade-off and limitations source:** these are static text in `constants.js`, so they can drift from the backend. Alternative: add an optional `promotion` / `limitations` field to `/model-info` in my backend folder (`metadata.json` already has `promotion`). Which do you prefer?
-3. **Sample data in the frontend:** OK to copy the synthetic sample request (53 values, from synthetic example row 1, already committed in the backend `sample_data/`) into `sampleFeatures.js`? The alternative is a backend `GET /api/risk/sample` endpoint.
-4. **`@/components/explain`:** `ScoreRange` / `ConfidenceBadge` have fixed texts. Should I ask the leader for generic props (e.g. a `label` on `ScoreRange`), or keep my own `ProbabilityBars` / `RiskBadge`?
-5. **i18n:** `src/i18n/en.json` is leader-only and livelihood uses plain English strings. Plain strings in my folder for now?
-6. **Feature form usability:** 53 raw engineered fields are hard to fill by hand. Should Future Risk also offer "use Risk Check result" (filling `F_Risk_Ord_t`, `F_Risk_Signal_Count_t` and `F_Risk_Unknown_t` from `/identify`)? Or should it stay a technical/demo page?
-7. **Route prefix:** `/risk/...` follows the API prefix (livelihood uses `/livelihood/...`). OK?
-8. **Explain on every predict:** run `/explain` automatically with every predict (two calls), or only when "Explain" is pressed?
+| # | Question | Decision |
+|---|---|---|
+| Q1 | Telling 422 from 503 | Detect 503 by the backend message (`"Market-risk model is unavailable"`). **No change to `api.js`**; see the suggestion for the leader in §7 |
+| Q2 | Trade-off and limitations source | Constants in `constants.js` in this folder |
+| Q3 | Sample in the frontend | Yes: copy the sample request into `sampleFeatures.js`, labelled **"Synthetic sample"** |
+| Q4 | `@/components/explain` with fixed texts | Build own small components (`ProbabilityBars`, `RiskBadge`, `ModelMetricsCard`) |
+| Q5 | i18n | Plain English strings |
+| Q6 | Risk Check → Future Risk | Yes: a **"Use in Future Risk"** button prefills `F_Risk_Ord_t`, `F_Risk_Signal_Count_t`, `F_Risk_Unknown_t` and the 4 signal features via router state (§1.2) |
+| Q7 | Route prefix | `/risk/...` |
+| Q8 | When to explain | `/explain` runs with every predict, in parallel |
+
+## 7. Suggestions for the leader (not done; shared files)
+
+- **`frontend/src/lib/api.js`:** attach `status` and `detail` to the thrown error, e.g. `Object.assign(new Error(message), { status: response.status, detail: body?.detail })`. Features could then tell 422 from 503 by status, and highlight the field from `detail[].loc`. The current behaviour is unchanged for existing callers.
+
+## 8. Progress
+
+| Step | What | Status |
+|---|---|---|
+| F1 | This plan | ✅ Done |
+| F2 | Foundation (`api/riskApi.js` with all 4 calls, `hooks/useModelInfo.js`, `constants.js`, `utils.js`), shared components (`PageState`, `ValidationNotice`, `StatusBadge`, `AboutDataCard`, `ModelMetricsCard`, `TradeOffTable`, `LevelList`, `LimitationsList`, `FeatureList`), `OverviewPage` at `/risk/overview`, routes and nav | ✅ Done |
+| F3 | Risk Check page | ⏳ Next |
+| F4 | Future Risk page | ⏳ |
