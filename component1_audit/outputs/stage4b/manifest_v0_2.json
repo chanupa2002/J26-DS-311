@@ -1,0 +1,111 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "pipeline_version": "stage4b-v0.2.1",
+  "model_version": "fuzzy-0.1.0",
+  "decision_source": "component1_audit\\docs\\decision_log_section9_addendum (1).md",
+  "asset_rule": "D-10a: all 18 asset items valid",
+  "inputs": [
+    {
+      "path": "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\modelling_inputs_v0_2_additions.csv",
+      "sha256": "7706ce28b38d77b26d8d65090bbe2a9b1739487ddf42531a8614830378b34585",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\reference_v0_1.json",
+      "sha256": "e78371d2a93f0872f3e13af197c891ee2d0dde4f9d4dadbdfaa9c5e414887e26",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\decision_log_section9_addendum (1).md",
+      "sha256": "25f1ad14cc98bf58ffa28a4c9de33f1a2ec15b37897b2703a5476b39219d68ff",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py",
+      "sha256": "4eb84a59d97f7007bddd57a88dde32ee1a4eb5a41f537309c62f3d33504f9518",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\fuzzy_adapter.py",
+      "sha256": "0df868b424afdbe852784de35679f00c8a61220bbe98738b499d7e69f620ccf0",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\n1_0_by_any_source_flag.csv",
+      "sha256": "abff761b1eb60cbc59f5756ddcafb4db54805ddb4d8b3842a061db4307aa0824",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3b\\checks\\o1_all_items_valid.csv",
+      "sha256": "a15c8ac89a9099df253b5c0d4f75c97ce675206c4e82253dc50a35fca4258521",
+      "row_count": 1
+    }
+  ],
+  "outputs": [
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fuzzy_scores_v0_2.csv",
+      "sha256": "de78814295c7d95979ccea09c40051bb23e99622aa6bbdb69918e7eeed5c4db7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\domain_coverage_v0_2.csv",
+      "sha256": "9cc12b5c3c5fff76b825f391d758e23d5c5c51a7296e5fd5e6172d65962a17bb",
+      "row_count": 10
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_comparison_v0_2.csv",
+      "sha256": "f368c1df96816fc45e701ba9b0396e86541bf6cd0e1175343da92faec1381f37",
+      "row_count": 6
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\open_questions_v0_2.md",
+      "sha256": "a4c67deafa949a98170a239b21e31370e4b3ade46835f7342ce8cb0a8911e616",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\stage4b_v0_2_summary.md",
+      "sha256": "95d87a8a1b627b95d159803dcae8a6e74731a7ceb92be3decde6cb0eb9bb66cd",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\crowding_tenure_max.csv",
+      "sha256": "3144cb42c5e5fb619f10013e5d7fb84578e35024ec49671cd6fd0b8eccf94d1b",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\financial_exclude_N01.csv",
+      "sha256": "0517eb021d82cd7dffe2a2edf761f2f0d2831c11a1305187be183de693a862e8",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\financial_exclude_N02.csv",
+      "sha256": "15c2c2435f380f0326273d335ba801febd9e983d3526b0a0b3aa5f9e52f3c21c",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\financial_reverse_N02.csv",
+      "sha256": "fb5a144ffa90ce480e4f6be30fbfe8f42fbabc24e1aa6cd318076ec739f53c02",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\health_any_chronic_binary.csv",
+      "sha256": "d61610b20e132eed834f3395f02487b7b78e5d02f8e3ce30771420259be42e14",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_v0_2\\shelter_quality_max.csv",
+      "sha256": "e4a095f7efaaa82d0bcead17c4af86e7dad9499aca39e1929d27ecc3b1134662",
+      "row_count": 6847
+    }
+  ],
+  "notes": [
+    "No proxy variables used.",
+    "No Bayesian Network or shock composite calculated.",
+    "CSV household-level outputs are ignored by .gitignore."
+  ]
+}

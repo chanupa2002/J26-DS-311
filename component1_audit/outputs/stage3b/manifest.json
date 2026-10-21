@@ -1,6 +1,6 @@
 {
   "research_label": "Research output - not an eligibility determination",
-  "pipeline_version": "0.3.0",
+  "pipeline_version": "0.3.2",
   "inputs": [
     {
       "path": "component1_audit\\outputs\\pipeline_v0\\household_core.csv",
@@ -58,6 +58,11 @@
       "row_count": null
     },
     {
+      "path": "component1_audit\\docs\\decision_log_section9_addendum (1).md",
+      "sha256": "25f1ad14cc98bf58ffa28a4c9de33f1a2ec15b37897b2703a5476b39219d68ff",
+      "row_count": null
+    },
+    {
       "path": "component1_audit\\review_register\\domain_review.md",
       "sha256": "de668e55bb7ed04fa1d2a6ca0941c4fbd23c357488ea9359c7f126733b70b2e1",
       "row_count": null
@@ -71,7 +76,7 @@
   "outputs": [
     {
       "path": "component1_audit\\outputs\\stage3b\\build_stage3b.py",
-      "sha256": "72eb98e1150aa0683a60638715a2dc478917fc8955812569e965400d3f424a75",
+      "sha256": "29ababdc87d70ef696d45806a4d6343d60a3c7cd0004d2e6d50bdf008bac8ead",
       "row_count": null
     },
     {
@@ -196,38 +201,40 @@
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\column_dictionary.csv",
-      "sha256": "e3cc1399baf725e98592a7e923bd2a5f2b267ffd6397ed86211ed67c55df1500",
-      "row_count": 31
+      "sha256": "d858eab9cfe72decd7799ce8c5368068fd00e68bf29e7e1d5d13b7f76bcd9478",
+      "row_count": 32
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\missingness_report.csv",
-      "sha256": "365005a6565e51076598990e8f44d7bcf97b9b10d035f6c57095ef6a8400819c",
-      "row_count": 31
+      "sha256": "c2be4e974046b5c18879af8d0ae296d296c51ea477004ce4ffabc9d89d2bd9ea",
+      "row_count": 32
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\modelling_inputs_v0_2_additions.csv",
-      "sha256": "0a88311d77d1f5992a96c8b8611315acc8acacc6d0207bcf4b0e5aa5e55a46ec",
+      "sha256": "7706ce28b38d77b26d8d65090bbe2a9b1739487ddf42531a8614830378b34585",
       "row_count": 6847
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\open_questions.md",
-      "sha256": "476d9fbf8a80b1ce905233ac33453fa535396d9a534ace4fb7129a0b8fd68991",
+      "sha256": "7ea22b1ac0213e52aea77260e74414a39ff4441862b79be85050d0940f365e00",
       "row_count": null
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\stage3b_summary.md",
-      "sha256": "828dc9647b8b557f193ddf1a523d586002a691631cc4168637d6783eaa722a26",
+      "sha256": "d0347eb902adc80c595ac1b5a940a0a6de5e6d1d8ebe7fee0709a4c8b04f309e",
       "row_count": null
     },
     {
       "path": "component1_audit\\outputs\\stage3b\\test_stage3b.py",
-      "sha256": "d3323feae597d451831f0c131c01282f3092339707a0b18245e7c1ce851c722d",
+      "sha256": "5dbe6d6c2d2f1b9f307cff0f709fcd777cc4faa074f8e4b6ca8c47f24f730510",
       "row_count": null
     }
   ],
   "household_rows": 6847,
   "notes": [
-    "No scores/ranks/imputation. label_high_vuln and pc_cons excluded.",
+    "Section 9 addendum included as an authoritative input for v0.2 candidate indicators.",
+    "O1 mean-severity rule recorded from researcher clarification on 2026-10-21.",
+    "No overall vulnerability score/rank/imputation. label_high_vuln and pc_cons excluded.",
     "Codebook.zip unavailable."
   ],
   "supplemental_user_supplied_inputs": [

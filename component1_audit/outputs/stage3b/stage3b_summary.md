@@ -5,8 +5,9 @@ Research output - not an eligibility determination
 ## Built
 
 - Read-only checks for seven modules; additions table has 6,847 unique spine households.
-- Outputs include raw O1 items and limited B1–B3 additions; no model, score, ranking, or imputation.
-- N1 and N2 binary indicators use the explicit task mapping; N1 direction should be confirmed against the cleaned Codebook.zip when available.
+- Outputs include raw O1 items, approved O1 mean severity, and limited B1–B3 additions; no model, overall vulnerability score, ranking, or imputation.
+- Section 9 addendum is included in the manifest and governs v0.2 candidate indicator preparation.
+- N1 and N2 indicators use the addendum mapping; n1_0 agrees with the source flags for all 6,847 households (see `checks/n1_0_by_any_source_flag.csv`).
 - No label_high_vuln or pc_cons fields were read into the additions.
 
 ## Module coverage
@@ -44,9 +45,12 @@ Research output - not an eligibility determination
 
 The skip conflict is pronounced: all 19,405 records with b3_01=0 have b3_03 blank; 50 records with b3_01=1 also have b3_03 blank.
 
-## O1 item completeness
+## O1 item completeness and mean severity
 
 - Households with all 20 valid O1 items: 26. Per-item counts/rates are in `checks/o1_item_rates.csv`.
+- Mean severity is known for 6,847/6,847 households; valid-item count is carried per household in `n_o1_items_valid`.
+- User assumption: all 20 O1 items refer to the past 12 months; only item 20 states that period explicitly in the reviewed questionnaire.
+- Severity mapping: 1 severe=1, 2 moderate=0.5, 3 none=0; mean over valid answers; no valid answers remain unknown.
 
 ## Validation
 
@@ -60,7 +64,7 @@ The skip conflict is pronounced: all 19,405 records with b3_01=0 have b3_03 blan
 - Codebook.zip was not found at the project root or under the project; requested cleaned-module codebook source rows could not be checked. Counts therefore show observed values, with unverified sets labeled accordingly.
 - N1 n1_0 and N2 n2_01 use the task-provided 1=yes/0=no mappings; Codebook.zip was unavailable to independently verify the source row. The older domain_review note marks N1 direction unverified; the explicit mapping in this task was used and should be confirmed against the cleaned codebook when available.
 - B3 b3_01 by b3_03 is a descriptive skip-conflict check only. b3_03 and b3_04 are not used in derived columns.
-- O1 reference period: O1_01_20 states "in the past 12 months" (Data/BRIGHT_questionnaire_English.pdf, printed page 203). No common reference period is stated for O1_01_1 through O1_01_19 in the reviewed item table (printed pages 201-203). Supplied PDF SHA-256 matches the project copy: 466f554d464dde004cc13318771030c36c87b1839460f7f8b27392f7a588d4dc. No O1 composite is constructed (ISS-11).
+- O1 period assumption: the researcher directed that all 20 items be treated as past-12-month reports; only O1_01_20 explicitly states this period in the reviewed questionnaire. The approved mean-severity calculation is documented in the Stage 3b summary.
 - L3 task lists l3_01..09 and frequency items but does not identify frequency item numbers or skip conditions; no activity-based skip interpretation is made without codebook/questionnaire mapping.
 - O2 code categories and same-coding lead-item scope require the cleaned Codebook.zip; checks show observed raw values/counts only, and no derived O2 column is created.
 - Stage 3b implementation and tests are placed under outputs/stage3b to honor the prohibition on modifying pre-existing Stage 3/4 files; no prior pipeline/test file was changed.

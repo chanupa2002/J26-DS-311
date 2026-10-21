@@ -1,0 +1,207 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "pipeline_version": "4b.0.1",
+  "inputs": [
+    {
+      "path": "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3\\fies_item_responses_pending.csv",
+      "sha256": "eb84825dd2dd6fa40fa009057f0a795fd97b4a0620900e3be7dd1f6922e69b8a",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_a_household_identification.csv",
+      "sha256": "afa59682b34918647c74406f9c6c59835b84f1f7c0671fa1ae97ac2238e8d39c",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\fuzzy_scores_v0_1.csv",
+      "sha256": "9984295d324ce9f14b8c8250542784de18734e623db8234b31a6104d27958c45",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\reference_v0_1.json",
+      "sha256": "e78371d2a93f0872f3e13af197c891ee2d0dde4f9d4dadbdfaa9c5e414887e26",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\sensitivity_comparison.csv",
+      "sha256": "916aa0db519d73bb4ef1d0c8ea4cb443390334e753784e10d0e5eef08e21eba8",
+      "row_count": 48
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\crowding_mid3_half0.5.csv",
+      "sha256": "0ed3d426e727539f9a67cd485a66f7472b957d2fdcead5924928abd976ae2b36",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\crowding_mid3_half1.5.csv",
+      "sha256": "81e03bd6bf64da933b84f099d77c92e9c536a598e37b17095985752ef9924330",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\crowding_mid4_half0.5.csv",
+      "sha256": "c6430e924a46df41f4b9966d87ba17e1297e0c01617d2e64821df4e4916d67f3",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\crowding_mid4_half1.5.csv",
+      "sha256": "6d2900f258c52413c50c415cb40512416dc5b1f0a54ae9fb3cc3302f51c573ab",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\age_cutoff_60plus.csv",
+      "sha256": "89a6afddf1782ae65d46eef529f63f42eb6ac2adf951b130119d1ef707d81466",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\tenure_codes_7_8_insecure.csv",
+      "sha256": "9984295d324ce9f14b8c8250542784de18734e623db8234b31a6104d27958c45",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\wall_cabook_durable.csv",
+      "sha256": "0df2617b9b1655b17da4847159d3a28c566ec6a8ea0ab2ea7c72e9f1b1668740",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\roof_codes4_5_durable.csv",
+      "sha256": "e51fc67973d624818b1099bd07ee5484a7184e686541cf6b2598c8b8044253c2",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\toilet_type_only.csv",
+      "sha256": "7e3bff420229d50c77fd026b3630ae03b8cbd8afe01807d6e1fbc7f24027d7f8",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\domain_min.csv",
+      "sha256": "b930ff16c5a75d118815115f2a9898c2033bc865bb830c064758407a4e7ee1c5",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\sensitivity\\domain_max.csv",
+      "sha256": "ca6309ab9de24a34817fb99de68d9644ac275838f884227fc8da59029ede8524",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py",
+      "sha256": "4eb84a59d97f7007bddd57a88dde32ee1a4eb5a41f537309c62f3d33504f9518",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\fuzzy_adapter.py",
+      "sha256": "0df868b424afdbe852784de35679f00c8a61220bbe98738b499d7e69f620ccf0",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\spec_v0_1_decision_log.md",
+      "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4",
+      "row_count": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "component1_audit\\outputs\\stage4b\\asset_completeness_counts.csv",
+      "sha256": "b63311ac5e8b390bb10da8e97f7eab1fd06aef42c38d99f3f15dbbb4832274f3",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\asset_completeness_sensitivity_correlations.csv",
+      "sha256": "9c2f3160c322eda0e19c8f0c5bbf59bda3d6242945110def0eb9352c2d7b446e",
+      "row_count": 3
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\build_stage4b.py",
+      "sha256": "af577c69764c48f4877ac0f02c931f1a5759c70c804bb6bbafb44208bee043c2",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\dependency_tie_sensitivity.csv",
+      "sha256": "470dfe21f31e0fdf91a053aeed7655176e789004a5ad3a4f0ba9f9072ce724a1",
+      "row_count": 1
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\economic_fully_unknown_counts.csv",
+      "sha256": "8d5f676d8500c4bad7b63b7db9cc0034f5048dcfc4a0c1b02dd9153a43481e5a",
+      "row_count": 1
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\economic_n_used_before_after.csv",
+      "sha256": "2f2d64b46b3f5ba3ae4a59ca26a9d0b7b9fb092df35731bf3a8059e4953fd53a",
+      "row_count": 4
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fies_form_by_hh_type_counts.csv",
+      "sha256": "12498f4f5a9af06c7c20727484daf7149bf891f1f12ccd89408abfd164158f7f",
+      "row_count": 8
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fies_item_endorsement_rates.csv",
+      "sha256": "953525076a1df5a485690b531a0cc29da788e090b37282fea0843975965e4113",
+      "row_count": 40
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fies_rank_tests.csv",
+      "sha256": "25b2a7d21457b2b4172615d2a10d657f5302726b2a98bda473f834fff4634ae3",
+      "row_count": 2
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fies_score_distributions.csv",
+      "sha256": "4adf192144bac22775fb8ff946236dff61a57fa2737ae95f34a78870587f6869",
+      "row_count": 5
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\housing_dilution_summary.csv",
+      "sha256": "0582e299fd87138b88453908ef09921ca8c138c0e3ebe689833cdc278c65bc70",
+      "row_count": 3
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\housing_level_transition_counts.csv",
+      "sha256": "ac0b05caab73e206667dc35785e668c92f2a615329b5268ad181d0342a9f69af",
+      "row_count": 12
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\housing_max_vs_domain_mean_bins.csv",
+      "sha256": "20cc818956506ef5ba4498fe6a875d8730846fdaf3e31e7641ffcccfad830fc8",
+      "row_count": 4
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\open_questions.md",
+      "sha256": "068b993b9c5dd40836cf20302b6e3644c0ea53638c6895015b99efd4e1ac366d",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\sensitivity_comparison_with_soft_mae.csv",
+      "sha256": "24b97aab05eb66cb4055b3e92d4f1bbcbd44adc900db254eedcd833d66a3a9f0",
+      "row_count": 48
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\stage4b_summary.md",
+      "sha256": "827cbefdcca9a1f97d7a3a2a8d149a68b90f798715d39c2a51b5a6eee2c3822a",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\test_stage4b.py",
+      "sha256": "38f86d4d93286b2a8fc3aca46ffdceba6e80a20772400e538358e7f349f2809c",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\zero_bedroom_household_size_distribution.csv",
+      "sha256": "7ef9fa161e2b0574a53c99939ee69af7c24b5400922e528c4cc4125d80c4a5a2",
+      "row_count": 6
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4b\\zero_bedroom_sensitivity_summary.csv",
+      "sha256": "04f51f3d99bbb8c75ca3b26ee0affcc21ed2085b6fb9111b6ab4d979c0a9d365",
+      "row_count": 6
+    }
+  ],
+  "notes": [
+    "No Stage 3 or Stage 4 file was written.",
+    "No imputation, rule changes, or model approval."
+  ]
+}

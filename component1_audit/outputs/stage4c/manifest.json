@@ -1,0 +1,51 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "run_version": "stage4c-d10a-v0.1",
+  "model_version": "fuzzy-0.1.0",
+  "asset_rule": "D-10a: require all 18 asset items valid",
+  "shock_domain": "not scored; deferred in approved spec",
+  "inputs": [
+    {
+      "path": "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\reference_v0_1.json",
+      "sha256": "e78371d2a93f0872f3e13af197c891ee2d0dde4f9d4dadbdfaa9c5e414887e26",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py",
+      "sha256": "4eb84a59d97f7007bddd57a88dde32ee1a4eb5a41f537309c62f3d33504f9518",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4\\fuzzy_adapter.py",
+      "sha256": "0df868b424afdbe852784de35679f00c8a61220bbe98738b499d7e69f620ccf0",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\spec_v0_1_decision_log.md",
+      "sha256": "21db48a0c7bfcd1cf50cc72a9d8f82fe8ba3c6fe702ce1e74a913289873286f4",
+      "row_count": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "component1_audit\\outputs\\stage4c\\fuzzy_scores_d10a_v0_1.csv",
+      "sha256": "9984295d324ce9f14b8c8250542784de18734e623db8234b31a6104d27958c45",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4c\\domain_summary_d10a.csv",
+      "sha256": "79e8074a2d885bba25980c9741f9dce323d98a07915678ab7462a05bace172b8",
+      "row_count": 4
+    },
+    {
+      "path": "component1_audit\\outputs\\stage4c\\stage4c_summary.md",
+      "sha256": "59d948e405c122bed19b3ae05179ab20864d162ef30c6d6d0b0b45745c142459",
+      "row_count": null
+    }
+  ]
+}

@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from build_stage3b import binary_answer, count_valid_o1, health_aggregate, validate_unique_household_key
+from build_stage3b import binary_answer, count_valid_o1, mean_o1_severity, health_aggregate, validate_unique_household_key
 
 class Stage3bTests(unittest.TestCase):
     def test_bank_account_binary_and_unknown(self):
@@ -25,6 +25,11 @@ class Stage3bTests(unittest.TestCase):
 
     def test_o1_raw_items_count_only_valid_values(self):
         self.assertEqual(count_valid_o1(['1','2','3',None,'0','997']),3)
+
+    def test_o1_mean_severity_maps_and_averages_valid_responses(self):
+        self.assertAlmostEqual(mean_o1_severity(['1','2','3']),.5)
+        self.assertAlmostEqual(mean_o1_severity(['1',None,'0','997']),1.0)
+        self.assertTrue(pd.isna(mean_o1_severity([None,'0','997'])))
 
     def test_health_aggregation_missing_member_and_no_valid(self):
         spine=pd.DataFrame({'hhcode':['A','B']})

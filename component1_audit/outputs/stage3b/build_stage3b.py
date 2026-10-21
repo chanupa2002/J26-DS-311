@@ -58,6 +58,12 @@ def count_valid_o1(values):
     """Count only observed O1 responses in the task-specified set."""
     return sum(clean(x) in {'1','2','3'} for x in values)
 
+def mean_o1_severity(values):
+    """Mean severity over valid O1 answers: severe=1, moderate=.5, none=0."""
+    scores={'1':1.0,'2':0.5,'3':0.0}
+    valid=[scores[clean(x)] for x in values if clean(x) in scores]
+    return float(np.mean(valid)) if valid else np.nan
+
 def validate_unique_household_key(df, module):
     if df.hhcode.duplicated().any(): raise ValueError(f'{module} has duplicate household keys; refusing join')
 
@@ -158,7 +164,8 @@ def main():
     base=base.drop(columns=['n2_01','n1_0']).merge(health.drop(columns='hhcode'),left_index=True,right_index=True,validate='one_to_one')
     raw_items=[f'o1_01_{i}' for i in range(1,21) if f'o1_01_{i}' in base]
     base['n_o1_items_valid']=base[raw_items].apply(count_valid_o1,axis=1)
-    outcols=['research_label','hhcode','bank_account','bank_account_status','has_debt','has_debt_status','n_members_b3_valid','n_chronic','share_chronic','health_status']+raw_items+['n_o1_items_valid']
+    base['o1_mean_severity']=base[raw_items].apply(mean_o1_severity,axis=1)
+    outcols=['research_label','hhcode','bank_account','bank_account_status','has_debt','has_debt_status','n_members_b3_valid','n_chronic','share_chronic','health_status']+raw_items+['n_o1_items_valid','o1_mean_severity']
     additions=base[outcols]; additions.to_csv(OUT/'modelling_inputs_v0_2_additions.csv',index=False,encoding='utf-8-sig')
     # O1/O2/L3/L5 checks, sensitive to no free text.
     for mod,df in modules.items():
@@ -222,7 +229,8 @@ def main():
       'n_chronic':('B3.b3_01','count valid b3_01 equal to 1','task-specified'),
       'share_chronic':('B3.b3_01','n_chronic / n_members_b3_valid when denominator >=1; otherwise blank','task-specified'),
       'health_status':('B0 roster + B3.b3_01','valid all roster members valid; partial some; missing none','operational definition'),
-      'n_o1_items_valid':('O1.o1_01_1..20','count 1/2/3 values; no composite','task-specified')}
+      'n_o1_items_valid':('O1.o1_01_1..20','count valid codes 1/2/3','task-specified'),
+      'o1_mean_severity':('O1.o1_01_1..20','valid codes map 1 severe=1, 2 moderate=0.5, 3 none=0; arithmetic mean of valid items; blank if none valid','researcher-approved clarification 2026-10-21')}
     for i in range(1,21): rules[f'o1_01_{i}']=('O1.o1_01_'+str(i),'raw copy; no recode','raw')
     for c in additions:
         src,rule,status=rules.get(c,('', '', ''))
@@ -235,13 +243,13 @@ def main():
     supplied_pdf_note=''
     if USER_QUESTIONNAIRE.exists() and project_pdf.exists() and sha(USER_QUESTIONNAIRE)==sha(project_pdf):
         supplied_pdf_note=f' Supplied PDF SHA-256 matches the project copy: {sha(project_pdf)}.'
-    period='O1_01_20 states "in the past 12 months" (Data/BRIGHT_questionnaire_English.pdf, printed page 203). No common reference period is stated for O1_01_1 through O1_01_19 in the reviewed item table (printed pages 201-203).'+supplied_pdf_note
+    period='Researcher assumption supplied 2026-10-21: treat O1_01_1 through O1_01_20 as referring to the past 12 months. The reviewed questionnaire explicitly states this period for O1_01_20 only (printed page 203); items 1-19 are covered by the assumption, not independently verified.'+supplied_pdf_note
     codebook=ROOT/'Codebook.zip'
     opens=[
       'Codebook.zip was not found at the project root or under the project; requested cleaned-module codebook source rows could not be checked. Counts therefore show observed values, with unverified sets labeled accordingly.',
       'N1 n1_0 and N2 n2_01 use the task-provided 1=yes/0=no mappings; Codebook.zip was unavailable to independently verify the source row. The older domain_review note marks N1 direction unverified; the explicit mapping in this task was used and should be confirmed against the cleaned codebook when available.',
       'B3 b3_01 by b3_03 is a descriptive skip-conflict check only. b3_03 and b3_04 are not used in derived columns.',
-      'O1 reference period: '+period+' No O1 composite is constructed (ISS-11).',
+      'O1 period assumption: the researcher directed that all 20 items be treated as past-12-month reports; only O1_01_20 explicitly states this period in the reviewed questionnaire. The approved mean-severity calculation is documented in the Stage 3b summary.',
       'L3 task lists l3_01..09 and frequency items but does not identify frequency item numbers or skip conditions; no activity-based skip interpretation is made without codebook/questionnaire mapping.',
       'O2 code categories and same-coding lead-item scope require the cleaned Codebook.zip; checks show observed raw values/counts only, and no derived O2 column is created.',
       'Stage 3b implementation and tests are placed under outputs/stage3b to honor the prohibition on modifying pre-existing Stage 3/4 files; no prior pipeline/test file was changed.'
@@ -249,7 +257,7 @@ def main():
     (OUT/'open_questions.md').write_text('# Open questions\n\n'+LABEL+'\n\n'+'\n'.join(f'- {x}' for x in opens)+'\n',encoding='utf-8')
     (CHECKS/'read_only_checks.md').write_text('# Stage 3b read-only checks\n\n'+LABEL+'\n\nPer-module CSVs contain observed counts and no free-text values. Codebook.zip was unavailable; see `../open_questions.md`. N1/N2 cross-tabs are descriptive; no inferred code direction is applied. B3 cross-tabs include blank categories. `module_coverage.csv` distinguishes verified valid coverage from nonblank-only coverage.\n',encoding='utf-8')
     # Output inventory with hashes/row counts. Inputs are all requested files plus roster/spine and documentation.
-    inputs=[SPINE_PATH,DATA/'mod_b0_roster_long.csv']+[DATA/v for v in MODULES.values()]+[BASE/'docs'/'codebook_crosscheck_v0_1.md',BASE/'docs'/'spec_v0_1_decision_log.md',BASE/'review_register'/'domain_review.md',ROOT/'Data'/'BRIGHT_questionnaire_English.pdf']
+    inputs=[SPINE_PATH,DATA/'mod_b0_roster_long.csv']+[DATA/v for v in MODULES.values()]+[BASE/'docs'/'codebook_crosscheck_v0_1.md',BASE/'docs'/'spec_v0_1_decision_log.md',BASE/'docs'/'decision_log_section9_addendum (1).md',BASE/'review_register'/'domain_review.md',ROOT/'Data'/'BRIGHT_questionnaire_English.pdf']
     inmeta=[]
     for p in inputs:
         if p.exists():
@@ -263,20 +271,21 @@ def main():
             n=None
             if p.suffix.lower()=='.csv': n=sum(1 for _ in open(p,encoding='utf-8-sig'))-1
             outputmeta.append({'path':str(p.relative_to(ROOT)),'sha256':sha(p),'row_count':n})
-    manifest={'research_label':LABEL,'pipeline_version':'0.3.0','inputs':inmeta,'outputs':outputmeta,'household_rows':len(additions),'notes':['No scores/ranks/imputation. label_high_vuln and pc_cons excluded.','Codebook.zip unavailable.']}
+    manifest={'research_label':LABEL,'pipeline_version':'0.3.2','inputs':inmeta,'outputs':outputmeta,'household_rows':len(additions),'notes':['Section 9 addendum included as an authoritative input for v0.2 candidate indicators.','O1 mean-severity rule recorded from researcher clarification on 2026-10-21.','No overall vulnerability score/rank/imputation. label_high_vuln and pc_cons excluded.','Codebook.zip unavailable.']}
     if USER_QUESTIONNAIRE.exists():
         manifest['supplemental_user_supplied_inputs']=[{'path':str(USER_QUESTIONNAIRE),'sha256':sha(USER_QUESTIONNAIRE),'byte_identical_to_project_copy':sha(USER_QUESTIONNAIRE)==sha(ROOT/'Data'/'BRIGHT_questionnaire_English.pdf')}]
     (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     # Summary with coverage and B3 skip cross-tab counts.
     b3skip=pd.crosstab(cat(b3.b3_01),cat(b3.b3_03),dropna=False)
     coverage=pd.DataFrame(cov)
-    lines=['# Stage 3b summary','',LABEL,'','## Built','',f'- Read-only checks for seven modules; additions table has {len(additions):,} unique spine households.','- Outputs include raw O1 items and limited B1–B3 additions; no model, score, ranking, or imputation.','- N1 and N2 binary indicators use the explicit task mapping; N1 direction should be confirmed against the cleaned Codebook.zip when available.','- No label_high_vuln or pc_cons fields were read into the additions.','', '## Module coverage','', '| Module | Spine households with valid/nonblank response | Status |','|---|---:|---|']
+    lines=['# Stage 3b summary','',LABEL,'','## Built','',f'- Read-only checks for seven modules; additions table has {len(additions):,} unique spine households.','- Outputs include raw O1 items, approved O1 mean severity, and limited B1–B3 additions; no model, overall vulnerability score, ranking, or imputation.','- Section 9 addendum is included in the manifest and governs v0.2 candidate indicator preparation.','- N1 and N2 indicators use the addendum mapping; n1_0 agrees with the source flags for all 6,847 households (see `checks/n1_0_by_any_source_flag.csv`).','- No label_high_vuln or pc_cons fields were read into the additions.','', '## Module coverage','', '| Module | Spine households with valid/nonblank response | Status |','|---|---:|---|']
     for _,r in coverage.iterrows(): lines.append(f"| {r['module']} | {r['spine_households_with_valid_answer']:,} | {r['validity_note']} |")
     lines+=['','## B3 b3_01 by b3_03','', '| b3_01 | b3_03 | Count |','|---|---|---:|']
     for (a,b),v in b3skip.stack(dropna=False).items(): lines.append(f'| {a} | {b} | {int(v):,} |')
     lines+=['',f"The skip conflict is pronounced: all {int(b3skip.loc['0','[BLANK]']):,} records with b3_01=0 have b3_03 blank; {int(b3skip.loc['1','[BLANK]']):,} records with b3_01=1 also have b3_03 blank."]
     all20=int(o1valid.sum())
-    lines+=['','## O1 item completeness','',f'- Households with all 20 valid O1 items: {all20:,}. Per-item counts/rates are in `checks/o1_item_rates.csv`.','', '## Validation','',f'- Spine and additions rows: {len(additions)}; unique keys: {additions.hhcode.nunique()}.','- Household-level module joins used one-to-one validation; B3 member keys checked for uniqueness.','- share_chronic is null when no valid b3_01; where present it is constrained to [0,1].','- Household-level CSV outputs are ignored by the repository .gitignore rule for CSVs.','', '## Open questions','']
+    n_mean=int(additions.o1_mean_severity.notna().sum())
+    lines+=['','## O1 item completeness and mean severity','',f'- Households with all 20 valid O1 items: {all20:,}. Per-item counts/rates are in `checks/o1_item_rates.csv`.',f'- Mean severity is known for {n_mean:,}/{len(additions):,} households; valid-item count is carried per household in `n_o1_items_valid`.','- User assumption: all 20 O1 items refer to the past 12 months; only item 20 states that period explicitly in the reviewed questionnaire.','- Severity mapping: 1 severe=1, 2 moderate=0.5, 3 none=0; mean over valid answers; no valid answers remain unknown.','', '## Validation','',f'- Spine and additions rows: {len(additions)}; unique keys: {additions.hhcode.nunique()}.','- Household-level module joins used one-to-one validation; B3 member keys checked for uniqueness.','- share_chronic is null when no valid b3_01; where present it is constrained to [0,1].','- Household-level CSV outputs are ignored by the repository .gitignore rule for CSVs.','', '## Open questions','']
     lines += [f'- {x}' for x in opens]
     (OUT/'stage3b_summary.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     # Refresh manifest to include summary/open questions created after first inventory.
