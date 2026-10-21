@@ -4,7 +4,10 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.components.market_risk import services
+from app.components.market_risk.ml.explainer import ExplanationError
 from app.components.market_risk.schemas import (
+    ExplainRequest,
+    ExplainResponse,
     HealthResponse,
     Horizon,
     IdentifyRequest,
@@ -48,6 +51,10 @@ def _model_unavailable(exc: Exception) -> HTTPException:
     logger.error("market_risk model unavailable: %s", exc, exc_info=True)
     if isinstance(exc, FileNotFoundError):
         reason = "model files are missing on the server"
+    elif isinstance(exc, ImportError):
+        reason = "the SHAP explanation library is not installed on the server"
+    elif isinstance(exc, ExplanationError):
+        reason = "the SHAP explanation failed a consistency check"
     else:
         reason = (
             "the model could not be loaded (scikit-learn version mismatch "
@@ -83,6 +90,34 @@ def predict(request: PredictRequest) -> PredictResponse:
     try:
         return services.predict_market_risk(request)
     except (FileNotFoundError, RuntimeError) as exc:
+        raise _model_unavailable(exc) from None
+
+
+@router.post(
+    "/explain",
+    response_model=ExplainResponse,
+    summary="Explain 3-month and/or 6-month predictions with SHAP",
+    description=(
+        "Same input as `/api/risk/predict` (all 53 `F_*` features, `horizon`) "
+        "plus `top_k` (1-20, default 5). For each horizon it returns the "
+        "predicted class with its SHAP `base_value`, `probability` and "
+        "`top_factors`, the summed `other_features_contribution`, and "
+        "`high_risk_factors`. For every class, base_value + all contributions "
+        "= the model probability.\n\n"
+        "**`high_risk_factors` are the easiest to read: `+` pushes towards "
+        "High, `-` pushes away from High.** In `top_factors`, `contribution` "
+        "is towards the *predicted* class (for a Low prediction, `+` means "
+        "towards Low). `direction` always describes the effect on the expected "
+        "risk score 0*P(Low) + 1*P(Medium) + 2*P(High).\n\n"
+        "**SHAP explains what drives the model, not real-world causes.** "
+        f"**{NOT_READY_NOTE}**"
+    ),
+    responses={503: {"description": "Model files, SHAP library or explanation unavailable"}},
+)
+def explain(request: ExplainRequest) -> ExplainResponse:
+    try:
+        return services.explain_market_risk(request)
+    except (FileNotFoundError, RuntimeError, ImportError) as exc:
         raise _model_unavailable(exc) from None
 
 

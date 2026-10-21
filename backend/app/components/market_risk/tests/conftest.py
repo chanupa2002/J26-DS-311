@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.components.market_risk.ml import loader
+from app.components.market_risk.ml import explainer, loader
 
 
 def build_features(metadata: dict, **overrides) -> dict:
@@ -33,5 +33,7 @@ def features(metadata) -> dict:
 def reset_loader():
     """Start and finish with an empty loader cache (for tests that monkeypatch)."""
     loader.clear_cache()
+    explainer.clear_cache()
     yield
     loader.clear_cache()
+    explainer.clear_cache()

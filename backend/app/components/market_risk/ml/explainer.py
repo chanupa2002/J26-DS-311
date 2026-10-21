@@ -23,6 +23,10 @@ MISSING_PREFIX = "num__missingindicator_"
 CAT_PREFIX = "cat__"
 
 
+class ExplanationError(RuntimeError):
+    """SHAP output is unusable (unexpected shape or failed additivity check)."""
+
+
 def original_feature(transformed_name: str, categorical_features: list[str]) -> str:
     """Map a transformed column name to its original F_* feature."""
     if transformed_name.startswith(MISSING_PREFIX):
@@ -34,7 +38,7 @@ def original_feature(transformed_name: str, categorical_features: list[str]) -> 
         for name in categorical_features:
             if rest.startswith(name + "_"):
                 return name
-    raise ValueError(f"Cannot map transformed feature {transformed_name!r} to an input feature")
+    raise ExplanationError(f"Cannot map transformed feature {transformed_name!r} to an input feature")
 
 
 @lru_cache(maxsize=None)
@@ -62,7 +66,7 @@ def _as_rows_features_classes(shap_values: Any, n_classes: int) -> np.ndarray:
     else:
         values = np.asarray(shap_values)
     if values.ndim != 3 or values.shape[-1] != n_classes:
-        raise RuntimeError(
+        raise ExplanationError(
             f"Unexpected SHAP output shape {values.shape}; expected (rows, features, {n_classes})"
         )
     return values
@@ -73,7 +77,7 @@ def explain(horizon: str, X) -> dict[str, Any]:
 
     Returns base_values (per class), probabilities (per class) and contributions
     (original features x classes), with labels from metadata["classes"].
-    Raises RuntimeError if base value + contributions != model probability.
+    Raises ExplanationError if base value + contributions != model probability.
     """
     model, metadata = loader.load_model(horizon)
     explainer, aggregation = _load_explainer_cached(horizon)
@@ -90,7 +94,7 @@ def explain(horizon: str, X) -> dict[str, Any]:
 
     difference = float(np.max(np.abs(base_values + contributions.sum(axis=0) - probabilities)))
     if difference >= ADDITIVITY_TOLERANCE:
-        raise RuntimeError(
+        raise ExplanationError(
             f"SHAP additivity check failed for market_risk {horizon} model "
             f"(max difference {difference:.2e} >= {ADDITIVITY_TOLERANCE:.0e})."
         )

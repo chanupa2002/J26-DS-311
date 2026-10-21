@@ -1,6 +1,6 @@
 # market_risk: 3-month and 6-month household market-risk prediction
 
-Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `get_model_info`, `identify_current_risk`
+Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`
 
 > **Status: NOT_READY.** Both models were trained and tested on **synthetic data only**.
 > Every prediction includes `model_status` and `deployment_reason`, and they must be shown to users.
@@ -15,7 +15,7 @@ For one SUSTAIN household at monitoring month *t*, the component predicts the ho
 - **Models:** scikit-learn Pipeline + RandomForest.
 - **Target rule:** SUSTAIN-HH-Risk-Rule v1.0 (provisional).
 
-It also **identifies the household's current risk class** (Low / Medium / High / Unassigned) from four current-visit answers. This uses the rule-based SUSTAIN-HH-Risk-Rule v1.0, with no ML model.
+It **explains each prediction with SHAP**: which features pushed the model towards its answer, and towards High. It also **identifies the household's current risk class** (Low / Medium / High / Unassigned) from four current-visit answers. This uses the rule-based SUSTAIN-HH-Risk-Rule v1.0, with no ML model.
 
 The prediction input is the engineered features, not raw survey answers, because many features need the household's earlier visits. They are built as in `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb`, section 13 (`build_features`).
 
@@ -25,13 +25,14 @@ The prediction input is the engineered features, not raw survey answers, because
 |---|---|
 | `router.py` | FastAPI endpoints (`/api/risk/...`) |
 | `schemas.py` | Pydantic request/response models (53 explicit feature fields) |
-| `services.py` | Public functions `predict_market_risk`, `get_model_info`, `identify_current_risk` |
+| `services.py` | Public functions `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk` |
 | `ml/loader.py` | Cached loading of models and metadata, plus the scikit-learn version check |
+| `ml/explainer.py` | Cached SHAP `TreeExplainer` per horizon; maps the 94 transformed columns back to the 53 features; additivity check |
 | `ml/sustain_predict.py` | Colab export; the API reuses its `validate_input` |
 | `ml/models/3M/`, `ml/models/6M/` | `model.joblib`, `metadata.json`, `feature_schema.json` |
 | `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `ml/Methodology_Results_Summary.md` | Model card, data description (no real values), methodology |
 | `sample_data/predict_request_example.json` | One synthetic example request |
-| `tests/` | Loader, service, endpoint and identification tests (inputs built inline) |
+| `tests/` | Loader, service, endpoint, explanation and identification tests (inputs built inline) |
 
 ## Endpoints
 
@@ -99,6 +100,55 @@ The complete body is in `sample_data/predict_request_example.json`. Shortened:
 | Unknown or `null` category or district | Accepted. It is encoded as all-zero, with a warning |
 | Missing key, extra or misspelled key, non-numeric or infinite value, bad `horizon` | **422** |
 | Model files missing, or scikit-learn ≠ 1.6.1 | **503**, with a short message. Details go only to the server log |
+
+### `POST /api/risk/explain`
+
+This explains each horizon's prediction with SHAP. **SHAP shows what drives the model, not real-world causes, and the models are NOT_READY.**
+
+**Request.** The same body as `/predict`, plus `top_k` (1–20, default 5). For example: `{"horizon": "3M", "top_k": 3, "features": { ...all 53 F_* keys... }}`.
+
+**Response 200** (the sample request with `"horizon": "3M"` and `"top_k": 3`; numbers rounded and long text shortened here):
+
+```json
+{
+  "horizon": "3M",
+  "explanations": [
+    {
+      "horizon": "3M",
+      "model_name": "SUSTAIN_Model_3M",
+      "predicted_risk": "Low",
+      "explained_class": "Low",
+      "base_value": 0.3333,
+      "probability": 0.3736,
+      "top_factors": [
+        { "feature": "F_Female_Head", "label": "Household headed by a female: Yes=1, No=0", "value": 1.0, "contribution": 0.0151, "direction": "decreases risk" },
+        { "feature": "F_Mkt_Pressure_Tier_Ord_t", "label": "Category pressure tier at t (ordinal)", "value": null, "contribution": 0.014, "direction": "decreases risk" },
+        { "feature": "F_Female_Participant", "label": "Participant gender: Female=1, Male=0", "value": 1.0, "contribution": 0.0129, "direction": "decreases risk" }
+      ],
+      "other_features_contribution": -0.0017,
+      "high_risk_probability": 0.3714,
+      "high_risk_factors": [
+        { "feature": "F_Mkt_Pressure_t", "label": "Category market-price pressure at month t (adverse direction)", "value": null, "contribution": -0.0147, "direction": "decreases risk" },
+        { "feature": "F_Mkt_Pressure_Tier_Ord_t", "label": "Category pressure tier at t (ordinal)", "value": null, "contribution": -0.0139, "direction": "decreases risk" },
+        { "feature": "F_Risk_Signal_Count_t", "label": "Count of the three risk signals (...) equal to 1 at t", "value": 1.0, "contribution": 0.0122, "direction": "increases risk" }
+      ],
+      "model_status": "NOT_READY",
+      "deployment_reason": "trained and tested only on SYNTHETIC rows ..."
+    }
+  ],
+  "warnings": ["12 numeric features were null and will be median-imputed: ..."],
+  "note": "SHAP shows what drives the model, not real-world causes; models are NOT_READY (synthetic data)"
+}
+```
+
+**How to read it**
+
+- **`high_risk_factors` are the easiest to read:** `+` pushes towards High and `-` pushes away from High.
+- **In `top_factors`,** `contribution` is towards the **predicted** class. For a Low prediction, `+` means towards Low, which is lower risk.
+- **`direction`** always describes the effect on the expected risk score 0·P(Low) + 1·P(Medium) + 2·P(High), so it reads the same for any class.
+- **Additivity:** `base_value` + all contributions = `probability`, with all contributions = `top_factors` + `other_features_contribution`. The server checks this to within 1e-6 and returns **503** if it fails.
+- **How features are combined:** contributions of the 94 model columns are summed back to the 53 input features. A numeric feature's value and its missing indicator are added together, and all one-hot columns of `F_Category` / `F_District` are added together.
+- **Errors:** input errors → **422**. Missing model files, a scikit-learn mismatch, a missing `shap` library or a failed check → **503**, with a short message and no paths.
 
 ### `POST /api/risk/identify`
 
@@ -251,7 +301,9 @@ Results (**SYNTHETIC panel only, not real-world evidence**):
 - **`/identify` follows the notebook code where it differs from the written rule.** If the business status is blank but 2 or more signals are 1, the class is High. The written rule in `metadata.json` would say Unassigned.
 - **Coverage.** The models know only 4 districts and 7 categories. Transport & Logistics and Beauty & Wellness are unseen (they get a warning). Garment and Handicrafts are combined, and "Other" is mixed.
 - **Small samples.** The 3M model has 102 training and 39 test rows; the 6M model has 77 and 39.
-- **No per-prediction explanations yet.** Global feature importance is in `ml/Methodology_Results_Summary.md`.
+- **Gender features appear among the 3M top drivers.** For the sample household, `F_Female_Head` and `F_Female_Participant` are among the top SHAP factors. The model learned this from **synthetic** data, so it is not evidence about real people. It needs a fairness check on real data before any use.
+- **Blank inputs can be top factors.** A `null` value can have a large contribution, because the model uses the median it fills in and its missing-value indicator. A blank answer is not neutral.
+- **Some directions are counter-intuitive on the small synthetic panel.** For example, in the 6M model, "no profit last month = 1" lowers P(High) for the sample household. Do not read SHAP factors as causes.
 - **The NDA sign-off for committing the models is pending supervisor approval.**
 
 The steps needed before deployment are listed in `ml/Methodology_Results_Summary.md`: real data with a stable household ID covering at least 12 months, expert validation of the rule, and an embargoed real-data test that beats the persistence baseline.
