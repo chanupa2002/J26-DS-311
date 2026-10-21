@@ -23,16 +23,28 @@ identify_current_risk(request) -> IdentifyResponse
     (Low/Medium/High/Unassigned), risk_ord, signal_count, unknown_count,
     reasons and rule_version. Rule-based; no ML model.
 
+explain_market_risk(request) -> ExplainResponse
+    request is an ExplainRequest (or a dict): the PredictRequest fields plus
+    top_k (1..20, default 5). For each horizon, SHAP contributions of the 53
+    features to the predicted class (top_factors) and to the High class
+    (high_risk_factors), with base_value + contributions = model probability.
+    Same input conversion and warnings as predict_market_risk.
+    SHAP shows what drives the model, not real-world causes.
+
 To use the database:  from app.core.database import get_supabase
 """
 
 from typing import Any
 
-from app.components.market_risk.ml import loader
+from app.components.market_risk.ml import explainer, loader
 from app.components.market_risk.ml.sustain_predict import validate_input
 from app.components.market_risk.schemas import (
+    ExplainRequest,
+    ExplainResponse,
+    ExplanationFactor,
     FeatureInfo,
     Horizon,
+    HorizonExplanation,
     HorizonPrediction,
     IdentifyRequest,
     IdentifyResponse,
@@ -54,6 +66,13 @@ STRESS_SIGNALS = (
     ("market_stress_any", "Market stress"),
 )
 HIGH_SIGNAL_COUNT = 2
+
+EXPLAIN_NOTE = (
+    "SHAP shows what drives the model, not real-world causes; "
+    "models are NOT_READY (synthetic data)"
+)
+# Weights of the expected risk score used for a factor's direction.
+RISK_SCORE_WEIGHTS = {"Low": 0.0, "Medium": 1.0, "High": 2.0}
 
 
 def get_status() -> dict:
@@ -98,9 +117,11 @@ def _missing_value_warnings(
     return warnings
 
 
-def _predict_horizon(
-    horizon: str, features: dict[str, Any]
-) -> tuple[HorizonPrediction, list[str]]:
+def _prepare_input(horizon: str, features: dict[str, Any]):
+    """Shared by predict and explain: load model, convert category, validate.
+
+    Returns (model, metadata, X, features_used, warnings).
+    """
     import pandas as pd
 
     model, metadata = loader.load_model(horizon)
@@ -110,6 +131,13 @@ def _predict_horizon(
     row = pd.DataFrame([features], columns=metadata["feature_names_in_order"])
     X, issues = validate_input(row, metadata)
     warnings += issues
+    return model, metadata, X, features, warnings
+
+
+def _predict_horizon(
+    horizon: str, features: dict[str, Any]
+) -> tuple[HorizonPrediction, list[str]]:
+    model, metadata, X, _, warnings = _prepare_input(horizon, features)
 
     proba = model.predict_proba(X)[0]
     labels = [metadata["classes"][int(c)] for c in model.classes_]
@@ -145,6 +173,92 @@ def predict_market_risk(request: PredictRequest | dict) -> PredictResponse:
         predictions=predictions,
         warnings=warnings,
         placeholder=False,
+    )
+
+
+def _factors(
+    shap_result: dict[str, Any],
+    class_name: str,
+    features_used: dict[str, Any],
+    top_k: int,
+) -> tuple[list[ExplanationFactor], float]:
+    """Top-k features by |contribution| to one class, plus the rest summed."""
+    import numpy as np
+
+    classes = shap_result["classes"]
+    contributions = shap_result["contributions"]
+    column = contributions[:, classes.index(class_name)]
+    weights = np.array([RISK_SCORE_WEIGHTS[c] for c in classes])
+    risk_effect = contributions @ weights
+
+    top = np.argsort(-np.abs(column), kind="stable")[:top_k]
+    schema_fields = MarketRiskFeatures.model_fields
+    factors = []
+    for i in top:
+        name = shap_result["features"][i]
+        description = schema_fields[name].description or name
+        factors.append(
+            ExplanationFactor(
+                feature=name,
+                label=description.rstrip("."),
+                value=features_used.get(name),
+                contribution=float(column[i]),
+                direction="increases risk" if risk_effect[i] > 0 else "decreases risk",
+            )
+        )
+    other = float(column.sum() - column[top].sum())
+    return factors, other
+
+
+def _explain_horizon(
+    horizon: str, features: dict[str, Any], top_k: int
+) -> tuple[HorizonExplanation, list[str]]:
+    _, metadata, X, features_used, warnings = _prepare_input(horizon, features)
+    shap_result = explainer.explain(horizon, X)
+
+    classes = shap_result["classes"]
+    probabilities = shap_result["probabilities"]
+    predicted = classes[int(probabilities.argmax())]
+    index = classes.index(predicted)
+    top_factors, other = _factors(shap_result, predicted, features_used, top_k)
+    high_factors, _ = _factors(shap_result, "High", features_used, top_k)
+    status = loader.get_model_status(horizon)
+
+    explanation = HorizonExplanation(
+        horizon=horizon,
+        model_name=metadata["model_name"],
+        predicted_risk=predicted,
+        explained_class=predicted,
+        base_value=float(shap_result["base_values"][index]),
+        probability=float(probabilities[index]),
+        top_factors=top_factors,
+        other_features_contribution=other,
+        high_risk_probability=float(probabilities[classes.index("High")]),
+        high_risk_factors=high_factors,
+        model_status=status["model_status"],
+        deployment_reason=status["deployment_reason"],
+    )
+    return explanation, warnings
+
+
+def explain_market_risk(request: ExplainRequest | dict) -> ExplainResponse:
+    """Explain 3M and/or 6M predictions with SHAP (predicted class and High class)."""
+    if not isinstance(request, ExplainRequest):
+        request = ExplainRequest.model_validate(request)
+    features = request.features.model_dump()
+
+    explanations: list[HorizonExplanation] = []
+    warnings: list[str] = []
+    for horizon in _requested_horizons(request.horizon):
+        explanation, horizon_warnings = _explain_horizon(horizon, features, request.top_k)
+        explanations.append(explanation)
+        warnings += [w for w in horizon_warnings if w not in warnings]
+
+    return ExplainResponse(
+        horizon=request.horizon,
+        explanations=explanations,
+        warnings=warnings,
+        note=EXPLAIN_NOTE,
     )
 
 

@@ -155,6 +155,17 @@ class PredictRequest(BaseModel):
     features: MarketRiskFeatures
 
 
+class ExplainRequest(PredictRequest):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"horizon": "both", "top_k": 5, "features": EXAMPLE_FEATURES}]
+        },
+    )
+
+    top_k: int = Field(default=5, ge=1, le=20, description="Number of top factors to return per horizon.")
+
+
 class RiskProbabilities(BaseModel):
     Low: float
     Medium: float
@@ -175,6 +186,38 @@ class PredictResponse(BaseModel):
     predictions: list[HorizonPrediction]
     warnings: list[str] = Field(default_factory=list)
     placeholder: bool
+
+
+class ExplanationFactor(BaseModel):
+    feature: str
+    label: str = Field(description="Plain-English meaning of the feature.")
+    value: float | str | None = Field(description="Input value the model used (after category conversion); null if blank.")
+    contribution: float = Field(description="SHAP contribution to the probability of the explained class.")
+    direction: Literal["increases risk", "decreases risk"] = Field(
+        description="Effect on the expected risk score 0*P(Low) + 1*P(Medium) + 2*P(High)."
+    )
+
+
+class HorizonExplanation(BaseModel):
+    horizon: Horizon
+    model_name: str
+    predicted_risk: RiskClass
+    explained_class: RiskClass
+    base_value: float = Field(description="Average model probability of the explained class (SHAP expected value).")
+    probability: float = Field(description="Model probability of the explained class for this household.")
+    top_factors: list[ExplanationFactor]
+    other_features_contribution: float = Field(description="Sum of contributions of all features not in top_factors.")
+    high_risk_probability: float
+    high_risk_factors: list[ExplanationFactor] = Field(description="Top factors for the High class, always included.")
+    model_status: str
+    deployment_reason: str
+
+
+class ExplainResponse(BaseModel):
+    horizon: HorizonOption
+    explanations: list[HorizonExplanation]
+    warnings: list[str] = Field(default_factory=list)
+    note: str
 
 
 class ModelSummary(BaseModel):
