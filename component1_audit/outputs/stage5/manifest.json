@@ -1,0 +1,251 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "pipeline_version": "stage5-v0.2.0",
+  "bn_model_version": "bn_v0.1.0",
+  "baseline_config": "config_v02_interim()",
+  "baseline_leaves": [
+    "shelter_quality",
+    "sanitation",
+    "crowding_tenure",
+    "food",
+    "demographic",
+    "health",
+    "economic",
+    "financial_resilience"
+  ],
+  "exposure_baseline": "excluded",
+  "inputs": [
+    {
+      "path": "component1_audit\\outputs\\stage4b\\fuzzy_scores_v0_2.csv",
+      "sha256": "de78814295c7d95979ccea09c40051bb23e99622aa6bbdb69918e7eeed5c4db7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\bn_engine\\bn_v0_1.py",
+      "sha256": "bd5312332b0c4e399447b9f0da66e318fa9040c3408b0a874ef18bde0fa325ce",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\bn_engine\\test_bn_v0_1.py",
+      "sha256": "1ca92a4332b1763bf3744bc223d123e4baca6bd6f5735f387af519371048a366",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\decision_log_section9_addendum (1).md",
+      "sha256": "25f1ad14cc98bf58ffa28a4c9de33f1a2ec15b37897b2703a5476b39219d68ff",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\docs\\codebook_crosscheck_v0_1.md",
+      "sha256": "76420beebd2bbab5b70a209da1003f5b18e6e3e9c9a551e5127264ef099aec5e",
+      "row_count": null
+    },
+    {
+      "path": "Data\\BRIGHT_questionnaire_English.pdf",
+      "sha256": "466f554d464dde004cc13318771030c36c87b1839460f7f8b27392f7a588d4dc",
+      "row_count": null
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_o1_shocks.csv",
+      "sha256": "c919c7050cc3e11ca9d660b8f9b325774b1c0b172fdd0ae44b20b05ff72dec19",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_f1_ag_seasons.csv",
+      "sha256": "80baf03dd55ed087e473b4458d5e8e367c8d36f3820317e896bc578861815cd5",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_g1_livestock.csv",
+      "sha256": "bd112635066d1b660ad0a84fad84e796526cae0561d4dfc010411d69fc53f118",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_g2_fish.csv",
+      "sha256": "7a5222295b05f355533537a5449dee120f44ca1e3ff3a5b6221816480ffd39f1",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_i_nonfarm_business.csv",
+      "sha256": "71cbca4a7530ce65e3e22b5d22bc6781f9ae5e8c83fb9c23d4a03d6963ff5f06",
+      "row_count": 6847
+    },
+    {
+      "path": "Data\\processed\\clean\\mod_a_household_identification.csv",
+      "sha256": "afa59682b34918647c74406f9c6c59835b84f1f7c0671fa1ae97ac2238e8d39c",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv",
+      "sha256": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
+      "row_count": 6847
+    }
+  ],
+  "outputs": [
+    {
+      "path": "component1_audit\\outputs\\stage5\\additive_comparison.csv",
+      "sha256": "329f3a71b723efb824b5f4d564aa589a4f86d2d4b6ba0e7b788adb516bda87b3",
+      "row_count": 1
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\bn_scores_v0_2_interim.csv",
+      "sha256": "2c96155fcf8502a24c41d6e252cd67b8c6f9fdc7a07f60495dea307e0fea11a7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\bn_validation.md",
+      "sha256": "5d86244b56fdcd2f4c193d5ee2ccb6599db4bcccd8b6956f4a84acc262ae3f71",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\build_stage5.py",
+      "sha256": "fe5dfbec0b8fe25b82dcd9d693fa403ed144ea688874b9e38c46233b94666a5a",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\by_district.csv",
+      "sha256": "83786282e5bf7d733e60535cfa5b7b7a006febd8dea8fd9e4d22dc8447ff5d7a",
+      "row_count": 25
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\by_province.csv",
+      "sha256": "9c0c77b1f61b6ad7f3ac28139374c113cd1253fae79ebcbf6c9dc570c79e53a0",
+      "row_count": 9
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\coverage_correlations.csv",
+      "sha256": "5c29fb8f1c1914c1d4e520688008f1a540a04caf07eb381577070d62e493e1d4",
+      "row_count": 4
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\exposure_audit.md",
+      "sha256": "831692b3fc7dc2a50de38fceb33671d1d40cdc80f8b199b3f5972e0137c85b62",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\flat_sensitivity_cpt_729.csv",
+      "sha256": "42c7bf046e24f3bbbda976d70d188c20495cbef807094b03f385c6821fd08c45",
+      "row_count": 729
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\open_questions.md",
+      "sha256": "ff470d78c75baaa50f5df2d7e6f5d7e47e8c96197e93c2e40829a6f99bab3b21",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\proxy_descriptive_check.md",
+      "sha256": "d67b7a3d698fa120fc037fc754a1342b53b90857291246b7bed6a5799ee1243e",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\blend_min_coverage_0.5.csv",
+      "sha256": "9d20289a8606604c315dc1265e70f048600183768d39be0b6f3b189f787f5c09",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\blend_none.csv",
+      "sha256": "0095895b6eb72759ae7ca92d7621a92a0278ba32dc7f736295d2bd0c3977ddcb",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_crowding_tenure.csv",
+      "sha256": "a16520a266b4d921134d1532b5c225d758d5b2b6bfcd54b50bc14df51e2314fd",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_demographic.csv",
+      "sha256": "a6b14bdf28c3aee34cf2a57dd0266ead0cbb7a124056bce0c601f9ef029af67c",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_economic.csv",
+      "sha256": "99035340e5accd1ca85d9ecbfcb13c676a050189fc30d45d5ce12d0715387b9f",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_financial_resilience.csv",
+      "sha256": "3e387d0c7d73806c1a1db3cbb259caedbd047b88aca70945fca03684e3df6cc8",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_food.csv",
+      "sha256": "5acff481f1c044c86344ce75faaff9e674d36de6fd37525b8e8a3fb661872c8f",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_health.csv",
+      "sha256": "db918c9f28be088f272cc957458ada784fe68ddc83e8ddb5f255bae942adea39",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_sanitation.csv",
+      "sha256": "afed6ffef1bab64fe28c5e02fce2a5723bdbdc04eefc5087f870e4f196e6ca39",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\drop_shelter_quality.csv",
+      "sha256": "1af8387d7c33ca9cc2ea82570d8e67367659115cf9c90b6c6d964860bc7fa77f",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\empirical_priors.csv",
+      "sha256": "2e2e34c31c02267645501f493913aed1561991437811db27b39d431f23c505c7",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\flat_sensitivity_structure.csv",
+      "sha256": "3f720be4d23e3876ba9ba35bb38eb89f77da795342ee0e2b6bb68f862bc0c772",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\include_exposure.csv",
+      "sha256": "00815cea441abf94101dbbc1cfc8f9b3e49ae9a251b9672b1cfbe88ee173bd6b",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\n_states_5.csv",
+      "sha256": "99ec4d42cbd4e1ee84f8f4333873af751b49dce3c0aa97a83f2469a8e449cba1",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\sigma_0.08.csv",
+      "sha256": "464cf3fad8b05aa84be2c86067fc6043a0415fef15b3f55272ab9b7eecad7552",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\sigma_0.25.csv",
+      "sha256": "dfde12264023c78029c925d0f868797dfba8bb4d2719d0c470c39cea369a1381",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\weights_demographic_doubled.csv",
+      "sha256": "00fbe01c0b1a424b083ce222f0b221bb4fca0e72d5f22037190e781e3c62d4a8",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity\\weights_economic_food_doubled.csv",
+      "sha256": "60cc9e922b54fb62f516148363955e33a9132a53c46b88e3551a2e22ccc8bb19",
+      "row_count": 6847
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\sensitivity_comparison.csv",
+      "sha256": "026f0da54453ce313e46d0b567508cd6957802c55ea83170bdb5020f2fd4b40f",
+      "row_count": 18
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\stage5_summary.md",
+      "sha256": "63c0a56f2ab00fafe308a67f514c15d06964496f1d94473990b6eca327e50a8b",
+      "row_count": null
+    },
+    {
+      "path": "component1_audit\\outputs\\stage5\\test_stage5.py",
+      "sha256": "1caf0bc3671922e8bc30d25a7bbf21bd8e1201c0b1bd1877db280187254f638d",
+      "row_count": null
+    }
+  ],
+  "notes": [
+    "No BN engine code/default modified.",
+    "No imputation.",
+    "No household-level geography report."
+  ]
+}
