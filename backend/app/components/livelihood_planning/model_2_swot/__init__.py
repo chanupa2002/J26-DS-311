@@ -1,1 +1,1 @@
-"""SWOT fact retrieval, scoring, and assembly placeholders."""
+"""Grounded SWOT fact retrieval, scoring, rewriting, and viability reporting."""

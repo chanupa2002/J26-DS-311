@@ -19,7 +19,7 @@ is rejected.
 | beneficiary_selection | assess_household | TBD | TBD | Not started |
 | livelihood_planning | recommend_livelihood | TBD | TBD | Not started |
 | evidence_trust | score_evidence | TBD | TBD | Not started |
-| market_risk | predict_market_risk | TBD | TBD | Not started |
+| market_risk | predict_market_risk | get_model_info | identify_current_risk |
 
 ## 3. Database tables (Supabase)
 

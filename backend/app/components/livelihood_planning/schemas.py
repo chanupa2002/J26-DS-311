@@ -1,4 +1,5 @@
 """Request and response data shapes for Livelihood Recommendation and Family Development Planning."""
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -25,7 +26,7 @@ class LivelihoodRequest(BaseModel):
     # FINAL FIELD LIST TO BE FROZEN
     district: str | None = None
     ds_division: str | None = None
-    age: int | None = None
+    age: int | None = Field(default=None, ge=0, le=120)
     gender: str | None = None
     female_headed: bool | None = None
     disability: bool | None = None
@@ -42,6 +43,8 @@ class RecommendationItem(BaseModel):
 class SwotItem(BaseModel):
     text: str
     source: str
+    evidence: str | None = None
+    strength: Literal["clear", "weak"] | None = None
 
 
 class SwotResult(BaseModel):
@@ -49,6 +52,17 @@ class SwotResult(BaseModel):
     weaknesses: list[SwotItem]
     opportunities: list[SwotItem]
     threats: list[SwotItem]
+
+
+class ViabilityResult(BaseModel):
+    score: float
+    low: float
+    high: float
+    profitability: float
+    market: float
+    area: float
+    resilience: float
+    estimated: bool
 
 
 class RecommendResponse(BaseModel):
@@ -60,7 +74,34 @@ class RecommendResponse(BaseModel):
 
 class SwotResponse(RecommendResponse):
     swot: SwotResult
+    viability: ViabilityResult | None = None
 
 
 class PlanResponse(SwotResponse):
     plan: dict[str, object]
+
+
+class BeneficiarySummary(BaseModel):
+    id: str | int
+    full_name: str
+    district: str | None = None
+    age: int | None = None
+    gender: str | None = None
+    female_headed: bool | None = None
+    disability: bool | None = None
+    aswesuma_category: str | None = None
+    is_demo: bool | None = None
+
+
+class AssessmentResponse(BaseModel):
+    id: str | int
+    beneficiary_id: str | int
+    input_snapshot: dict[str, object] = Field(default_factory=dict)
+    recommendations: list[RecommendationItem] = Field(default_factory=list)
+    chosen_livelihood: str | None = None
+    swot: SwotResult | None = None
+    viability: ViabilityResult | None = None
+    notes: list[str] = Field(default_factory=list)
+    confidence: Literal["low", "normal"]
+    status: str
+    created_at: datetime | None = None
