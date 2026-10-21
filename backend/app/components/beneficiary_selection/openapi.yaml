@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: Component 1 local scored-model API
+  version: 0.1.0
+  description: Saved Stage 5 scores and what-if BN scoring using the existing engine.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /households:
+    get:
+      parameters:
+        - {name: province, in: query, schema: {type: string}}
+        - {name: district, in: query, schema: {type: string}}
+        - {name: min_percentile, in: query, schema: {type: number, minimum: 0, maximum: 100}}
+        - {name: max_percentile, in: query, schema: {type: number, minimum: 0, maximum: 100}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+      responses: {'200': {description: Paginated household scores with API row IDs only}}
+  /households/{row_id}:
+    get:
+      parameters:
+        - {name: row_id, in: path, required: true, description: API-generated integer, schema: {type: integer, minimum: 1}}
+      responses: {'200': {description: One score}, '404': {description: Row not found}}
+  /summary:
+    get: {responses: {'200': {description: Aggregate summaries; cells below 10 suppressed}}}
+  /whatif:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [leaves]
+              properties:
+                leaves:
+                  type: object
+                  description: Exactly the eight baseline leaves; each has degree 0..1 or unobserved and coverage_fraction 0..1.
+      responses: {'200': {description: BN posteriors, uncertainty, conditional table, and temporary candidate rank}}
+  /sensitivity: {get: {responses: {'200': {description: Saved Stage 5 comparison table}}}}
+  /spec: {get: {responses: {'200': {description: Decision log and decision status/open conditions}}}}
+  /model-info: {get: {responses: {'200': {description: Model versions and loaded data mode}}}}
+  /health: {get: {responses: {'200': {description: Service and data-loader health}}}}

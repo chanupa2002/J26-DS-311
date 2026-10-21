@@ -1,0 +1,30 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "mode": "SYNTHETIC",
+  "model_version": "bn_v0.1.0",
+  "row_count": 60,
+  "files": {
+    "bn_scores_v0_2_interim.csv": "e1e29e0c6e69d6334c1ec05d16442bf01651ea88ded664e9719847498468f1ae",
+    "by_district.csv": "a1fda147078087b08e53840653651909b77c2bdecd8da34cb34de1077a6f7622",
+    "by_province.csv": "af523f46c0142b0c83577102203285bd5d4f06ce89d60b365b476c2e07605d1d",
+    "sensitivity/blend_min_coverage_0.5.csv": "4aa5082d675c5f14b0cd793684b6cb486cd967e326a6b7e7cfc679017ac2b67c",
+    "sensitivity/blend_none.csv": "d545f522063b981ea69cf9c8ea4de4a3d58ad914a89d242039b76844a19c1a8c",
+    "sensitivity/drop_crowding_tenure.csv": "51cce0c64c3472bce48f5bbf150ff8de15a8fd61955fbc2b8630e83a567ee315",
+    "sensitivity/drop_demographic.csv": "bd00f6efe48d7ebbd29a0fd9a01d374db65fea89284caa29c0d294b389f20d88",
+    "sensitivity/drop_economic.csv": "3eac35aa1006aadd2e50d89c51d13309ed0c307e0463993937180d4e9d2ff56b",
+    "sensitivity/drop_financial_resilience.csv": "bf0fc9130b23825d66a5fdbcb9bc9360510ad4d8b055e576e46c1ee6fa357316",
+    "sensitivity/drop_food.csv": "ec04fefcb0b8388db5c03e66f9e8cba87b7d301c40c26ecba4e24d3d71893b8a",
+    "sensitivity/drop_health.csv": "a3d701e930c57d5732c78892b842cc16de814f7409ef4ddcf3aa984161ad757e",
+    "sensitivity/drop_sanitation.csv": "c0f3cc6e9ddd09286411dfe663628ecf2f2737afefff5445e56cb6df85bb2945",
+    "sensitivity/drop_shelter_quality.csv": "9ecc8fdc1221e6d333e27fcab785467590bb959b05af4ffe8df3aae1947e65aa",
+    "sensitivity/empirical_priors.csv": "5bcdc10c50c0f7622a4b881f21f5350164606aaa461e2252fb74d816426557e9",
+    "sensitivity/flat_sensitivity_structure.csv": "b5554fca6590bc6497cb76156f72d3164b5703472a006fd4f26ddedb360ec0c6",
+    "sensitivity/include_exposure.csv": "09a20592f9be9c0c550e6f3b2e96ab49857abe1cbedcca5aa9890ddbef922701",
+    "sensitivity/n_states_5.csv": "df3f60ecc105ef9de14659a73c6d9b964e206e354aa3dfc725f1cfff2eb40db8",
+    "sensitivity/sigma_0.08.csv": "e8e46c29ebd03d4f8516e154a2b75a5f572135874b371f6b8fe923dd5937f198",
+    "sensitivity/sigma_0.25.csv": "346f80edec7da979be275eb93e57e9887f2ba9c01ed358950a07e030ef7ab1ae",
+    "sensitivity/weights_demographic_doubled.csv": "e46c4e3fca95708283b81cb52c862ee08de00c2aa12e4990cd1fd004f3863352",
+    "sensitivity/weights_economic_food_doubled.csv": "b0e320c5eba02a482ed5bae46f7c086704e4aa9b1917c473e5f43adb05727fcd",
+    "sensitivity_comparison.csv": "59b268a67ec78e9b0d70dca565e9c946633673ed0d170f275698d58a69374916"
+  }
+}

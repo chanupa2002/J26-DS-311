@@ -1,0 +1,87 @@
+Research output - not an eligibility determination
+
+Component 1 local API calls
+===========================
+
+Start the shared backend from the backend/ folder:
+  uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
+
+Base URL:
+  http://127.0.0.1:8000
+
+The service also displays the candidate input page at / and the backend API docs at /docs.
+Responses include research_label, model_version, spec_version,
+data_manifest_sha256, and data_mode. Use row_id in household paths; never use
+a household code in a URL.
+
+1. Health
+---------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/health'
+
+2. Model and data information
+-----------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/model-info'
+
+3. Page through saved household scores (maximum 100 rows per page)
+------------------------------------------------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/households?offset=0&limit=20'
+
+Filter by province, district, and percentile range:
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/households?province=1&district=2&min_percentile=40&max_percentile=80&offset=0&limit=20'
+
+4. Retrieve one saved score by API row identifier
+-------------------------------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/households/1'
+
+The integer 1 is an example API row_id, not a household code.
+
+5. Aggregate summary
+--------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/summary'
+
+Aggregate cells with fewer than 10 households are suppressed.
+
+6. Saved sensitivity comparisons
+---------------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/sensitivity'
+
+These are saved Stage 5 scenario comparisons; the API does not rerun them.
+
+7. Decision log and decision status index
+-----------------------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/spec'
+
+8. OpenAPI contract
+-------------------
+Invoke-WebRequest -Method Get -Uri 'http://127.0.0.1:8000/openapi.yaml' | Select-Object -ExpandProperty Content
+
+9. Score candidate domain degrees with /whatif
+----------------------------------------------
+$body = @'
+{
+  "leaves": {
+    "shelter_quality": {"degree": 0.60, "coverage_fraction": 1.0},
+    "sanitation": {"degree": 0.40, "coverage_fraction": 1.0},
+    "crowding_tenure": {"degree": 0.75, "coverage_fraction": 1.0},
+    "food": {"degree": 0.50, "coverage_fraction": 1.0},
+    "demographic": {"degree": 0.30, "coverage_fraction": 1.0},
+    "health": {"degree": 0.25, "coverage_fraction": 0.8},
+    "economic": {"degree": 0.65, "coverage_fraction": 1.0},
+    "financial_resilience": {"degree": "unobserved", "coverage_fraction": 0.0}
+  }
+}
+'@
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/whatif' -ContentType 'application/json' -Body $body
+
+For an observed degree, enter a number from 0 to 1. To leave a domain unknown,
+use "unobserved" and a coverage_fraction of 0. Coverage fractions are from 0
+to 1. The result includes the candidate's temporary rank and percentile beside
+the saved baseline distribution. It does not update saved household rankings.
+
+10. Synthetic mode for demonstrations
+-------------------------------------
+Set the process environment variable COMPONENT1_API_SYNTHETIC=1 before starting
+the backend to force generated fake records. Responses then report data_mode as
+SYNTHETIC. Synthetic records are examples and do not represent real households.
+
+Research prototype only. No score is validated for decision use.
