@@ -1,5 +1,7 @@
 # SUSTAIN 3M/6M Risk Prediction — Methodology and Results Summary
 
+> **Note (2026-10-21):** this summary describes the **version 1.0** models from the notebook. They were replaced by version 2.0, retrained on the cleaned data (SYNTHETIC panel, 70 households, 9 categories) with the same settings; see `../RETRAIN_REPORT.md` and `../README.md`. The text below is kept unchanged as the record of version 1.0.
+
 Generated 2026-10-20 04:23 from `SUSTAIN_Model_Training_Combined_Dataset.xlsx` (SHA-256 9732f43f0e7a…).
 
 ## Bottom line

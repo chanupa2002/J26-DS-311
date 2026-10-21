@@ -101,12 +101,14 @@ def test_category_level(key, level):
     assert fx.category_level(key) == level
 
 
-def test_category_mapping_keeps_the_seven_deployed_levels_and_adds_two():
-    deployed = set(loader.load_metadata("3M")["categorical_levels"]["F_Category"])
+@pytest.mark.parametrize("horizon", ["3M", "6M"])
+def test_category_mapping_matches_the_nine_deployed_levels(horizon):
+    deployed = set(loader.load_metadata(horizon)["categorical_levels"]["F_Category"])
     levels = set(fx.KEY_TO_LEVEL.values())
 
-    assert deployed <= levels
-    assert levels - deployed == {"Beauty & Wellness", "Transport & Logistics"}
+    assert len(deployed) == 9
+    assert deployed == levels
+    assert {"Beauty & Wellness", "Transport & Logistics"} <= deployed
 
 
 def test_feature_lists_match_the_api_contract():

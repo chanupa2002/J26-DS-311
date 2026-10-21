@@ -12,12 +12,38 @@ For one SUSTAIN household at monitoring month *t*, the component predicts the ho
 (**Low / Medium / High**) at month *t+3* (3M model) and/or *t+6* (6M model).
 
 - **Input:** 53 engineered `F_*` features. These include the household's current answers, its history from earlier visits, category market evidence and national macro indicators.
-- **Models:** scikit-learn Pipeline + RandomForest.
+- **Models:** scikit-learn Pipeline + RandomForest (version 2.0, retrained on the team's cleaned monitoring data; see [Current models](#current-models-version-20)).
 - **Target rule:** SUSTAIN-HH-Risk-Rule v1.0 (provisional).
 
 It **explains each prediction with SHAP**: which features pushed the model towards its answer, and towards High. It also **identifies the household's current risk class** (Low / Medium / High / Unassigned) from four current-visit answers. This uses the rule-based SUSTAIN-HH-Risk-Rule v1.0, with no ML model.
 
-The prediction input is the engineered features, not raw survey answers, because many features need the household's earlier visits. They are built as in `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb`, section 13 (`build_features`).
+The prediction input is the engineered features, not raw survey answers, because many features need the household's earlier visits. They are built as in `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb`, section 13 (`build_features`), and in `ml/training/features.py` for the retrained models.
+
+## Current models (version 2.0)
+
+On 2026-10-21 the deployed models were replaced by models retrained with `ml/training/train_from_cleaned.py`:
+
+- **Data:** SYNTHETIC panel (70 households, 9 categories), 550 rows: the earlier 448 rows plus 102 rows in Beauty & Wellness and Transport & Logistics. Not real-world evidence.
+- **Settings:** the same as version 1.0. Random Forest with `max_depth=3`, `min_samples_leaf=10`, 300 trees and seed 42, with no grid search.
+- **Status:** still **NOT_READY**.
+- **Why promoted (owner decision):** consistency with the team's cleaned data, and coverage of all 9 livelihood categories in the proposal. Version 1.0 knew only 7.
+- **Trade-off accepted:** the agreed promotion bar was **not met**. Walk-forward results (mean over test months, all test rows):
+
+| Horizon | Metric | Version 1.0 (previous) | Version 2.0 (deployed) | Change |
+|---|---|---|---|---|
+| 3M | Macro-F1 | 0.350 | 0.331 | −0.019 |
+| 3M | High recall | **0.397** | **0.307** | **−0.090** |
+| 6M | Macro-F1 | 0.422 | 0.429 | +0.007 |
+| 6M | High recall | **0.876** | **0.771** | **−0.105** |
+
+Version 2.0 misses more households that later turn High, on both horizons. With the same settings, this drop comes from the data, not from the settings. The full analysis, including the earlier "promotion bar not met" result, is in `RETRAIN_REPORT.md` and `RETRAIN_PLAN.md` §8.
+
+Single embargoed test month (from `metadata.json`; small test sets, so the confidence intervals are wide):
+
+| Horizon | Train / test rows | Macro-F1 [95% CI] | High recall | High precision | Persistence baseline Macro-F1 |
+|---|---|---|---|---|---|
+| 3M (test month 2026-06) | 127 / 49 | 0.421 [0.265, 0.563] | 0.633 | 0.655 | 0.366 |
+| 6M (test month 2026-03, no embargo possible) | 91 / 47 | 0.402 [0.299, 0.500] | 0.733 | 0.759 | 0.174 |
 
 ## Folder layout
 
@@ -60,7 +86,7 @@ The complete body is in `sample_data/predict_request_example.json`. Shortened:
 }
 ```
 
-**Response 200** (a real output for the sample with `F_Category` set to `"TRADE"`; the reasons and warnings are shortened here):
+**Response 200** (a real output of the version 2.0 models for the sample with `F_Category` set to `"TRADE"`; the reasons and warnings are shortened here):
 
 ```json
 {
@@ -69,18 +95,18 @@ The complete body is in `sample_data/predict_request_example.json`. Shortened:
     {
       "horizon": "3M",
       "model_name": "SUSTAIN_Model_3M",
-      "predicted_risk": "Low",
-      "probabilities": { "Low": 0.3742, "Medium": 0.2544, "High": 0.3714 },
+      "predicted_risk": "High",
+      "probabilities": { "Low": 0.3043, "Medium": 0.2555, "High": 0.4402 },
       "model_status": "NOT_READY",
-      "deployment_reason": "trained and tested only on SYNTHETIC rows ...; does not beat the persistence baseline on the test month"
+      "deployment_reason": "trained and tested only on SYNTHETIC rows ...; promoted for consistency with the cleaned data and coverage of all 9 livelihood categories; trade-off accepted: ..."
     },
     {
       "horizon": "6M",
       "model_name": "SUSTAIN_Model_6M",
       "predicted_risk": "Low",
-      "probabilities": { "Low": 0.3594, "Medium": 0.3346, "High": 0.3061 },
+      "probabilities": { "Low": 0.3881, "Medium": 0.3155, "High": 0.2964 },
       "model_status": "NOT_READY",
-      "deployment_reason": "trained and tested only on SYNTHETIC rows ...; test split could not be embargoed (optimistic)"
+      "deployment_reason": "trained and tested only on SYNTHETIC rows ...; test split could not be embargoed (optimistic); promoted for ...; trade-off accepted: ..."
     }
   ],
   "warnings": [
@@ -96,7 +122,7 @@ The complete body is in `sample_data/predict_request_example.json`. Shortened:
 | Input | Result |
 |---|---|
 | Numeric value `null` | Accepted. It is median-imputed by the pipeline and listed in `warnings` |
-| `F_Category` written as an upper-case survey name (`"TRADE"`, `"FISHERIES & AQUACULTURE"`) | Converted with `category_mapping`, with a warning |
+| `F_Category` written as an upper-case survey name (`"TRADE"`, `"TRANSPORT & LOGISTICS"`, `"FISHERIES & AQUACULTURE"`) | Converted with `category_mapping`, with a warning |
 | Unknown or `null` category or district | Accepted. It is encoded as all-zero, with a warning |
 | Missing key, extra or misspelled key, non-numeric or infinite value, bad `horizon` | **422** |
 | Model files missing, or scikit-learn ≠ 1.6.1 | **503**, with a short message. Details go only to the server log |
@@ -107,7 +133,7 @@ This explains each horizon's prediction with SHAP. **SHAP shows what drives the 
 
 **Request.** The same body as `/predict`, plus `top_k` (1–20, default 5). For example: `{"horizon": "3M", "top_k": 3, "features": { ...all 53 F_* keys... }}`.
 
-**Response 200** (the sample request with `"horizon": "3M"` and `"top_k": 3`; numbers rounded and long text shortened here):
+**Response 200** (version 2.0 models, the sample request with `"horizon": "3M"` and `"top_k": 3`; numbers rounded and long text shortened here):
 
 ```json
 {
@@ -116,21 +142,21 @@ This explains each horizon's prediction with SHAP. **SHAP shows what drives the 
     {
       "horizon": "3M",
       "model_name": "SUSTAIN_Model_3M",
-      "predicted_risk": "Low",
-      "explained_class": "Low",
+      "predicted_risk": "High",
+      "explained_class": "High",
       "base_value": 0.3333,
-      "probability": 0.3736,
+      "probability": 0.4428,
       "top_factors": [
-        { "feature": "F_Female_Head", "label": "Household headed by a female: Yes=1, No=0", "value": 1.0, "contribution": 0.0151, "direction": "decreases risk" },
-        { "feature": "F_Mkt_Pressure_Tier_Ord_t", "label": "Category pressure tier at t (ordinal)", "value": null, "contribution": 0.014, "direction": "decreases risk" },
-        { "feature": "F_Female_Participant", "label": "Participant gender: Female=1, Male=0", "value": 1.0, "contribution": 0.0129, "direction": "decreases risk" }
+        { "feature": "F_Age", "label": "Participant age in years", "value": 37.0, "contribution": 0.0226, "direction": "increases risk" },
+        { "feature": "F_Grant_Status_Ord_t", "label": "Grant status: 0=not received, 1=not fully utilized, ...", "value": 1.0, "contribution": 0.0143, "direction": "increases risk" },
+        { "feature": "F_Macro_CCPI_YoY_Change_1M", "label": "CCPI YoY inflation at t minus t-1 (percentage points)", "value": 1.3, "contribution": 0.0136, "direction": "increases risk" }
       ],
-      "other_features_contribution": -0.0017,
-      "high_risk_probability": 0.3714,
+      "other_features_contribution": 0.059,
+      "high_risk_probability": 0.4428,
       "high_risk_factors": [
-        { "feature": "F_Mkt_Pressure_t", "label": "Category market-price pressure at month t (adverse direction)", "value": null, "contribution": -0.0147, "direction": "decreases risk" },
-        { "feature": "F_Mkt_Pressure_Tier_Ord_t", "label": "Category pressure tier at t (ordinal)", "value": null, "contribution": -0.0139, "direction": "decreases risk" },
-        { "feature": "F_Risk_Signal_Count_t", "label": "Count of the three risk signals (...) equal to 1 at t", "value": 1.0, "contribution": 0.0122, "direction": "increases risk" }
+        { "feature": "F_Age", "label": "Participant age in years", "value": 37.0, "contribution": 0.0226, "direction": "increases risk" },
+        { "feature": "F_Grant_Status_Ord_t", "label": "Grant status: 0=not received, 1=not fully utilized, ...", "value": 1.0, "contribution": 0.0143, "direction": "increases risk" },
+        { "feature": "F_Macro_CCPI_YoY_Change_1M", "label": "CCPI YoY inflation at t minus t-1 (percentage points)", "value": 1.3, "contribution": 0.0136, "direction": "increases risk" }
       ],
       "model_status": "NOT_READY",
       "deployment_reason": "trained and tested only on SYNTHETIC rows ..."
@@ -144,7 +170,7 @@ This explains each horizon's prediction with SHAP. **SHAP shows what drives the 
 **How to read it**
 
 - **`high_risk_factors` are the easiest to read:** `+` pushes towards High and `-` pushes away from High.
-- **In `top_factors`,** `contribution` is towards the **predicted** class. For a Low prediction, `+` means towards Low, which is lower risk.
+- **In `top_factors`,** `contribution` is towards the **predicted** class. For a Low prediction, `+` means towards Low, which is lower risk. (In the example the prediction is High, so both lists are the same.)
 - **`direction`** always describes the effect on the expected risk score 0·P(Low) + 1·P(Medium) + 2·P(High), so it reads the same for any class.
 - **Additivity:** `base_value` + all contributions = `probability`, with all contributions = `top_factors` + `other_features_contribution`. The server checks this to within 1e-6 and returns **503** if it fails.
 - **How features are combined:** contributions of the 94 model columns are summed back to the 53 input features. A numeric feature's value and its missing indicator are added together, and all one-hot columns of `F_Category` / `F_District` are added together.
@@ -271,7 +297,7 @@ Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).
 
 ## Improvement experiments
 
-Notebook section 29 records these experiments. It is analysis only, and the deployed models are **unchanged**.
+Notebook section 29 records these experiments. They were run on the **version 1.0** models (58 households, 7 categories) and are analysis only.
 
 - **E1:** walk-forward validation over several test months.
 - **E2:** High-risk threshold tuning, chosen on training data only.
@@ -288,20 +314,21 @@ Results (**SYNTHETIC panel only, not real-world evidence**):
 - **E2** raised 3M High recall to 0.64 but lowered Macro-F1 to 0.21.
 - **E3** lowered High recall.
 
-**Decision:** keep the deployed Random Forest models unchanged.
+**Decision at the time:** keep the Random Forest models unchanged. They were later replaced by version 2.0, trained on the cleaned data with the same settings (see [Current models](#current-models-version-20)).
 
 ## Limitations
 
 - **NOT_READY.** Both models are flagged `deployment_status: "NOT_READY"`. The API always returns `model_status` and `deployment_reason`. Never hide them in the UI.
-- **Synthetic training data only.** All training and test rows come from a synthetic panel (58 households, Jan–Sep 2026). The source says these rows must not be used as evidence.
+- **Synthetic training data only.** All training and test rows come from the SYNTHETIC panel (70 households, 9 categories, Jan–Sep 2026). The source says these rows must not be used as evidence.
+- **Version 2.0 catches fewer High cases than version 1.0.** Walk-forward High recall fell from 0.397 to 0.307 (3M) and from 0.876 to 0.771 (6M). This was accepted in exchange for coverage of all 9 categories (see [Current models](#current-models-version-20)).
 - **No persistent household ID in real data.** The 99 real rows (Jan–Mar 2026) cannot be linked across months, so no real 3- or 6-month outcome exists to train or test on.
-- **The 3M model is below the persistence baseline.** On its embargoed test month, its macro-F1 is 0.303 [95% CI 0.194–0.407], while "predict the current class" scores 0.356.
-- **The 6M result is optimistic.** Its macro-F1 is 0.430, against a baseline of 0.157, but its test split could not be embargoed.
+- **The single-month test results are uncertain.** On its embargoed test month, the 3M model's Macro-F1 is 0.421 [95% CI 0.265–0.563], against 0.366 for "predict the current class". The interval is wide and includes the baseline. Over several walk-forward months its Macro-F1 is only 0.331.
+- **The 6M result is optimistic.** Its Macro-F1 is 0.402, against a baseline of 0.174, but its test split could not be embargoed.
 - **The target rule is provisional.** SUSTAIN-HH-Risk-Rule v1.0 has not been validated by experts, and the market-tier thresholds are only partly verified. This affects both the predictions and `/identify`.
 - **`/identify` follows the notebook code where it differs from the written rule.** If the business status is blank but 2 or more signals are 1, the class is High. The written rule in `metadata.json` would say Unassigned.
-- **Coverage.** The models know only 4 districts and 7 categories. Transport & Logistics and Beauty & Wellness are unseen (they get a warning). Garment and Handicrafts are combined, and "Other" is mixed.
-- **Small samples.** The 3M model has 102 training and 39 test rows; the 6M model has 77 and 39.
-- **Gender features appear among the 3M top drivers.** For the sample household, `F_Female_Head` and `F_Female_Participant` are among the top SHAP factors. The model learned this from **synthetic** data, so it is not evidence about real people. It needs a fairness check on real data before any use.
+- **Coverage.** The models know 4 districts and 9 categories. Garment and Handicrafts are combined, and "Other" is mixed. The 102 rows in Beauty & Wellness and Transport & Logistics have no category market evidence and no grant date, so the market features are blank for these categories.
+- **Small samples.** The 3M model has 127 training and 49 test rows; the 6M model has 91 and 47.
+- **Gender features are model inputs.** `F_Female_Head` and `F_Female_Participant` influence the predictions. In version 1.0 they were among the top 3M SHAP factors for the sample household. In version 2.0 they rank 18th and 22nd of 53 for P(High). The model learned this from **synthetic** data, so it is not evidence about real people. It needs a fairness check on real data before any use.
 - **Blank inputs can be top factors.** A `null` value can have a large contribution, because the model uses the median it fills in and its missing-value indicator. A blank answer is not neutral.
 - **Some directions are counter-intuitive on the small synthetic panel.** For example, in the 6M model, "no profit last month = 1" lowers P(High) for the sample household. Do not read SHAP factors as causes.
 - **The NDA sign-off for committing the models is pending supervisor approval.**

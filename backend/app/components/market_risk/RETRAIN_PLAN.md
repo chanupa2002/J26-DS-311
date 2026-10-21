@@ -1,7 +1,7 @@
 # market_risk: retrain plan from the cleaned monitoring data
 
-Status: **STEP 2 DONE**: implemented and run (see §8 and `RETRAIN_REPORT.md`). Decisions are in §6. Branch: `chamoda-cleaned-retrain` (as stated by the owner; not checked, because no git commands were run).
-Goal: retrain the 3M and 6M models from the team's **cleaned** monitoring data, **without touching the deployed models** in `ml/models/`.
+Status: **STEP 3 DONE: promoted for coverage, trade-off accepted** (2026-10-21, owner decision; see §8 Step 3). Step 2 / 2b were implemented and run (see §8 and `RETRAIN_REPORT.md`). Decisions are in §6. Branch: `chamoda-cleaned-retrain` (as stated by the owner; not checked, because no git commands were run).
+Goal: retrain the 3M and 6M models from the team's **cleaned** monitoring data, **without touching the deployed models** in `ml/models/` until a separate promotion step (done in Step 3).
 
 > **Data basis for every result in this plan and in the future script: SYNTHETIC panel (70 households, 9 categories).**
 > Every row with a `household_id` is synthetic (`is_synthetic=True`). The 99 rows without `household_id` are the real rows. They cannot be followed over time, so they get no 3M/6M target and are **never used for training**. No result may be called real-world performance.
@@ -233,4 +233,53 @@ Nothing else outside `market_risk/` is needed. The data files stay in `~/Documen
   - 6M High recall: 0.667 vs 0.876 (lower).
 - **Grant-date proxy:** the missing flag is fully confounded with the new categories (missing for 100% of their rows). But it is not a strong driver in either candidate (SHAP rank 32 and 42 of 96; permutation importance within noise).
 - **Side-by-side** (`MARKET_RISK_MODELS_DIR` = candidate): 138 of 140 market_risk tests pass. The 2 failures are expected at promotion, because both assume the 7 deployed categories: `test_category_not_in_mapping_stays_unknown` and `test_category_mapping_keeps_the_seven_deployed_levels_and_adds_two`.
-- **Next steps (not done):** separate the data effect from the hyperparameter effect by also training the candidate with the deployed configuration (3, 10). Repeat the grid with several seeds, or report CV ties. Get the grant date for the 102 new rows.
+
+### Step 2b: candidate with the deployed settings (final retrain experiment)
+
+The candidate was retrained on the same 550 rows with the **deployed RF settings fixed** (`max_depth` 3, `min_samples_leaf` 10, seed 42), with no grid search and nothing else tuned. It was saved outside the repo in `$SUSTAIN_CANDIDATE_OUT/deployed_settings/`, also NOT_READY. The same walk-forward and promotion bar were applied. Run with `--candidate-settings both` (the default), which produces both candidates and the comparison below in one run.
+
+Walk-forward, all test rows, mean over test months:
+
+| Horizon | Metric | Current | Candidate, deployed settings | Candidate, grid settings | Data effect | Settings effect |
+|---|---|---|---|---|---|---|
+| 3M | Macro-F1 | 0.350 | 0.331 | 0.347 | −0.018 | +0.015 |
+| 3M | High recall | 0.397 | **0.307** | 0.301 | **−0.090** | −0.006 |
+| 6M | Macro-F1 | 0.422 | 0.429 | 0.382 | +0.007 | **−0.048** |
+| 6M | High recall | 0.876 | **0.771** | 0.667 | **−0.105** | **−0.105** |
+
+Data effect = candidate with the deployed settings minus current (only the training data differ). Settings effect = grid candidate minus candidate with the deployed settings (only the RF settings differ). Original-category test rows show the same pattern (3M High recall data effect −0.105; 6M −0.123), so the drop is **not** only on the new-category test rows.
+
+Promotion bar with the deployed settings: **NOT MET**. Macro-F1 is within 0.02 for both horizons (3M 0.331 vs 0.350; 6M 0.429 vs 0.422), but High recall is lower for both (3M 0.307 vs 0.397; 6M 0.771 vs 0.876).
+
+**Conclusion: is the drop caused by the data or by the settings?**
+- **The High-recall drop is caused mainly by the data.** With identical settings, adding the 102 new-category rows lowers walk-forward High recall by 0.090 (3M) and 0.105 (6M), on the original categories as well. For 6M, the grid settings lower it by another 0.105.
+- **The 6M Macro-F1 drop (−0.041) is caused by the settings** (grid search choosing `min_samples_leaf` 1): −0.048 from settings, +0.007 from data. With the deployed settings, 6M Macro-F1 is slightly *higher* than current.
+- **3M Macro-F1 barely changes** (−0.003 net): a small data loss (−0.018) and a small settings gain (+0.015) roughly cancel.
+- **Neither candidate meets the promotion bar.** Keep the deployed models in `ml/models/` unchanged. *(Recommendation at the time of Step 2b; the owner later promoted the deployed-settings candidate for coverage, see Step 3.)*
+- Possible reason for the data effect, consistent with but not proven by the aggregates: the new-category rows have fewer High labels (3M: 30% vs 35%; 6M: 45% vs 50%) and more Medium, and they have no market evidence or grant date. That dilutes the High signal at this sample size.
+
+**Status after Step 2b: retraining experiments finished. Decision at that point: no promotion** (superseded by Step 3 below). If retraining is revisited, it should be with more data (real follow-up data, the grant date for the new rows), not with more tuning on this synthetic panel.
+
+### Step 3: promotion (2026-10-21)
+
+**Decision (owner, 2026-10-21): promoted for coverage, trade-off accepted.** The candidate with the deployed settings (RF `max_depth` 3, `min_samples_leaf` 10, seed 42, no grid search; SYNTHETIC panel, 70 households, 9 categories) now replaces the models in `ml/models/3M` and `ml/models/6M` as version 2.0, still **NOT_READY**.
+
+- **Reason:** consistency with the team's cleaned data, and coverage of all 9 livelihood categories in the proposal (version 1.0 knew 7).
+- **Trade-off accepted.** The promotion bar above was **not met**, and that result stands. Walk-forward means over all test rows:
+
+| Horizon | Metric | Previous model (1.0) | Promoted model (2.0) | Change |
+|---|---|---|---|---|
+| 3M | Macro-F1 | 0.350 | 0.331 | −0.019 |
+| 3M | High recall | 0.397 | 0.307 | −0.090 |
+| 6M | Macro-F1 | 0.422 | 0.429 | +0.007 |
+| 6M | High recall | 0.876 | 0.771 | −0.105 |
+
+- **What it means:** the promoted model misses more households that later turn High, on both horizons. Most of this drop comes from the data (see the analysis above), not from the settings.
+- **What was copied:** only `model.joblib`, `metadata.json` and `feature_schema.json` per horizon, with no CSV or data rows. `metadata.json` records the decision and these numbers under `promotion`, and in `deployment_reason`.
+- **The grid-search candidate was not promoted**: its 6M Macro-F1 and High recall are lower still.
+
+**Changes made at promotion:**
+- **Tests:** the two tests that assumed 7 categories were updated. `test_services.test_new_categories_are_converted_and_known` now checks that both new survey names are converted and are no longer "unseen". `test_training_features.test_category_mapping_matches_the_nine_deployed_levels` checks the 9 levels for both horizons.
+- **Docs:** `README.md`, `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `IMPLEMENTATION_PLAN.md` §7 step 13 and `RETRAIN_REPORT.md` §5 were updated.
+- **No changes:** `schemas.py` (its example category "Other" is still a trained level), `ml/loader.py`, the API code and `CONTRACTS_UPDATE.md` (still accurate).
+- **Verified:** both models load, the scikit-learn 1.6.1 check passes and `/explain` additivity holds (difference about 1e-15). market_risk: 142 tests pass; full suite: 165.

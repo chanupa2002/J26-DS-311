@@ -83,11 +83,15 @@ def test_upper_case_survey_category_is_converted(metadata):
     assert canonical.warnings == []
 
 
-def test_category_not_in_mapping_stays_unknown(metadata):
-    result = _predict(build_features(metadata, F_Category="TRANSPORT & LOGISTICS"), "6M")
+@pytest.mark.parametrize(
+    "survey_name, level",
+    [("TRANSPORT & LOGISTICS", "Transport & Logistics"), ("BEAUTY AND WELLNESS", "Beauty & Wellness")],
+)
+def test_new_categories_are_converted_and_known(metadata, survey_name, level):
+    result = _predict(build_features(metadata, F_Category=survey_name), "6M")
 
-    assert not any("converted" in w for w in result.warnings)
-    assert any("unseen categories" in w and "TRANSPORT" in w for w in result.warnings)
+    assert f"F_Category: converted {survey_name!r} -> {level!r} using category_mapping" in result.warnings
+    assert not any("unseen categories" in w for w in result.warnings)
 
 
 def test_all_null_features_still_predict(metadata):

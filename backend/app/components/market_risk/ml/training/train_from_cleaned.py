@@ -42,6 +42,8 @@ GATE_TOLERANCE = 5e-5  # metadata metrics are rounded to 4 decimals
 PROMOTION_MACRO_F1_MARGIN = 0.02
 SAVED_ALGORITHM = "RandomForest"
 MODEL_VERSION = "2.0-cleaned-candidate"
+SETTINGS_LABELS = {"grid": "grid search (as in the notebook)", "deployed": "deployed RF settings fixed (no grid search)"}
+SETTINGS_SUBDIR = {"grid": "", "deployed": "deployed_settings"}
 # Notebook section 29 E1 (448-row panel): mean walk-forward Macro-F1 of the current RF config and persistence.
 WALK_FORWARD_448_EXPECTED = {"3M": {"rf": 0.356, "persistence": 0.295}, "6M": {"rf": 0.431, "persistence": 0.179}}
 LABEL_METHOD_VERSION = "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
@@ -238,6 +240,31 @@ def _same_training_statistics(refit, h_name: str) -> bool:
     )
 
 
+def fit_fixed(dd: pd.DataFrame, h_name: str, params: dict) -> dict[str, Any]:
+    """Final split with FIXED RF settings (no grid search), plus the majority and persistence baselines."""
+    h = fx.HORIZONS[h_name]
+    train, test, design = final_split(dd, h)
+    if train.y.nunique() < 3 or test.y.nunique() < 2:
+        raise RuntimeError(f"{h_name}: training split lacks a class or test split has <2 classes")
+    X_train, y_train, X_test, y_test = train[fx.FEATURES], train.y.values, test[fx.FEATURES], test.y.values
+    majority = int(pd.Series(y_train).mode()[0])
+    p_persistence = persistence_predict(X_test, majority)
+    model = rf_pipeline(**params).fit(X_train, y_train)
+    p_rf = model.predict(X_test)
+    table = pd.DataFrame([
+        {"Model": "Baseline: majority class", "Best_params": f"class={fx.CLASSES[majority]}", "CV_Macro_F1_mean": None,
+         **metrics(y_test, np.full(len(y_test), majority))},
+        {"Model": "Baseline: persistence", "Best_params": "-", "CV_Macro_F1_mean": None, **metrics(y_test, p_persistence)},
+        {"Model": SAVED_ALGORITHM, "Best_params": params, "CV_Macro_F1_mean": None, **metrics(y_test, p_rf)},
+    ])
+    return {
+        "horizon": h_name, "design": design, "embargoed": design.startswith("Embargoed"), "train": train, "test": test,
+        "table": table, "selected_by_cv": "not run (deployed settings fixed)", "rf": model, "rf_params": dict(params),
+        "rf_metrics": metrics(y_test, p_rf), "rf_ci": boot_ci(y_test, p_rf),
+        "persistence_macro_f1": metrics(y_test, p_persistence)["Macro_F1"], "persistence_ci": boot_ci(y_test, p_persistence),
+    }
+
+
 # ------------------------------------------------------------ walk-forward ----
 def walk_forward_folds(dd: pd.DataFrame, h: int):
     for month in sorted(dd.Month_Ord.unique()):
@@ -379,7 +406,7 @@ def software_versions() -> dict[str, str]:
             "scikit-learn": sklearn.__version__, "joblib": joblib.__version__, "shap": shap.__version__}
 
 
-def build_metadata(result: dict[str, Any], current_meta: dict, hashes: dict[str, str]) -> dict[str, Any]:
+def build_metadata(result: dict[str, Any], current_meta: dict, hashes: dict[str, str], settings: str = "grid") -> dict[str, Any]:
     h_name, train = result["horizon"], result["train"]
     reasons = ["trained and tested only on SYNTHETIC rows (source: 'do not use them as evidence')",
                "target rule is new and not validated by experts",
@@ -391,7 +418,8 @@ def build_metadata(result: dict[str, Any], current_meta: dict, hashes: dict[str,
         reasons.append("test split could not be embargoed (optimistic)")
     return {
         "model_name": f"SUSTAIN_Model_{h_name}",
-        "model_version": MODEL_VERSION,
+        "model_version": MODEL_VERSION if settings == "grid" else f"{MODEL_VERSION}-deployed-settings",
+        "candidate_settings": SETTINGS_LABELS[settings],
         "horizon_months": fx.HORIZONS[h_name],
         "target": f"Risk_Label_{h_name}",
         "classes": fx.CLASSES,
@@ -408,7 +436,8 @@ def build_metadata(result: dict[str, Any], current_meta: dict, hashes: dict[str,
         "category_mapping": fx.KEY_TO_LEVEL,
         "training_period": {"prediction_months": f"{train.month.min()}..{train.month.max()}",
                             "target_months": f"{train[f'Target_Month_{h_name}'].min()}..{train[f'Target_Month_{h_name}'].max()}"},
-        "validation_methodology": result["design"] + "; tuning by GroupKFold(4) by household within training set",
+        "validation_methodology": result["design"] + ("; tuning by GroupKFold(4) by household within training set" if settings == "grid"
+                                                      else "; no tuning: deployed RF settings fixed"),
         "test_metrics": {k: round(v, 4) for k, v in result["rf_metrics"].items()},
         "test_macro_f1_95ci": result["rf_ci"],
         "persistence_baseline_test_macro_f1": round(result["persistence_macro_f1"], 4),
@@ -436,6 +465,100 @@ def save_candidate(out_dir: Path, h_name: str, model, metadata: dict) -> Path:
     return folder
 
 
+def run_candidate(settings: str, data_all: dict, current_meta: dict, hashes: dict, out_dir: Path, gate_ok: bool) -> dict[str, Any]:
+    """Train, save and compare one candidate ('grid' or 'deployed' settings) on all keyed rows."""
+    candidate: dict[str, Any] = {"settings": settings, "label": SETTINGS_LABELS[settings], "splits": [], "comparison": [],
+                                 "saved": {}, "grant_proxy": []}
+    target_dir = out_dir / SETTINGS_SUBDIR[settings] if SETTINGS_SUBDIR[settings] else out_dir
+    results = {}
+    for h_name in fx.HORIZONS:
+        if settings == "grid":
+            result = fit_and_evaluate(data_all[h_name], h_name)
+        else:
+            result = fit_fixed(data_all[h_name], h_name, current_meta[h_name]["best_params"])
+        results[h_name] = result
+        candidate["splits"].append({"Horizon": h_name, "Design": result["design"], "Train_n": len(result["train"]),
+                                    "Test_n": len(result["test"]), "Train classes": json.dumps(_class_counts(result["train"])),
+                                    "Test classes": json.dumps(_class_counts(result["test"]))})
+        for row in result["table"].to_dict("records"):
+            cv = row["CV_Macro_F1_mean"]
+            candidate["comparison"].append({"Horizon": h_name, "Model": row["Model"],
+                                            "Params": json.dumps(row["Best_params"]) if isinstance(row["Best_params"], dict) else row["Best_params"],
+                                            "CV Macro-F1 (train)": "-" if cv is None or pd.isna(cv) else round(cv, 3),
+                                            "Test Macro-F1": round(row["Macro_F1"], 3), "Test High recall": round(row["High_Recall"], 3),
+                                            "Test High precision": round(row["High_Precision"], 3),
+                                            "Selected by CV": row["Model"] == result["selected_by_cv"] if settings == "grid" else "-",
+                                            "Saved": row["Model"] == SAVED_ALGORITHM})
+        metadata = build_metadata(result, current_meta[h_name], hashes, settings)
+        save_candidate(target_dir, h_name, result["rf"], metadata)
+        candidate["saved"][h_name] = f"$SUSTAIN_CANDIDATE_OUT/{SETTINGS_SUBDIR[settings] + '/' if SETTINGS_SUBDIR[settings] else ''}{h_name}/"
+        candidate["grant_proxy"].append(grant_proxy_analysis(result))
+
+    print(f"Walk-forward comparison current vs candidate ({settings}) ...")
+    folds = pd.concat([walk_forward_compare(data_all[h], h, current_meta[h]["best_params"], results[h]["rf_params"]) for h in fx.HORIZONS])
+    summary = summarise(folds, ["Horizon", "Scope", "Model"])
+    candidate["walk_forward_summary"] = summary.round(3).to_dict("records")
+    candidate["walk_forward_summary_raw"] = summary.to_dict("records")
+    candidate["walk_forward_folds"] = (folds[folds.Scope == "all test rows"]
+                                       [["Horizon", "Test_month", "Design", "Model", "Train_n_current", "Train_n_candidate", "Test_n", "Macro_F1", "High_Recall"]]
+                                       .round(3).to_dict("records"))
+    promotion_rows, promotion_ok = [], bool(gate_ok)
+    for h_name in fx.HORIZONS:
+        sub = summary[(summary.Horizon == h_name) & (summary.Scope == "all test rows")].set_index("Model")
+        cur, cand = sub.loc["Current RF (original 448-row panel)"], sub.loc["Candidate RF (550-row panel)"]
+        f1_ok = cand.Macro_F1_mean >= cur.Macro_F1_mean - PROMOTION_MACRO_F1_MARGIN
+        hr_ok = cand.High_Recall_mean >= cur.High_Recall_mean
+        promotion_ok &= bool(f1_ok and hr_ok)
+        promotion_rows.append({"Horizon": h_name, "Current Macro-F1": round(cur.Macro_F1_mean, 3), "Candidate Macro-F1": round(cand.Macro_F1_mean, 3),
+                               f"Macro-F1 within {PROMOTION_MACRO_F1_MARGIN}": "yes" if f1_ok else "no",
+                               "Current High recall": round(cur.High_Recall_mean, 3), "Candidate High recall": round(cand.High_Recall_mean, 3),
+                               "High recall not lower": "yes" if hr_ok else "no"})
+    candidate["promotion"] = {"passed": promotion_ok, "rows": promotion_rows}
+    return candidate
+
+
+def data_vs_settings(candidates: dict[str, dict]) -> list[dict[str, Any]]:
+    """Split the change from current to the grid candidate into a data effect and a settings effect."""
+    def value(settings, h_name, scope, model, metric):
+        rows = candidates[settings]["walk_forward_summary_raw"]
+        return next(r[metric] for r in rows if r["Horizon"] == h_name and r["Scope"] == scope and r["Model"] == model)
+
+    out = []
+    for h_name in fx.HORIZONS:
+        for scope in ("all test rows", "original-category test rows"):
+            for metric, label in (("Macro_F1_mean", "Macro-F1"), ("High_Recall_mean", "High recall")):
+                current = value("deployed", h_name, scope, "Current RF (original 448-row panel)", metric)
+                same_settings = value("deployed", h_name, scope, "Candidate RF (550-row panel)", metric)
+                grid = value("grid", h_name, scope, "Candidate RF (550-row panel)", metric)
+                out.append({"Horizon": h_name, "Scope": scope, "Metric": label, "Current": round(current, 3),
+                            "Candidate, deployed settings": round(same_settings, 3), "Candidate, grid settings": round(grid, 3),
+                            "Data effect (same settings - current)": round(same_settings - current, 3),
+                            "Settings effect (grid - same settings)": round(grid - same_settings, 3)})
+    return out
+
+
+def attribution_lines(rows: list[dict[str, Any]], negligible: float = 0.01) -> list[str]:
+    """One sentence per horizon and metric: is the change from current caused by the data or the settings?"""
+    lines = []
+    for row in rows:
+        if row["Scope"] != "all test rows":
+            continue
+        data, settings = row["Data effect (same settings - current)"], row["Settings effect (grid - same settings)"]
+        total = round(data + settings, 3)
+        if abs(data) < negligible and abs(settings) < negligible:
+            cause = "negligible change from both"
+        elif abs(total) < negligible:
+            cause = "almost no net change: the data and settings effects roughly cancel"
+        elif abs(data) >= negligible and abs(settings) >= negligible and min(abs(data), abs(settings)) >= 0.5 * max(abs(data), abs(settings)):
+            cause = "both the data and the settings, about equally"
+        elif abs(data) > abs(settings):
+            cause = "mainly the **data**"
+        else:
+            cause = "mainly the **settings**"
+        lines.append(f"{row['Horizon']} {row['Metric']}: total change {total:+.3f} (data {data:+.3f}, settings {settings:+.3f}) -> {cause}.")
+    return lines
+
+
 # ------------------------------------------------------------------ report ----
 def _fmt(value: Any) -> str:
     return f"{value:.3f}" if isinstance(value, float) else str(value)
@@ -446,6 +569,69 @@ def _md_table(frame: pd.DataFrame) -> str:
     rule = "|" + "|".join("---" for _ in frame.columns) + "|"
     body = ["| " + " | ".join(_fmt(v) for v in row) + " |" for row in frame.itertuples(index=False)]
     return "\n".join([header, rule, *body])
+
+
+def _candidate_lines(c: dict[str, Any], n: int) -> list[str]:
+    title = "grid search, as in the notebook" if c["settings"] == "grid" else "deployed settings fixed (max_depth 3, min_samples_leaf 10), no grid search"
+    lines = [
+        f"## {n}. Candidate: {title} (550 keyed synthetic rows)",
+        "",
+        _md_table(pd.DataFrame(c["splits"])),
+        "",
+        f"{n}.1 Final test month ({'all candidates as in the notebook; ' if c['settings'] == 'grid' else ''}**only the Random Forest is saved**):",
+        "",
+        _md_table(pd.DataFrame(c["comparison"])),
+        "",
+        f"{n}.2 Walk-forward, current vs this candidate (mean over test months). Current = the deployed RF settings retrained per fold "
+        "on the original-category rows only; candidate = this candidate's RF settings retrained per fold on all rows; both are "
+        "scored on the same test months.",
+        "",
+        _md_table(pd.DataFrame(c["walk_forward_summary"])),
+        "",
+        "Per fold (all test rows):",
+        "",
+        _md_table(pd.DataFrame(c["walk_forward_folds"])),
+        "",
+        f"{n}.3 Promotion bar:",
+        "",
+        _md_table(pd.DataFrame(c["promotion"]["rows"])),
+        "",
+        f"**Promotion bar (model metrics): {'MET' if c['promotion']['passed'] else 'NOT MET'}**. Rule: gate passes; candidate "
+        f"walk-forward Macro-F1 >= current - {PROMOTION_MACRO_F1_MARGIN}; candidate High recall >= current (all test rows, mean "
+        "over folds). All tests must also pass; that is checked separately with pytest.",
+        "",
+        f"{n}.4 Does F_Months_Since_Grant's missing flag act as a proxy for the new categories?",
+        "",
+    ]
+    for proxy in c["grant_proxy"]:
+        perm = proxy["permutation_importance_test_macro_f1"]
+        ind = proxy["shap_missing_indicator"]
+        lines += [
+            f"**{proxy['horizon']}** (candidate RF, {proxy['train_rows']} training rows, {proxy['shap_columns']} model columns)",
+            "",
+            f"- Missing rate: new categories {_fmt(proxy['missing_rate_new_categories'])}, original categories "
+            f"{_fmt(proxy['missing_rate_original_categories'])}; share of missing rows that are new-category: "
+            f"{_fmt(proxy['share_of_missing_rows_in_new_categories'])}.",
+            f"- Permutation importance on the test month (drop in Macro-F1, 50 repeats): F_Months_Since_Grant "
+            f"{perm['F_Months_Since_Grant']['mean']:+.4f} ± {perm['F_Months_Since_Grant']['sd']:.4f} (rank {perm['F_Months_Since_Grant']['rank_of_53']} of 53); "
+            f"F_Category {perm['F_Category']['mean']:+.4f} ± {perm['F_Category']['sd']:.4f} (rank {perm['F_Category']['rank_of_53']}).",
+        ]
+        if ind:
+            lines.append(
+                f"- SHAP (training rows), missing indicator: mean |SHAP| {ind['mean_abs_all_classes']:.4f} (rank {ind['rank']} of "
+                f"{proxy['shap_columns']}); mean contribution to P(High): new categories {ind['mean_high_contribution_new_categories']:+.4f}, "
+                f"original categories {ind['mean_high_contribution_original_categories']:+.4f}."
+            )
+        else:
+            lines.append("- SHAP: no missing-indicator column in this model.")
+        val = proxy["shap_value"]
+        if val:
+            lines.append(f"- SHAP, grant-months value column: mean |SHAP| {val['mean_abs_all_classes']:.4f} (rank {val['rank']}).")
+        lines += [f"- SHAP, all F_Category one-hot columns together: mean |SHAP| {proxy['shap_F_Category_all_levels_mean_abs']:.4f}.",
+                  f"- **Verdict: {proxy_verdict(proxy)}**", ""]
+    lines += [f"{n}.5 Files (outside the repo):", "",
+              *[f"- `{h}`: `{p}` (model.joblib, metadata.json, feature_schema.json)" for h, p in c["saved"].items()], ""]
+    return lines
 
 
 def write_report(report: dict[str, Any], path: Path) -> None:
@@ -485,70 +671,24 @@ def write_report(report: dict[str, Any], path: Path) -> None:
         _md_table(pd.DataFrame(report["gate"]["walk_forward_448"])),
         "",
     ]
-    if "candidate" in report:
-        c = report["candidate"]
+    for number, settings in ((2, "grid"), (3, "deployed")):
+        if settings in report.get("candidates", {}):
+            lines += _candidate_lines(report["candidates"][settings], number)
+    if "data_vs_settings" in report:
         lines += [
-            "## 2. Candidate training (550 keyed synthetic rows)",
+            "## 4. Data or settings? (walk-forward, mean over test months)",
             "",
-            _md_table(pd.DataFrame(c["splits"])),
+            "Data effect = candidate with the deployed settings minus current (only the training data differ). "
+            "Settings effect = grid-search candidate minus candidate with the deployed settings (only the RF settings differ). "
+            "The two add up to the total change from current to the grid candidate.",
             "",
-            "Model comparison on the final test month (all candidates as in the notebook; **only the Random Forest is saved**):",
+            _md_table(pd.DataFrame(report["data_vs_settings"])),
             "",
-            _md_table(pd.DataFrame(c["comparison"])),
+            "**Conclusion (all test rows; effects under 0.01 count as negligible):**",
             "",
-            "## 3. Walk-forward: current vs candidate (mean over test months)",
-            "",
-            "Current = the deployed RF configuration retrained per fold on the original-category rows only. "
-            "Candidate = the candidate RF configuration retrained per fold on all rows. Both are scored on the same test months.",
-            "",
-            _md_table(pd.DataFrame(c["walk_forward_summary"])),
-            "",
-            "Per fold (all test rows):",
-            "",
-            _md_table(pd.DataFrame(c["walk_forward_folds"])),
-            "",
-            "## 4. Promotion bar",
-            "",
-            _md_table(pd.DataFrame(c["promotion"]["rows"])),
-            "",
-            f"**Promotion bar (model metrics): {'MET' if c['promotion']['passed'] else 'NOT MET'}**. "
-            f"Rule: gate passes; candidate walk-forward Macro-F1 >= current - {PROMOTION_MACRO_F1_MARGIN}; candidate High recall >= current "
-            "(all test rows, mean over folds). All tests must also pass; that is checked separately with pytest.",
-            "",
-            "## 5. Does F_Months_Since_Grant's missing flag act as a proxy for the new categories?",
-            "",
-        ]
-        for proxy in c["grant_proxy"]:
-            perm = proxy["permutation_importance_test_macro_f1"]
-            ind = proxy["shap_missing_indicator"]
-            lines += [
-                f"**{proxy['horizon']}** (candidate RF, {proxy['train_rows']} training rows, {proxy['shap_columns']} model columns)",
-                "",
-                f"- Missing rate: new categories {_fmt(proxy['missing_rate_new_categories'])}, original categories "
-                f"{_fmt(proxy['missing_rate_original_categories'])}; share of missing rows that are new-category: "
-                f"{_fmt(proxy['share_of_missing_rows_in_new_categories'])}.",
-                f"- Permutation importance on the test month (drop in Macro-F1, 50 repeats): F_Months_Since_Grant "
-                f"{perm['F_Months_Since_Grant']['mean']:+.4f} ± {perm['F_Months_Since_Grant']['sd']:.4f} (rank {perm['F_Months_Since_Grant']['rank_of_53']} of 53); "
-                f"F_Category {perm['F_Category']['mean']:+.4f} ± {perm['F_Category']['sd']:.4f} (rank {perm['F_Category']['rank_of_53']}).",
-            ]
-            if ind:
-                lines.append(
-                    f"- SHAP (training rows), missing indicator: mean |SHAP| {ind['mean_abs_all_classes']:.4f} (rank {ind['rank']} of "
-                    f"{proxy['shap_columns']}); mean contribution to P(High): new categories {ind['mean_high_contribution_new_categories']:+.4f}, "
-                    f"original categories {ind['mean_high_contribution_original_categories']:+.4f}."
-                )
-            else:
-                lines.append("- SHAP: no missing-indicator column in this model.")
-            val = proxy["shap_value"]
-            if val:
-                lines.append(f"- SHAP, grant-months value column: mean |SHAP| {val['mean_abs_all_classes']:.4f} (rank {val['rank']}).")
-            lines += [f"- SHAP, all F_Category one-hot columns together: mean |SHAP| {proxy['shap_F_Category_all_levels_mean_abs']:.4f}.",
-                      f"- **Verdict: {proxy_verdict(proxy)}**", ""]
-        lines += [
-            "## 6. Candidate files (outside the repo)",
-            "",
-            *[f"- `{h}`: `$SUSTAIN_CANDIDATE_OUT/{h}/` (model.joblib, metadata.json, feature_schema.json)" for h in c["saved"]],
-            "- `$SUSTAIN_CANDIDATE_OUT/training_report.json`: the same aggregates as this report",
+            *[f"- {line}" for line in attribution_lines(report["data_vs_settings"])],
+            f"- Promotion bar with the deployed settings: **{'MET' if report['candidates']['deployed']['promotion']['passed'] else 'NOT MET'}**; "
+            f"with grid settings: **{'MET' if report['candidates']['grid']['promotion']['passed'] else 'NOT MET'}**.",
             "",
         ]
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -560,6 +700,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gate-only", action="store_true", help="run only the reproduction gate on the 448 original rows")
     parser.add_argument("--force", action="store_true", help="train the candidate even if the gate fails")
     parser.add_argument("--report", type=Path, help="write the aggregate Markdown report here")
+    parser.add_argument("--candidate-settings", choices=["grid", "deployed", "both"], default="both",
+                        help="grid = grid search as in the notebook; deployed = the deployed RF settings fixed; both (default)")
     args = parser.parse_args(argv)
 
     cleaned_path = _env_path("SUSTAIN_CLEANED")
@@ -627,51 +769,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.gate_only:
         if not gate_ok and not args.force:
             raise SystemExit("STOP: reproduction gate failed; candidate not trained (use --force to override)")
-        # 2. candidate on all keyed rows
-        print("Training candidate on all keyed rows ...")
-        candidate: dict[str, Any] = {"splits": [], "comparison": [], "saved": {}, "grant_proxy": []}
-        results = {}
-        for h_name in fx.HORIZONS:
-            result = fit_and_evaluate(data_all[h_name], h_name)
-            results[h_name] = result
-            candidate["splits"].append({"Horizon": h_name, "Design": result["design"], "Train_n": len(result["train"]),
-                                        "Test_n": len(result["test"]), "Train classes": json.dumps(_class_counts(result["train"])),
-                                        "Test classes": json.dumps(_class_counts(result["test"]))})
-            for row in result["table"].to_dict("records"):
-                candidate["comparison"].append({"Horizon": h_name, "Model": row["Model"],
-                                                "Params": json.dumps(row["Best_params"]) if isinstance(row["Best_params"], dict) else row["Best_params"],
-                                                "CV Macro-F1 (train)": round(row["CV_Macro_F1_mean"], 3),
-                                                "Test Macro-F1": round(row["Macro_F1"], 3), "Test High recall": round(row["High_Recall"], 3),
-                                                "Test High precision": round(row["High_Precision"], 3),
-                                                "Selected by CV": row["Model"] == result["selected_by_cv"],
-                                                "Saved": row["Model"] == SAVED_ALGORITHM})
-            metadata = build_metadata(result, current_meta[h_name], hashes)
-            candidate["saved"][h_name] = str(save_candidate(out_dir, h_name, result["rf"], metadata))
-            candidate["grant_proxy"].append(grant_proxy_analysis(result))
-
-        # 3. walk-forward comparison
-        print("Walk-forward comparison current vs candidate ...")
-        folds = pd.concat([walk_forward_compare(data_all[h], h, current_meta[h]["best_params"], results[h]["rf_params"])
-                           for h in fx.HORIZONS])
-        summary = summarise(folds, ["Horizon", "Scope", "Model"])
-        candidate["walk_forward_summary"] = summary.round(3).to_dict("records")
-        candidate["walk_forward_folds"] = (folds[folds.Scope == "all test rows"]
-                                           [["Horizon", "Test_month", "Design", "Model", "Train_n_current", "Train_n_candidate", "Test_n", "Macro_F1", "High_Recall"]]
-                                           .round(3).to_dict("records"))
-
-        promotion_rows, promotion_ok = [], bool(gate_ok)
-        for h_name in fx.HORIZONS:
-            s = summary[(summary.Horizon == h_name) & (summary.Scope == "all test rows")].set_index("Model")
-            cur, cand = s.loc["Current RF (original 448-row panel)"], s.loc["Candidate RF (550-row panel)"]
-            f1_ok = cand.Macro_F1_mean >= cur.Macro_F1_mean - PROMOTION_MACRO_F1_MARGIN
-            hr_ok = cand.High_Recall_mean >= cur.High_Recall_mean
-            promotion_ok &= bool(f1_ok and hr_ok)
-            promotion_rows.append({"Horizon": h_name, "Current Macro-F1": round(cur.Macro_F1_mean, 3), "Candidate Macro-F1": round(cand.Macro_F1_mean, 3),
-                                   f"Macro-F1 within {PROMOTION_MACRO_F1_MARGIN}": "yes" if f1_ok else "no",
-                                   "Current High recall": round(cur.High_Recall_mean, 3), "Candidate High recall": round(cand.High_Recall_mean, 3),
-                                   "High recall not lower": "yes" if hr_ok else "no"})
-        candidate["promotion"] = {"passed": promotion_ok, "rows": promotion_rows}
-        report["candidate"] = candidate
+        # 2./3. candidates on all keyed rows
+        settings_list = ["grid", "deployed"] if args.candidate_settings == "both" else [args.candidate_settings]
+        report["candidates"] = {}
+        for settings in settings_list:
+            print(f"Training candidate ({SETTINGS_LABELS[settings]}) on all keyed rows ...")
+            report["candidates"][settings] = run_candidate(settings, data_all, current_meta, hashes, out_dir, gate_ok)
+        if {"grid", "deployed"} <= set(report["candidates"]):
+            report["data_vs_settings"] = data_vs_settings(report["candidates"])
 
     (out_dir / "training_report.json").parent.mkdir(parents=True, exist_ok=True)
     (out_dir / "training_report.json").write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")

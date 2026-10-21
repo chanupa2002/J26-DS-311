@@ -4,13 +4,13 @@ WARNING: describe the data here. NEVER paste real records or real values. Column
 
 | Item | Details |
 |------|---------|
-| Dataset name | `SUSTAIN_Model_Training_Combined_Dataset.xlsx` (main sheet `Training_Table_HH_Month`, plus `Column_Dictionary` and documentation sheets) |
+| Dataset name | **Deployed models (version 2.0):** the team's cleaned monitoring data (one CSV), joined to `SUSTAIN_Model_Training_Combined_Dataset.xlsx` for the market (`Category_Month_Table`) and macro features and the grant date. **Version 1.0 (replaced 2026-10-21):** `SUSTAIN_Model_Training_Combined_Dataset.xlsx` only (main sheet `Training_Table_HH_Month`, plus `Column_Dictionary` and documentation sheets) |
 | Source | SUSTAIN livelihood monitoring forms (monthly household visits), left-joined to category × month market features and national macro indicators from an upstream notebook |
 | Owner / who has access | Project team under the NDA; supervisor controls access |
-| Approx. number of rows and time period | 547 household-month rows: 99 **real** rows (2026-01..2026-03) and 448 **synthetic** rows (58 synthetic households, 2026-01..2026-09) |
-| Target variable(s) | `Risk_Label_3M`, `Risk_Label_6M`: household risk class (Low/Medium/High) at calendar month t+3 / t+6, from SUSTAIN-HH-Risk-Rule v1.0 (provisional). Eligible rows: 3M = 219, 6M = 116 (all synthetic) |
-| Where the real data is stored (private location, NOT in this repo) | Private Google Drive of the project team, not in this repo |
-| Notebook(s) that use it | `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb` (Google Colab) |
+| Approx. number of rows and time period | **Version 2.0:** cleaned data, 649 household-month rows. 99 rows have no household key (not used) and 550 keyed rows form the **SYNTHETIC panel (70 households, 9 categories)**, 2026-01..2026-09. These are the earlier 448 synthetic rows (58 households) plus 102 rows in Beauty & Wellness and Transport & Logistics. **Version 1.0:** 547 rows, 99 real (2026-01..2026-03) and 448 synthetic |
+| Target variable(s) | `Risk_Label_3M`, `Risk_Label_6M`: household risk class (Low/Medium/High) at calendar month t+3 / t+6, from SUSTAIN-HH-Risk-Rule v1.0 (provisional). Eligible rows, all synthetic: version 2.0 3M = 269, 6M = 138 (version 1.0: 219, 116) |
+| Where the real data is stored (private location, NOT in this repo) | Private Google Drive of the project team, plus a private local folder outside the repo for retraining (paths passed in the `SUSTAIN_CLEANED` / `SUSTAIN_COMBINED` environment variables). Never in this repo |
+| Notebook(s) and scripts that use it | `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb` (Google Colab, version 1.0); `ml/training/train_from_cleaned.py` (version 2.0) |
 
 ## Columns
 
@@ -33,13 +33,13 @@ WARNING: describe the data here. NEVER paste real records or real values. Column
 | `F_Age`, `F_Female_Participant` | numeric | Participant age; gender | years; Female=1, Male=0 |
 | History (`F_Prev_*`, `F_Months_Since_Prev_Visit`, `F_Risk_Change_vs_Prev`, `F_Tenure_Months`, `F_N_Prior_Visits`, `F_*_Window`, `F_Months_Since_Grant`) | numeric | Same household's earlier visits only (windows [t−2, t] and [t−5, t]) | counts, rates 0–1, months |
 | Market (`F_Mkt_*`) and macro (`F_Macro_*`) | numeric | Category market pressure/volatility and national macro indicators at t, and t vs t−1 changes | continuous; `F_Mkt_Evidence_Missing` 0/1 |
-| `F_Category` | categorical | Programme livelihood category | 7 trained levels (see `GET /api/risk/model-info`) |
+| `F_Category` | categorical | Programme livelihood category | 9 trained levels, including Beauty & Wellness and Transport & Logistics (see `GET /api/risk/model-info`) |
 | `F_District` | categorical | Participant district | 4 trained levels (see `GET /api/risk/model-info`) |
 
 The full list with descriptions is in `ml/models/<horizon>/metadata.json` (`feature_names_in_order`) and is served by `GET /api/risk/model-info`.
 
 ## Cleaning and preprocessing summary
-- Answer text normalised (apostrophes, whitespace). District stripped and title-cased. `Category_Key` mapped to programme categories (Fisheries/Miscellaneous → Other; blank → Unassigned).
+- Answer text normalised (apostrophes, whitespace). District stripped and title-cased. `Category_Key` mapped to programme categories (Fisheries/Miscellaneous → Other; Beauty and Wellness and Transport & Logistics are their own levels; blank → Unassigned).
 - `T_*` outcome columns rebuilt from the raw answers and matched exactly (0 mismatches).
 - Household risk class at each visit from rule v1.0. Targets = class at exact calendar month t+3 / t+6 (no tolerance).
 - Features use only visit t and earlier visits of the same household. A leakage check (features recomputed on data cut off at each month) found 0 differences.
@@ -48,6 +48,8 @@ The full list with descriptions is in `ml/models/<horizon>/metadata.json` (`feat
 ## Known issues
 - **No real household can be followed over time**: real rows have no persistent household ID, so no real 3M/6M outcome exists. Models are trained and tested on synthetic rows only. The source says synthetic rows must not be used as evidence.
 - The target rule is new and not validated by experts. The market-tier thresholds are only partly verified.
-- Small samples: 3M train/test 102/39, 6M 77/39. The 3M model does not beat the persistence baseline. The 6M test split could not be embargoed (optimistic).
-- Coverage gaps: no data for Transport & Logistics or Beauty & Wellness. Garment/Handicrafts are combined. "Other" is mixed. Only 4 districts.
+- Small samples: 3M train/test 127/49, 6M 91/47 (version 1.0: 102/39, 77/39). The 6M test split could not be embargoed (optimistic).
+- The 102 Beauty & Wellness and Transport & Logistics rows have no category market evidence and no grant date.
+- Version 2.0 was promoted for category coverage although it catches fewer High cases: walk-forward High recall fell from 0.397 to 0.307 (3M) and from 0.876 to 0.771 (6M). See `RETRAIN_REPORT.md`.
+- Coverage gaps: Garment/Handicrafts are combined. "Other" is mixed. Only 4 districts.
 - Many market features are missing for some categories and months (`F_Mkt_Evidence_Missing`).

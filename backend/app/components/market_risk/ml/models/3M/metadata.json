@@ -1,5 +1,6 @@
 {
   "model_name": "SUSTAIN_Model_3M",
+  "model_version": "2.0-cleaned-deployed-settings",
   "horizon_months": 3,
   "target": "Risk_Label_3M",
   "classes": [
@@ -13,6 +14,7 @@
     "High": 2
   },
   "algorithm": "RandomForest",
+  "selected_by_cv": "not run (deployed settings fixed)",
   "best_params": {
     "max_depth": 3,
     "min_samples_leaf": 10
@@ -132,12 +134,14 @@
   "categorical_levels": {
     "F_Category": [
       "Agriculture & Plantation Crops",
+      "Beauty & Wellness",
       "Construction, Building & Repair",
       "Food Processing & Production",
       "Garment & Textile / Handicrafts (combined in source)",
       "Livestock & Animal Husbandry",
       "Other",
-      "Trade"
+      "Trade",
+      "Transport & Logistics"
     ],
     "F_District": [
       "Ampara",
@@ -182,38 +186,61 @@
     "CONSTRUCTION, BUILDING AND REPAIR": "Construction, Building & Repair",
     "OTHER": "Other",
     "FISHERIES & AQUACULTURE": "Other",
-    "MISCELLANEOUS": "Other"
+    "MISCELLANEOUS": "Other",
+    "BEAUTY AND WELLNESS": "Beauty & Wellness",
+    "TRANSPORT & LOGISTICS": "Transport & Logistics"
   },
   "training_period": {
     "prediction_months": "2026-01..2026-03",
     "target_months": "2026-04..2026-06"
   },
-  "validation_methodology": "Embargoed: train prediction months whose target month <= test prediction month; test = prediction month 2026-06; tuning by GroupKFold(4) by household within training set",
+  "validation_methodology": "Embargoed: train prediction months whose target month <= test prediction month; test = prediction month 2026-06; no tuning: deployed RF settings fixed",
   "test_metrics": {
-    "Accuracy": 0.4359,
-    "Macro_Precision": 0.3103,
-    "Macro_Recall": 0.3117,
-    "Macro_F1": 0.3026,
-    "Balanced_Accuracy": 0.3117,
-    "High_Precision": 0.7,
-    "High_Recall": 0.56
+    "Accuracy": 0.5102,
+    "Macro_Precision": 0.4204,
+    "Macro_Recall": 0.4222,
+    "Macro_F1": 0.421,
+    "Balanced_Accuracy": 0.4222,
+    "High_Precision": 0.6552,
+    "High_Recall": 0.6333
   },
-  "test_macro_f1_95ci": "[0.194, 0.407]",
-  "persistence_baseline_test_macro_f1": 0.3558,
-  "train_n": 102,
-  "test_n": 39,
-  "data_basis": "SYNTHETIC panel (58 households, 2026-01..2026-09)",
+  "test_macro_f1_95ci": "[0.265, 0.563]",
+  "persistence_baseline_test_macro_f1": 0.3658,
+  "train_n": 127,
+  "test_n": 49,
+  "data_basis": "SYNTHETIC panel (70 households, 9 categories)",
   "deployment_status": "NOT_READY",
-  "deployment_reason": "trained and tested only on SYNTHETIC rows (source: 'do not use them as evidence'); target rule is new and not validated by experts; no real household can be followed over time (no persistent ID); does not beat the persistence baseline on the test month",
-  "input_sha256": "9732f43f0e7add79e696a169159473ab2c12b4f58eb7e7f5ff16522b409344f2",
-  "software_versions": {
-    "python": "3.13.16",
-    "pandas": "2.2.3",
-    "numpy": "2.1.3",
-    "scikit-learn": "1.6.1",
-    "xgboost": "3.4.1",
-    "shap": "0.54.1",
-    "joblib": "1.6.0"
+  "deployment_reason": "trained and tested only on SYNTHETIC rows (source: 'do not use them as evidence'); target rule is new and not validated by experts; no real household can be followed over time (no persistent ID); promoted for consistency with the cleaned data and coverage of all 9 livelihood categories; trade-off accepted: walk-forward High recall 0.397 -> 0.307, Macro-F1 0.350 -> 0.331 vs the previous model; the promotion bar was not met",
+  "input_sha256": {
+    "cleaned": "0bdc0d2fc04af821915dd33642365f203fc93fa048b3da3893cdf004f62a17e8",
+    "combined": "9732f43f0e7add79e696a169159473ab2c12b4f58eb7e7f5ff16522b409344f2"
   },
-  "created": "2026-10-20T04:23:25"
+  "software_versions": {
+    "python": "3.13.7",
+    "pandas": "2.2.3",
+    "numpy": "2.0.2",
+    "scikit-learn": "1.6.1",
+    "joblib": "1.4.2",
+    "shap": "0.54.1"
+  },
+  "source": "ml/training/train_from_cleaned.py",
+  "created": "2026-10-21T16:15:06",
+  "training_settings": "deployed RF settings fixed (no grid search)",
+  "promotion": {
+    "decision": "promoted for coverage, trade-off accepted (owner decision)",
+    "date": "2026-10-21",
+    "promotion_bar_met": false,
+    "replaces": "1.0 (SYNTHETIC panel, 58 households, 7 categories, trained 2026-10-20)",
+    "walk_forward_mean_all_test_rows": {
+      "previous_model": {
+        "Macro_F1": 0.35,
+        "High_Recall": 0.397
+      },
+      "this_model": {
+        "Macro_F1": 0.331,
+        "High_Recall": 0.307
+      }
+    },
+    "details": "RETRAIN_REPORT.md and RETRAIN_PLAN.md section 8"
+  }
 }
