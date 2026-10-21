@@ -1,4 +1,4 @@
-import { ChevronDown, LayoutDashboard, Leaf, Settings } from "lucide-react"
+import { ChevronDown, LayoutDashboard, Settings } from "lucide-react"
 import { useState } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
 
@@ -36,8 +36,12 @@ function Brand({ collapsed = false, onNavigate }) {
         collapsed && "justify-center px-0",
       )}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Leaf className="size-5" />
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white p-1">
+        <img
+          src="/logo.jpg"
+          alt="SWSS logo"
+          className="size-8 object-contain"
+        />
       </span>
       {!collapsed && (
         <span className="min-w-0 leading-tight">

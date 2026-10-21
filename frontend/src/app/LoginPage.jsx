@@ -42,11 +42,23 @@ export function LoginPage() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">SWSS</CardTitle>
+        <CardHeader className="items-center space-y-4 pb-6 text-center">
+          <div className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5">
+            <img
+              src="/logo.jpg"
+              alt="SWSS logo"
+              className="size-24 object-contain"
+            />
+          </div>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold">SWSS</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Social Welfare Support System
+            </p>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(submit)}>
+        <CardContent className="pt-0">
+          <form className="space-y-5" onSubmit={handleSubmit(submit)}>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
