@@ -219,6 +219,27 @@ current.risk_class  # "Unassigned"
 
 Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).
 
+## Improvement experiments
+
+Notebook section 29 records these experiments. It is analysis only, and the deployed models are **unchanged**.
+
+- **E1:** walk-forward validation over several test months.
+- **E2:** High-risk threshold tuning, chosen on training data only.
+- **E3:** top-15 feature selection, chosen on training data only.
+
+Results (**SYNTHETIC panel only, not real-world evidence**):
+
+| Experiment | Random Forest | Persistence baseline |
+|---|---|---|
+| 3M, 5 test months (E1) | Macro-F1 0.356, High recall 0.44 | Macro-F1 0.295, High recall 0.19 |
+| 3M, embargoed months Apr–Jun only | Macro-F1 0.302, High recall 0.42 | Macro-F1 0.300, High recall 0.16 |
+| 6M, 2 test months, no embargo | Macro-F1 0.431 | Macro-F1 0.179 |
+
+- **E2** raised 3M High recall to 0.64 but lowered Macro-F1 to 0.21.
+- **E3** lowered High recall.
+
+**Decision:** keep the deployed Random Forest models unchanged.
+
 ## Limitations
 
 - **NOT_READY.** Both models are flagged `deployment_status: "NOT_READY"`. The API always returns `model_status` and `deployment_reason`. Never hide them in the UI.
