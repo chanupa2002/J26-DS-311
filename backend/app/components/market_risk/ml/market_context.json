@@ -1,0 +1,1137 @@
+{
+ "description": "Market (per category key and month) and macro (per month) model features for GET /api/risk/market-context. Aggregated public indicators only; no household data.",
+ "created": "2026-10-22T05:21:14",
+ "source_note": "Category market indicators (primary price-pressure and volatility lines and their tiers, Category_Month_Table, Row_Basis ALL) and national macro indicators (CCPI YoY inflation, CCPI food index, auto diesel price) from the project's combined training workbook. Aggregated public indicators only; same join and formulas as model training.",
+ "built_by": "ml/training/build_market_context.py",
+ "months": [
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05",
+  "2026-06",
+  "2026-07",
+  "2026-08",
+  "2026-09"
+ ],
+ "category_keys": {
+  "AGRICULTURE & PLANTATION CROPS": "Agriculture & Plantation Crops",
+  "BEAUTY AND WELLNESS": "Beauty & Wellness",
+  "CONSTRUCTION, BUILDING AND REPAIR": "Construction, Building & Repair",
+  "FISHERIES & AQUACULTURE": "Other",
+  "FOOD PROCESSING & PRODUCTION": "Food Processing & Production",
+  "GARMENT TEXTILE, HANDICRAFTS": "Garment & Textile / Handicrafts (combined in source)",
+  "LIVESTOCK & ANIMAL HUSBANDRY": "Livestock & Animal Husbandry",
+  "MISCELLANEOUS": "Other",
+  "OTHER": "Other",
+  "TRADE": "Trade",
+  "TRANSPORT & LOGISTICS": "Transport & Logistics"
+ },
+ "level_keys": {
+  "Agriculture & Plantation Crops": "AGRICULTURE & PLANTATION CROPS",
+  "Beauty & Wellness": "BEAUTY AND WELLNESS",
+  "Construction, Building & Repair": "CONSTRUCTION, BUILDING AND REPAIR",
+  "Food Processing & Production": "FOOD PROCESSING & PRODUCTION",
+  "Garment & Textile / Handicrafts (combined in source)": "GARMENT TEXTILE, HANDICRAFTS",
+  "Livestock & Animal Husbandry": "LIVESTOCK & ANIMAL HUSBANDRY",
+  "Other": "OTHER",
+  "Trade": "TRADE",
+  "Transport & Logistics": "TRANSPORT & LOGISTICS"
+ },
+ "market_features": [
+  "F_Mkt_Pressure_t",
+  "F_Mkt_Volatility_t",
+  "F_Mkt_Pressure_Change_1M",
+  "F_Mkt_Volatility_Change_1M",
+  "F_Mkt_Pressure_Tier_Ord_t",
+  "F_Mkt_Volatility_Tier_Ord_t",
+  "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+  "F_Mkt_Evidence_Missing"
+ ],
+ "macro_features": [
+  "F_Macro_CCPI_YoY_t",
+  "F_Macro_CCPI_YoY_Change_1M",
+  "F_Macro_Food_Index_Change_1M_pct",
+  "F_Macro_Diesel_t",
+  "F_Macro_Diesel_Change_1M_pct"
+ ],
+ "market": {
+  "AGRICULTURE & PLANTATION CROPS": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": 1.100151745068298,
+    "F_Mkt_Volatility_t": 6.315010859086248,
+    "F_Mkt_Pressure_Change_1M": 6.88655951205858,
+    "F_Mkt_Volatility_Change_1M": 0.12866629890130632,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 1.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": 16.22085048010974,
+    "F_Mkt_Volatility_t": 5.596374761570476,
+    "F_Mkt_Pressure_Change_1M": 15.12069873504144,
+    "F_Mkt_Volatility_Change_1M": -0.7186360975157724,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": 16.52353143249743,
+    "F_Mkt_Volatility_t": 5.590595707978744,
+    "F_Mkt_Pressure_Change_1M": 0.3026809523876892,
+    "F_Mkt_Volatility_Change_1M": -0.005779053591732364,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": 13.06259191146602,
+    "F_Mkt_Volatility_t": 5.640857868108895,
+    "F_Mkt_Pressure_Change_1M": -3.460939521031408,
+    "F_Mkt_Volatility_Change_1M": 0.050262160130150946,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": 9.472275911415563,
+    "F_Mkt_Volatility_t": 5.487264657478149,
+    "F_Mkt_Pressure_Change_1M": -3.590316000050457,
+    "F_Mkt_Volatility_Change_1M": -0.1535932106307456,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": 10.69290489636978,
+    "F_Mkt_Volatility_t": 5.46816977869571,
+    "F_Mkt_Pressure_Change_1M": 1.2206289849542173,
+    "F_Mkt_Volatility_Change_1M": -0.019094878782438762,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 1.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": -0.136410724506893,
+    "F_Mkt_Volatility_t": 4.952287131196675,
+    "F_Mkt_Pressure_Change_1M": -10.829315620876674,
+    "F_Mkt_Volatility_Change_1M": -0.5158826474990352,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": -2.618391853628707,
+    "F_Mkt_Volatility_t": 5.122427457078359,
+    "F_Mkt_Pressure_Change_1M": -2.4819811291218143,
+    "F_Mkt_Volatility_Change_1M": 0.17014032588168426,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "BEAUTY AND WELLNESS": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "CONSTRUCTION, BUILDING AND REPAIR": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": 0.7812499999999972,
+    "F_Mkt_Volatility_t": 0.99480853366007,
+    "F_Mkt_Pressure_Change_1M": -3.794585475578412,
+    "F_Mkt_Volatility_Change_1M": -0.7891460690917989,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": 4.833084205281524,
+    "F_Mkt_Volatility_t": 0.894094205270766,
+    "F_Mkt_Pressure_Change_1M": 4.051834205281526,
+    "F_Mkt_Volatility_Change_1M": -0.10071432838930405,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": 3.76237623762376,
+    "F_Mkt_Volatility_t": 0.9169188632167996,
+    "F_Mkt_Pressure_Change_1M": -1.0707079676577638,
+    "F_Mkt_Volatility_Change_1M": 0.02282465794603361,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": 4.599025536672197,
+    "F_Mkt_Volatility_t": 0.8564304097768433,
+    "F_Mkt_Pressure_Change_1M": 0.8366492990484367,
+    "F_Mkt_Volatility_Change_1M": -0.06048845343995635,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": 11.98488778165792,
+    "F_Mkt_Volatility_t": 2.162076983131405,
+    "F_Mkt_Pressure_Change_1M": 7.385862244985723,
+    "F_Mkt_Volatility_Change_1M": 1.305646573354562,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": 14.891176974761,
+    "F_Mkt_Volatility_t": 2.319934400587974,
+    "F_Mkt_Pressure_Change_1M": 2.906289193103081,
+    "F_Mkt_Volatility_Change_1M": 0.15785741745656878,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": 12.61339243233253,
+    "F_Mkt_Volatility_t": 2.40628506049786,
+    "F_Mkt_Pressure_Change_1M": -2.2777845424284706,
+    "F_Mkt_Volatility_Change_1M": 0.08635065990988622,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": 12.99807250173843,
+    "F_Mkt_Volatility_t": 2.391980376590744,
+    "F_Mkt_Pressure_Change_1M": 0.38468006940590094,
+    "F_Mkt_Volatility_Change_1M": -0.014304683907115923,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "FISHERIES & AQUACULTURE": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "FOOD PROCESSING & PRODUCTION": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": -4.139433551198257,
+    "F_Mkt_Volatility_t": 1.135194442898395,
+    "F_Mkt_Pressure_Change_1M": -2.8319683466432193,
+    "F_Mkt_Volatility_Change_1M": -0.38599167177717697,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": -4.19763882815917,
+    "F_Mkt_Volatility_t": 1.132213361343418,
+    "F_Mkt_Pressure_Change_1M": -0.05820527696091293,
+    "F_Mkt_Volatility_Change_1M": -0.0029810815549771164,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": -4.330708661417326,
+    "F_Mkt_Volatility_t": 1.128781906717888,
+    "F_Mkt_Pressure_Change_1M": -0.1330698332581557,
+    "F_Mkt_Volatility_Change_1M": -0.0034314546255300726,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": -2.714370751702029,
+    "F_Mkt_Volatility_t": 1.064353968549527,
+    "F_Mkt_Pressure_Change_1M": 1.616337909715297,
+    "F_Mkt_Volatility_Change_1M": -0.06442793816836101,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": -5.31800716073736,
+    "F_Mkt_Volatility_t": 0.9401979115389155,
+    "F_Mkt_Pressure_Change_1M": -2.6036364090353312,
+    "F_Mkt_Volatility_Change_1M": -0.12415605701061139,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": -6.264257568157861,
+    "F_Mkt_Volatility_t": 0.9456483472783944,
+    "F_Mkt_Pressure_Change_1M": -0.9462504074205009,
+    "F_Mkt_Volatility_Change_1M": 0.005450435739478898,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": -3.411358229897879,
+    "F_Mkt_Volatility_t": 0.4794446744162347,
+    "F_Mkt_Pressure_Change_1M": 2.852899338259982,
+    "F_Mkt_Volatility_Change_1M": -0.46620367286215975,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": -2.749495167427312,
+    "F_Mkt_Volatility_t": 0.4506827099599222,
+    "F_Mkt_Pressure_Change_1M": 0.6618630624705668,
+    "F_Mkt_Volatility_Change_1M": -0.02876196445631246,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "GARMENT TEXTILE, HANDICRAFTS": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": -9.101796407185622,
+    "F_Mkt_Volatility_t": 1.153233389437311,
+    "F_Mkt_Pressure_Change_1M": -1.3003779674692986,
+    "F_Mkt_Volatility_Change_1M": -0.12380576693552792,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": -8.872901678657064,
+    "F_Mkt_Volatility_t": 1.168827451193829,
+    "F_Mkt_Pressure_Change_1M": 0.22889472852855874,
+    "F_Mkt_Volatility_Change_1M": 0.015594061756518007,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": -4.495037945125504,
+    "F_Mkt_Volatility_t": 1.140219096911031,
+    "F_Mkt_Pressure_Change_1M": 4.3778637335315596,
+    "F_Mkt_Volatility_Change_1M": -0.028608354282797954,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": -2.648354186108143,
+    "F_Mkt_Volatility_t": 1.048754253698685,
+    "F_Mkt_Pressure_Change_1M": 1.846683759017361,
+    "F_Mkt_Volatility_Change_1M": -0.09146484321234616,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": -7.234897960704711,
+    "F_Mkt_Volatility_t": 2.147573098549206,
+    "F_Mkt_Pressure_Change_1M": -4.586543774596567,
+    "F_Mkt_Volatility_Change_1M": 1.0988188448505212,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": -8.473406515779692,
+    "F_Mkt_Volatility_t": 2.204438929549565,
+    "F_Mkt_Pressure_Change_1M": -1.238508555074981,
+    "F_Mkt_Volatility_Change_1M": 0.05686583100035891,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": -10.32115780298696,
+    "F_Mkt_Volatility_t": 2.127262014921168,
+    "F_Mkt_Pressure_Change_1M": -1.8477512872072683,
+    "F_Mkt_Volatility_Change_1M": -0.07717691462839715,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": -8.28999304934407,
+    "F_Mkt_Volatility_t": 2.202340775300541,
+    "F_Mkt_Pressure_Change_1M": 2.0311647536428907,
+    "F_Mkt_Volatility_Change_1M": 0.07507876037937322,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "LIVESTOCK & ANIMAL HUSBANDRY": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": 3.562005277044852,
+    "F_Mkt_Volatility_t": 7.268082347540433,
+    "F_Mkt_Pressure_Change_1M": 10.868533595246312,
+    "F_Mkt_Volatility_Change_1M": 0.9337277664642949,
+    "F_Mkt_Pressure_Tier_Ord_t": 1.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": -0.7210455159981948,
+    "F_Mkt_Volatility_t": 7.248127026105548,
+    "F_Mkt_Pressure_Change_1M": -4.283050793043047,
+    "F_Mkt_Volatility_Change_1M": -0.019955321434884432,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 1.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": -9.009854528390434,
+    "F_Mkt_Volatility_t": 7.184411447977866,
+    "F_Mkt_Pressure_Change_1M": -8.288809012392239,
+    "F_Mkt_Volatility_Change_1M": -0.06371557812768192,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": -4.300975434231039,
+    "F_Mkt_Volatility_t": 7.099319860098385,
+    "F_Mkt_Pressure_Change_1M": 4.708879094159395,
+    "F_Mkt_Volatility_Change_1M": -0.08509158787948135,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": -10.43458735733716,
+    "F_Mkt_Volatility_t": 6.625813834120327,
+    "F_Mkt_Pressure_Change_1M": -6.133611923106121,
+    "F_Mkt_Volatility_Change_1M": -0.47350602597805747,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": -9.318630300897002,
+    "F_Mkt_Volatility_t": 6.530500520617486,
+    "F_Mkt_Pressure_Change_1M": 1.1159570564401573,
+    "F_Mkt_Volatility_Change_1M": -0.09531331350284145,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": -14.78098013115344,
+    "F_Mkt_Volatility_t": 6.514790053092984,
+    "F_Mkt_Pressure_Change_1M": -5.4623498302564375,
+    "F_Mkt_Volatility_Change_1M": -0.015710467524502114,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": -17.26722627634579,
+    "F_Mkt_Volatility_t": 6.521073494839345,
+    "F_Mkt_Pressure_Change_1M": -2.486246145192352,
+    "F_Mkt_Volatility_Change_1M": 0.006283441746361085,
+    "F_Mkt_Pressure_Tier_Ord_t": 0.0,
+    "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 0
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 0.0,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "MISCELLANEOUS": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "OTHER": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "TRADE": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  },
+  "TRANSPORT & LOGISTICS": {
+   "2026-01": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-02": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-03": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-04": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-05": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-06": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-07": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-08": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   },
+   "2026-09": {
+    "F_Mkt_Pressure_t": null,
+    "F_Mkt_Volatility_t": null,
+    "F_Mkt_Pressure_Change_1M": null,
+    "F_Mkt_Volatility_Change_1M": null,
+    "F_Mkt_Pressure_Tier_Ord_t": null,
+    "F_Mkt_Volatility_Tier_Ord_t": null,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": null,
+    "F_Mkt_Evidence_Missing": 1
+   }
+  }
+ },
+ "macro": {
+  "2026-01": {
+   "F_Macro_CCPI_YoY_t": 2.3,
+   "F_Macro_CCPI_YoY_Change_1M": 0.19999999999999973,
+   "F_Macro_Food_Index_Change_1M_pct": 0.6050826946349286,
+   "F_Macro_Diesel_t": 278.68,
+   "F_Macro_Diesel_Change_1M_pct": 0.6064981949458481
+  },
+  "2026-02": {
+   "F_Macro_CCPI_YoY_t": 1.6,
+   "F_Macro_CCPI_YoY_Change_1M": -0.6999999999999997,
+   "F_Macro_Food_Index_Change_1M_pct": -2.6062550120288686,
+   "F_Macro_Diesel_t": 277.0,
+   "F_Macro_Diesel_Change_1M_pct": -0.6028419692837739
+  },
+  "2026-03": {
+   "F_Macro_CCPI_YoY_t": 2.2,
+   "F_Macro_CCPI_YoY_Change_1M": 0.6000000000000001,
+   "F_Macro_Food_Index_Change_1M_pct": -0.8233841086866978,
+   "F_Macro_Diesel_t": 322.1,
+   "F_Macro_Diesel_Change_1M_pct": 16.28158844765344
+  },
+  "2026-04": {
+   "F_Macro_CCPI_YoY_t": 5.4,
+   "F_Macro_CCPI_YoY_Change_1M": 3.2,
+   "F_Macro_Food_Index_Change_1M_pct": 1.743462017434605,
+   "F_Macro_Diesel_t": 382.0,
+   "F_Macro_Diesel_Change_1M_pct": 18.596709096553866
+  },
+  "2026-05": {
+   "F_Macro_CCPI_YoY_t": 5.5,
+   "F_Macro_CCPI_YoY_Change_1M": 0.09999999999999964,
+   "F_Macro_Food_Index_Change_1M_pct": 0.8159934720522344,
+   "F_Macro_Diesel_t": 391.84,
+   "F_Macro_Diesel_Change_1M_pct": 2.5759162303664818
+  },
+  "2026-06": {
+   "F_Macro_CCPI_YoY_t": 6.8,
+   "F_Macro_CCPI_YoY_Change_1M": 1.2999999999999998,
+   "F_Macro_Food_Index_Change_1M_pct": 4.492108458114119,
+   "F_Macro_Diesel_t": 406.17,
+   "F_Macro_Diesel_Change_1M_pct": 3.6571049407921663
+  },
+  "2026-07": {
+   "F_Macro_CCPI_YoY_t": 7.3,
+   "F_Macro_CCPI_YoY_Change_1M": 0.5,
+   "F_Macro_Food_Index_Change_1M_pct": 0.0,
+   "F_Macro_Diesel_t": 382.0,
+   "F_Macro_Diesel_Change_1M_pct": -5.950710293719386
+  },
+  "2026-08": {
+   "F_Macro_CCPI_YoY_t": 8.0,
+   "F_Macro_CCPI_YoY_Change_1M": 0.7000000000000002,
+   "F_Macro_Food_Index_Change_1M_pct": 0.6196746707978429,
+   "F_Macro_Diesel_t": 382.0,
+   "F_Macro_Diesel_Change_1M_pct": 0.0
+  },
+  "2026-09": {
+   "F_Macro_CCPI_YoY_t": 8.0,
+   "F_Macro_CCPI_YoY_Change_1M": 0.0,
+   "F_Macro_Food_Index_Change_1M_pct": 0.4618937644341736,
+   "F_Macro_Diesel_t": 382.0,
+   "F_Macro_Diesel_Change_1M_pct": 0.0
+  }
+ }
+}

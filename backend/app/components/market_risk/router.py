@@ -1,7 +1,7 @@
 """API endpoints for Explainable Market-Risk Prediction, Recommendation and Decision Dashboard. Owner edits this file only."""
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.components.market_risk import services
 from app.components.market_risk.ml.explainer import ExplanationError
@@ -12,6 +12,7 @@ from app.components.market_risk.schemas import (
     Horizon,
     IdentifyRequest,
     IdentifyResponse,
+    MarketContextResponse,
     ModelInfoResponse,
     PredictRequest,
     PredictResponse,
@@ -169,3 +170,41 @@ def model_info(horizon: Horizon | None = None) -> ModelInfoResponse:
         return services.get_model_info(horizon)
     except (FileNotFoundError, RuntimeError) as exc:
         raise _model_unavailable(exc) from None
+
+
+@router.get(
+    "/market-context",
+    response_model=MarketContextResponse,
+    summary="Market and macro features for a category and month",
+    description=(
+        "Returns the 8 `F_Mkt_*` features (by category and month) and the 5 "
+        "`F_Macro_*` features (by month) that `/api/risk/predict` needs. A field "
+        "officer cannot know these, so the frontend fills them from here. Values "
+        "come from `ml/market_context.json`, built with the same join and "
+        "formulas as model training (aggregated public indicators only).\n\n"
+        "`category` is a trained `F_Category` level (any case) or an upper-case "
+        "survey name such as `TRADE`; unknown categories return 422. `month` is "
+        "`YYYY-MM`. Months outside the data return 200 with every value null, "
+        "`in_data_range: false` and a note (values are never guessed). Without "
+        "category market evidence the market values are null and "
+        "`F_Mkt_Evidence_Missing` is 1, as in training."
+    ),
+    responses={
+        422: {"description": "Unknown category or badly formatted month"},
+        503: {"description": "Lookup file missing on the server"},
+    },
+)
+def market_context_lookup(
+    category: str = Query(min_length=1, description="Trained F_Category level or upper-case survey name"),
+    month: str = Query(pattern=services.MONTH_PATTERN, description="Month as YYYY-MM"),
+) -> MarketContextResponse:
+    try:
+        return services.get_market_context(category, month)
+    except services.UnknownCategoryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except FileNotFoundError as exc:
+        logger.error("market_risk market context unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Market-context data is unavailable on the server. Contact the market_risk owner.",
+        ) from None

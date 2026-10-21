@@ -23,6 +23,14 @@ identify_current_risk(request) -> IdentifyResponse
     (Low/Medium/High/Unassigned), risk_ord, signal_count, unknown_count,
     reasons and rule_version. Rule-based; no ML model.
 
+get_market_context(category, month) -> MarketContextResponse
+    The 13 market and macro F_* features for a category (trained level or
+    upper-case survey name) and month "YYYY-MM", from ml/market_context.json
+    (same join and formulas as training; aggregated public indicators only).
+    Raises UnknownCategoryError (a ValueError) for an unknown category and
+    ValueError for a badly formatted month. A month outside the data returns
+    every feature as null with a note; nothing is guessed.
+
 explain_market_risk(request) -> ExplainResponse
     request is an ExplainRequest (or a dict): the PredictRequest fields plus
     top_k (1..20, default 5). For each horizon, SHAP contributions of the 53
@@ -34,9 +42,10 @@ explain_market_risk(request) -> ExplainResponse
 To use the database:  from app.core.database import get_supabase
 """
 
+import re
 from typing import Any
 
-from app.components.market_risk.ml import explainer, loader
+from app.components.market_risk.ml import explainer, loader, market_context
 from app.components.market_risk.ml.sustain_predict import validate_input
 from app.components.market_risk.schemas import (
     ExplainRequest,
@@ -48,6 +57,8 @@ from app.components.market_risk.schemas import (
     HorizonPrediction,
     IdentifyRequest,
     IdentifyResponse,
+    MarketContextFeatures,
+    MarketContextResponse,
     MarketRiskFeatures,
     ModelInfoResponse,
     ModelSummary,
@@ -71,6 +82,13 @@ EXPLAIN_NOTE = (
     "SHAP shows what drives the model, not real-world causes; "
     "models are NOT_READY (synthetic data)"
 )
+MONTH_PATTERN = r"^\d{4}-(0[1-9]|1[0-2])$"
+
+
+class UnknownCategoryError(ValueError):
+    """The category is neither a trained level nor a known survey category name."""
+
+
 # Weights of the expected risk score used for a factor's direction.
 RISK_SCORE_WEIGHTS = {"Low": 0.0, "Medium": 1.0, "High": 2.0}
 
@@ -366,4 +384,42 @@ def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
             else f"{best_case_class}-{worst_case_class}"
         ),
         follow_up_needed=risk_ord is None,
+    )
+
+
+def get_market_context(category: str, month: str) -> MarketContextResponse:
+    """Market (category x month) and macro (month) features for the given inputs."""
+    if not re.match(MONTH_PATTERN, str(month)):
+        raise ValueError(f"month must be YYYY-MM, got {month!r}")
+    resolved = market_context.resolve_category(category)
+    if resolved is None:
+        raise UnknownCategoryError(f"Unknown category {category!r}")
+    level, key = resolved
+
+    lookup = market_context.load_lookup()
+    months = lookup["months"]
+    values = market_context.context_values(key, month)
+    if values is None:
+        features = MarketContextFeatures(**{name: None for name in MarketContextFeatures.model_fields})
+        note = (
+            f"No market or macro data for {month}: the data covers {months[0]} to {months[-1]}. "
+            "All values are null (not estimated); leave them blank in /predict."
+        )
+        return MarketContextResponse(
+            category=level, category_key=key, month=month, in_data_range=False,
+            features=features, evidence_missing=True, source_note=lookup["source_note"],
+            note=note, available_months=months,
+        )
+
+    evidence_missing = bool(values["F_Mkt_Evidence_Missing"])
+    note = None
+    if evidence_missing:
+        note = (
+            f"No category market evidence for {level} in {month}: the market values are null "
+            "and F_Mkt_Evidence_Missing = 1, exactly as in training. Macro values are filled."
+        )
+    return MarketContextResponse(
+        category=level, category_key=key, month=month, in_data_range=True,
+        features=MarketContextFeatures(**values), evidence_missing=evidence_missing,
+        source_note=lookup["source_note"], note=note, available_months=months,
     )

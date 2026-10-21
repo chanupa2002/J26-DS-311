@@ -1,6 +1,6 @@
 # market_risk: 3-month and 6-month household market-risk prediction
 
-Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`
+Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context`
 
 > **Status: NOT_READY.** Both models were trained and tested on **synthetic data only**.
 > Every prediction includes `model_status` and `deployment_reason`, and they must be shown to users.
@@ -51,14 +51,15 @@ Single embargoed test month (from `metadata.json`; small test sets, so the confi
 |---|---|
 | `router.py` | FastAPI endpoints (`/api/risk/...`) |
 | `schemas.py` | Pydantic request/response models (53 explicit feature fields) |
-| `services.py` | Public functions `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk` |
+| `services.py` | Public functions `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context` |
 | `ml/loader.py` | Cached loading of models and metadata, plus the scikit-learn version check |
 | `ml/explainer.py` | Cached SHAP `TreeExplainer` per horizon; maps the 94 transformed columns back to the 53 features; additivity check |
 | `ml/sustain_predict.py` | Colab export; the API reuses its `validate_input` |
+| `ml/market_context.json`, `ml/market_context.py` | Lookup of the 13 market and macro features per (category, month), and its cached reader. Built by `ml/training/build_market_context.py`. Aggregated public indicators only |
 | `ml/models/3M/`, `ml/models/6M/` | `model.joblib`, `metadata.json`, `feature_schema.json` |
 | `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `ml/Methodology_Results_Summary.md` | Model card, data description (no real values), methodology |
 | `sample_data/predict_request_example.json` | One synthetic example request |
-| `tests/` | Loader, service, endpoint, explanation and identification tests (inputs built inline) |
+| `tests/` | Loader, service, endpoint, explanation, identification and market-context tests (inputs built inline) |
 
 ## Endpoints
 
@@ -238,6 +239,50 @@ Signals are counted, never cancelled. `risk_ord`, `signal_count` and `unknown_co
 ### `GET /api/risk/model-info[?horizon=3M|6M]`
 This returns, for each model: name, horizon, algorithm, classes, `model_status`, `deployment_reason`, data basis, target rule, validation method, test metrics, persistence baseline, training period and created date. It also returns the **53 input features** (name, type, description) and the allowed `categorical_levels` for `F_Category` and `F_District`. It reads metadata only, without loading the models.
 
+### `GET /api/risk/market-context?category=<level or survey name>&month=YYYY-MM`
+
+The 8 `F_Mkt_*` features depend only on the category and month, and the 5 `F_Macro_*` features only on the month. A field officer cannot know them, so the frontend fills them from here instead of asking.
+
+- **Source:** `ml/market_context.json`. It is built from the training workbook with the **same join and formulas as model training**: `Category_Month_Table` rows with `Row_Basis` "ALL" by (month, category key), and macro columns by month. It holds aggregated public indicators only (category price-pressure and volatility lines and their tiers, CCPI, CCPI food index, auto diesel price), with no household rows, IDs or survey answers.
+- **Check:** the lookup gives exactly the same 13 values as the training features on **all 550 keyed training rows** (7,150 of 7,150 values).
+- **`category`:** a trained `F_Category` level (any case) or an upper-case survey name (`TRADE`, `FISHERIES & AQUACULTURE`). The level "Other" uses the source key `OTHER`. Unknown category → **422**. Badly formatted month → **422**.
+- **Month outside the data** (data covers 2026-01 to 2026-09): **200** with every value `null`, `in_data_range: false` and a `note`. Nothing is guessed. Leave the values blank in `/predict`.
+- **No market evidence:** the market values are `null` and `F_Mkt_Evidence_Missing` is 1, exactly as in training; macro values are still filled. Evidence exists for Agriculture, Construction, Food Processing, Garment/Handicrafts and Livestock (2026-01 to 2026-08). Trade, Other, Beauty & Wellness and Transport & Logistics have none.
+
+**Response 200** (`category=AGRICULTURE & PLANTATION CROPS&month=2026-03`; values rounded here, `source_note` shortened):
+
+```json
+{
+  "category": "Agriculture & Plantation Crops",
+  "category_key": "AGRICULTURE & PLANTATION CROPS",
+  "month": "2026-03",
+  "in_data_range": true,
+  "features": {
+    "F_Mkt_Pressure_t": 16.5235, "F_Mkt_Volatility_t": 5.5906,
+    "F_Mkt_Pressure_Change_1M": 0.3027, "F_Mkt_Volatility_Change_1M": -0.0058,
+    "F_Mkt_Pressure_Tier_Ord_t": 2.0, "F_Mkt_Volatility_Tier_Ord_t": 0.0,
+    "F_Mkt_Pressure_Tier_Ord_t_minus_1": 2.0, "F_Mkt_Evidence_Missing": 0,
+    "F_Macro_CCPI_YoY_t": 2.2, "F_Macro_CCPI_YoY_Change_1M": 0.6,
+    "F_Macro_Food_Index_Change_1M_pct": -0.8234, "F_Macro_Diesel_t": 322.1,
+    "F_Macro_Diesel_Change_1M_pct": 16.2816
+  },
+  "evidence_missing": false,
+  "source_note": "Category market indicators (...) and national macro indicators (...) from the project's combined training workbook. Aggregated public indicators only; same join and formulas as model training.",
+  "note": null,
+  "available_months": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09"]
+}
+```
+
+**Regenerate the lookup** (from `backend/`; the workbook stays outside the repo):
+
+```bash
+SUSTAIN_COMBINED=~/Documents/sustain_data/combined.xlsx \
+SUSTAIN_CLEANED=~/Documents/sustain_data/monitoring_visits_clean.csv \
+python -m app.components.market_risk.ml.training.build_market_context --verify
+```
+
+`--verify` compares the lookup with the training features on every keyed row and refuses to write the file if any value differs. Without `--verify`, only `SUSTAIN_COMBINED` is needed.
+
 ## The 53 input features
 
 The authoritative list and order is `feature_names_in_order` in `ml/models/<horizon>/metadata.json`. It is the same for 3M and 6M. Call **`GET /api/risk/model-info`** for the names, types, descriptions and allowed category levels, or see `/docs`.
@@ -248,8 +293,8 @@ The authoritative list and order is `feature_names_in_order` in `ml/models/<hori
 | Operating conditions at t | `F_Hours_Ord_t`, `F_Records_Ord_t`, `F_Grant_Status_Ord_t`, 8 Yes/No flags (borrowed, saved, cyclone, female head, asset lost, storage/transport, machinery, natural disaster) |
 | Participant | `F_Age`, `F_Female_Participant` |
 | Household history | `F_Months_Since_Prev_Visit`, 5 × `F_Prev_*`, `F_Risk_Change_vs_Prev`, `F_Tenure_Months`, `F_N_Prior_Visits`, 4 window features, `F_Months_Since_Grant` |
-| Market (category) | 8 × `F_Mkt_*` |
-| Macro (national) | 5 × `F_Macro_*` |
+| Market (category) | 8 × `F_Mkt_*`, filled from `GET /api/risk/market-context` |
+| Macro (national) | 5 × `F_Macro_*`, filled from `GET /api/risk/market-context` |
 | Categorical | `F_Category`, `F_District` |
 
 ## Run only this component
@@ -278,6 +323,7 @@ The tests build their inputs from `metadata.json` and never read CSV files or `s
 
 ```python
 from app.components.market_risk.services import (
+    get_market_context,
     get_model_info,
     identify_current_risk,
     predict_market_risk,
@@ -291,6 +337,9 @@ current = identify_current_risk({
     "not_progressing_well": 0, "market_stress_any": None,
 })
 current.risk_class  # "Unassigned"
+
+context = get_market_context("TRADE", "2026-03")  # 13 market/macro features, null without evidence
+features_dict.update(context.features.model_dump())
 ```
 
 Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).

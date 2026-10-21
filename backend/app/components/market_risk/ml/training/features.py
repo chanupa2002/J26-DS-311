@@ -80,6 +80,17 @@ MACRO_COLUMNS = [
     "Macro_AutoDiesel_Price_t", "Macro_AutoDiesel_Price_t_minus_1",
 ]
 GRANT_DATE_COLUMN = "6.2. Grant Received date"
+# The 13 features that depend only on (category, month) or on month: served by GET /market-context.
+MARKET_FEATURES = [
+    "F_Mkt_Pressure_t", "F_Mkt_Volatility_t", "F_Mkt_Pressure_Change_1M", "F_Mkt_Volatility_Change_1M",
+    "F_Mkt_Pressure_Tier_Ord_t", "F_Mkt_Volatility_Tier_Ord_t", "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+    "F_Mkt_Evidence_Missing",
+]
+MACRO_FEATURES = [
+    "F_Macro_CCPI_YoY_t", "F_Macro_CCPI_YoY_Change_1M", "F_Macro_Food_Index_Change_1M_pct",
+    "F_Macro_Diesel_t", "F_Macro_Diesel_Change_1M_pct",
+]
+CONTEXT_FEATURES = MARKET_FEATURES + MACRO_FEATURES
 
 
 def flag(values: pd.Series) -> pd.Series:
@@ -151,6 +162,25 @@ def join_market_macro(month: pd.Series, category_key: pd.Series, category_month:
     for column in MARKET_COLUMNS + MACRO_COLUMNS:
         joined[column] = pd.to_numeric(joined[column], errors="coerce")
     return joined[MARKET_COLUMNS + MACRO_COLUMNS]
+
+
+def market_macro_features(d: pd.DataFrame) -> pd.DataFrame:
+    """The 13 CONTEXT_FEATURES from joined MARKET_COLUMNS + MACRO_COLUMNS (notebook section 13)."""
+    F = pd.DataFrame(index=d.index)
+    F["F_Mkt_Pressure_t"] = d["Primary_Pressure_t"]
+    F["F_Mkt_Volatility_t"] = d["Primary_Volatility_t"]
+    F["F_Mkt_Pressure_Change_1M"] = d["Primary_Pressure_t"] - d["Primary_Pressure_t_minus_1"]
+    F["F_Mkt_Volatility_Change_1M"] = d["Primary_Volatility_t"] - d["Primary_Volatility_t_minus_1"]
+    F["F_Mkt_Pressure_Tier_Ord_t"] = d["Category_Pressure_Tier_Ord_t"]
+    F["F_Mkt_Volatility_Tier_Ord_t"] = d["Category_Volatility_Tier_Ord_t"]
+    F["F_Mkt_Pressure_Tier_Ord_t_minus_1"] = d["Category_Pressure_Tier_Ord_t_minus_1"]
+    F["F_Mkt_Evidence_Missing"] = d["Primary_Pressure_t"].isna().astype(int)
+    F["F_Macro_CCPI_YoY_t"] = d["Macro_CCPI_YoY_Inflation_t"]
+    F["F_Macro_CCPI_YoY_Change_1M"] = d["Macro_CCPI_YoY_Inflation_t"] - d["Macro_CCPI_YoY_Inflation_t_minus_1"]
+    F["F_Macro_Food_Index_Change_1M_pct"] = 100 * (d["Macro_CCPI_Food_Index_t"] / d["Macro_CCPI_Food_Index_t_minus_1"] - 1)
+    F["F_Macro_Diesel_t"] = d["Macro_AutoDiesel_Price_t"]
+    F["F_Macro_Diesel_Change_1M_pct"] = 100 * (d["Macro_AutoDiesel_Price_t"] / d["Macro_AutoDiesel_Price_t_minus_1"] - 1)
+    return F[CONTEXT_FEATURES]
 
 
 def build_panel(
@@ -297,19 +327,7 @@ def build_features(panel: pd.DataFrame) -> pd.DataFrame:
     grant = g["grant_date"].transform(lambda s: s.ffill())
     F["F_Months_Since_Grant"] = ((d["visit_date"] - grant).dt.days / 30.44).where(lambda x: x >= 0)
 
-    F["F_Mkt_Pressure_t"] = d["Primary_Pressure_t"]
-    F["F_Mkt_Volatility_t"] = d["Primary_Volatility_t"]
-    F["F_Mkt_Pressure_Change_1M"] = d["Primary_Pressure_t"] - d["Primary_Pressure_t_minus_1"]
-    F["F_Mkt_Volatility_Change_1M"] = d["Primary_Volatility_t"] - d["Primary_Volatility_t_minus_1"]
-    F["F_Mkt_Pressure_Tier_Ord_t"] = d["Category_Pressure_Tier_Ord_t"]
-    F["F_Mkt_Volatility_Tier_Ord_t"] = d["Category_Volatility_Tier_Ord_t"]
-    F["F_Mkt_Pressure_Tier_Ord_t_minus_1"] = d["Category_Pressure_Tier_Ord_t_minus_1"]
-    F["F_Mkt_Evidence_Missing"] = d["Primary_Pressure_t"].isna().astype(int)
-    F["F_Macro_CCPI_YoY_t"] = d["Macro_CCPI_YoY_Inflation_t"]
-    F["F_Macro_CCPI_YoY_Change_1M"] = d["Macro_CCPI_YoY_Inflation_t"] - d["Macro_CCPI_YoY_Inflation_t_minus_1"]
-    F["F_Macro_Food_Index_Change_1M_pct"] = 100 * (d["Macro_CCPI_Food_Index_t"] / d["Macro_CCPI_Food_Index_t_minus_1"] - 1)
-    F["F_Macro_Diesel_t"] = d["Macro_AutoDiesel_Price_t"]
-    F["F_Macro_Diesel_Change_1M_pct"] = 100 * (d["Macro_AutoDiesel_Price_t"] / d["Macro_AutoDiesel_Price_t_minus_1"] - 1)
+    F[CONTEXT_FEATURES] = market_macro_features(d)
 
     F["F_Category"] = d["F_Category"]
     F["F_District"] = d["F_District"]

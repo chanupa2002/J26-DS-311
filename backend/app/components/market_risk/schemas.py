@@ -283,3 +283,33 @@ class IdentifyResponse(BaseModel):
     worst_case_class: RiskClass = Field(description="Class if every blank signal is 1 and a blank business status means not running (High).")
     possible_range: str = Field(description="'<best>-<worst>' (e.g. 'Medium-High'), or the single class when both are equal.")
     follow_up_needed: bool = Field(description="True when risk_class is Unassigned: a follow-up visit should fill the blank answers.")
+
+
+class MarketContextFeatures(BaseModel):
+    """The 13 F_* features that depend only on (category, month) or on month. null = no evidence."""
+
+    F_Mkt_Pressure_t: float | None
+    F_Mkt_Volatility_t: float | None
+    F_Mkt_Pressure_Change_1M: float | None
+    F_Mkt_Volatility_Change_1M: float | None
+    F_Mkt_Pressure_Tier_Ord_t: float | None
+    F_Mkt_Volatility_Tier_Ord_t: float | None
+    F_Mkt_Pressure_Tier_Ord_t_minus_1: float | None
+    F_Mkt_Evidence_Missing: int | None
+    F_Macro_CCPI_YoY_t: float | None
+    F_Macro_CCPI_YoY_Change_1M: float | None
+    F_Macro_Food_Index_Change_1M_pct: float | None
+    F_Macro_Diesel_t: float | None
+    F_Macro_Diesel_Change_1M_pct: float | None
+
+
+class MarketContextResponse(BaseModel):
+    category: str = Field(description="Trained F_Category level the input resolved to.")
+    category_key: str = Field(description="Source category key used for the market lookup.")
+    month: str = Field(description="Requested month, YYYY-MM.")
+    in_data_range: bool = Field(description="False when the month is outside the lookup data; then every feature is null.")
+    features: MarketContextFeatures
+    evidence_missing: bool = Field(description="True when there is no category market evidence for this (category, month), or the month is outside the data.")
+    source_note: str
+    note: str | None = Field(default=None, description="Plain-English note when values are missing.")
+    available_months: list[str]
