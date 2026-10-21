@@ -189,6 +189,10 @@ def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
     A class is assigned only if it is the same with blanks counted as 0 and as 1.
     Business not running -> High. Business status blank -> Unassigned unless the
     signals alone already give High (as in the notebook's risk_rule).
+
+    best_case_class / worst_case_class show the range for Unassigned cases:
+    every blank answered "No" (business running) vs every blank answered "Yes"
+    (business not running). For assigned cases both equal risk_class.
     """
     if not isinstance(request, IdentifyRequest):
         request = IdentifyRequest.model_validate(request)
@@ -197,22 +201,29 @@ def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
 
     positive = [label for key, label in STRESS_SIGNALS if values[key] == 1]
     unknown = [label for key, label in STRESS_SIGNALS if values[key] is None]
-    best_case = _class_from_count(len(positive))
-    worst_case = _class_from_count(len(positive) + len(unknown))
+    signals_low = _class_from_count(len(positive))
+    signals_high = _class_from_count(len(positive) + len(unknown))
 
     if business_not_running == 1:
         risk_ord, decision = 2, "Business not running -> High"
-    elif best_case != worst_case:
+    elif signals_low != signals_high:
         risk_ord, decision = None, "Blank answers could change the class -> Unassigned"
-    elif business_not_running is None and best_case < 2:
+    elif business_not_running is None and signals_low < 2:
         risk_ord, decision = None, "Business status not answered -> Unassigned"
     else:
-        risk_ord = best_case
+        risk_ord = signals_low
         decision = {
             0: "Business running and all three signals answered No -> Low",
             1: "Exactly one risk signal -> Medium",
             2: f"{HIGH_SIGNAL_COUNT} or more risk signals -> High",
         }[risk_ord]
+
+    if risk_ord is None:
+        best_ord = signals_low
+        worst_ord = 2 if business_not_running is None else signals_high
+    else:
+        best_ord = worst_ord = risk_ord
+    best_case_class, worst_case_class = RISK_CLASSES[best_ord], RISK_CLASSES[worst_ord]
 
     reasons: list[str] = []
     if business_not_running is None and not decision.startswith("Business status"):
@@ -220,6 +231,11 @@ def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
     reasons += positive
     reasons += [f"Not answered: {label.lower()}" for label in unknown]
     reasons.append(decision)
+    if risk_ord is None:
+        reasons.append(
+            f"Could be up to {worst_case_class} if blank answers are Yes; "
+            "follow-up visit recommended"
+        )
 
     return IdentifyResponse(
         risk_class="Unassigned" if risk_ord is None else RISK_CLASSES[risk_ord],
@@ -228,4 +244,12 @@ def identify_current_risk(request: IdentifyRequest | dict) -> IdentifyResponse:
         unknown_count=len(unknown),
         reasons=reasons,
         rule_version=RULE_VERSION,
+        best_case_class=best_case_class,
+        worst_case_class=worst_case_class,
+        possible_range=(
+            best_case_class
+            if best_ord == worst_ord
+            else f"{best_case_class}-{worst_case_class}"
+        ),
+        follow_up_needed=risk_ord is None,
     )

@@ -241,6 +241,7 @@ Owner decision (inside my folder, not done): the notebook source still has Colab
 | 7 | Tests (`conftest.py`, `test_loader.py`, `test_services.py`, `test_endpoints.py`) | ✅ Done: 38 passed at the time |
 | 8 | Review; `model_info.json`; `DATA_DESCRIPTION.md`; `README.md`; this plan | ✅ Done |
 | 9A | Current-risk identification (rule-based, SUSTAIN-HH-Risk-Rule v1.0 variant A): `IdentifyRequest` / `IdentifyResponse` in `schemas.py`, public `identify_current_risk` in `services.py`, row added to `CONTRACTS_UPDATE.md`. Follows the notebook code: blank business status + 2 or more signals → High. Checked against the notebook's `risk_rule` on all 81 input combinations (0 mismatches) | ✅ Done |
-| 9B | `POST /api/risk/identify` in `router.py`; `tests/test_identify.py` (all verify-table cases via service and endpoint, 422 cases, true/false and 1.0/0.0 accepted as 1/0); README updated | ✅ Done: market_risk 81 passed |
+| 9B | `POST /api/risk/identify` in `router.py`; `tests/test_identify.py` (all verify-table cases via service and endpoint, 422 cases, true/false and 1.0/0.0 accepted as 1/0); README updated | ✅ Done: market_risk 81 passed at the time |
+| 10 | Identify: `best_case_class`, `worst_case_class`, `possible_range`, `follow_up_needed` and a follow-up reason when Unassigned; `risk_class` unchanged. `/docs` response example; tests for all verify cases plus a check against the notebook rule with blanks filled on all 81 combinations | ✅ Done: market_risk 87 passed |
 | — | NDA supervisor sign-off (Q7) | ⏳ **Pending supervisor sign-off** |
 | — | Leader-approved shared changes (§6) | ⏳ Waiting for the leader |

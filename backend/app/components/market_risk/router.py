@@ -17,6 +17,25 @@ from app.components.market_risk.schemas import (
 router = APIRouter(prefix="/api/risk", tags=["Market Risk"])
 logger = logging.getLogger(__name__)
 
+# Response for the IdentifyRequest schema example (shown in /docs; checked by tests).
+IDENTIFY_EXAMPLE_RESPONSE = {
+    "risk_class": "Unassigned",
+    "risk_ord": None,
+    "signal_count": 1,
+    "unknown_count": 1,
+    "reasons": [
+        "No profit last month",
+        "Not answered: market stress",
+        "Blank answers could change the class -> Unassigned",
+        "Could be up to High if blank answers are Yes; follow-up visit recommended",
+    ],
+    "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)",
+    "best_case_class": "Medium",
+    "worst_case_class": "High",
+    "possible_range": "Medium-High",
+    "follow_up_needed": True,
+}
+
 NOT_READY_NOTE = (
     "Both models are currently NOT_READY: they were trained and tested on "
     "synthetic data only. Every result includes model_status and "
@@ -81,10 +100,18 @@ def predict(request: PredictRequest) -> PredictResponse:
         "exactly one; Low = business running and all three answered 0; "
         "Unassigned = blanks could change the class, or business status blank "
         "(unless the signals alone already give High).\n\n"
+        "To show how bad an Unassigned case could be, the response also has "
+        "`best_case_class` (every blank = No, business running), "
+        "`worst_case_class` (every blank = Yes, business not running), "
+        "`possible_range` (e.g. `Medium-High`) and `follow_up_needed` (true "
+        "when Unassigned). For assigned cases both bounds equal `risk_class`.\n\n"
         "`risk_ord`, `signal_count` and `unknown_count` can be used as "
         "`F_Risk_Ord_t`, `F_Risk_Signal_Count_t` and `F_Risk_Unknown_t` in "
         "`/api/risk/predict`."
     ),
+    responses={
+        200: {"content": {"application/json": {"example": IDENTIFY_EXAMPLE_RESPONSE}}}
+    },
 )
 def identify(request: IdentifyRequest) -> IdentifyResponse:
     return services.identify_current_risk(request)

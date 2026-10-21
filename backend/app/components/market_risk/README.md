@@ -110,28 +110,34 @@ This identifies the **current** risk class with SUSTAIN-HH-Risk-Rule v1.0 (noteb
 {
   "business_not_running": 0,
   "no_profit_last_month": 1,
-  "not_progressing_well": 1,
+  "not_progressing_well": 0,
   "market_stress_any": null
 }
 ```
 
-**Response 200**
+**Response 200** (an Unassigned case: the blank market-stress answer decides between Medium and High)
 
 ```json
 {
-  "risk_class": "High",
-  "risk_ord": 2,
-  "signal_count": 2,
+  "risk_class": "Unassigned",
+  "risk_ord": null,
+  "signal_count": 1,
   "unknown_count": 1,
   "reasons": [
     "No profit last month",
-    "Not progressing well",
     "Not answered: market stress",
-    "2 or more risk signals -> High"
+    "Blank answers could change the class -> Unassigned",
+    "Could be up to High if blank answers are Yes; follow-up visit recommended"
   ],
-  "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
+  "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)",
+  "best_case_class": "Medium",
+  "worst_case_class": "High",
+  "possible_range": "Medium-High",
+  "follow_up_needed": true
 }
 ```
+
+Set `not_progressing_well` to `1` and the answer is assigned: `"risk_class": "High"`, `best_case_class` = `worst_case_class` = `"High"`, `possible_range` = `"High"`, `follow_up_needed` = `false`.
 
 | Class | Rule |
 |---|---|
@@ -139,6 +145,17 @@ This identifies the **current** risk class with SUSTAIN-HH-Risk-Rule v1.0 (noteb
 | Medium | Business running and exactly one signal |
 | Low | Business running and all three signals answered 0 |
 | Unassigned | The class would differ between blanks = 0 and blanks = 1, **or** business status is blank (unless the signals alone already give High, as in the notebook) |
+
+**How bad could an Unassigned case be?** `risk_class` is never changed by these fields. They only show the range:
+
+| Field | Meaning |
+|---|---|
+| `best_case_class` | Class if every blank signal is 0 and a blank business status means *running* |
+| `worst_case_class` | Class if every blank signal is 1 and a blank business status means *not running* (→ High) |
+| `possible_range` | `"<best>-<worst>"`, e.g. `"Low-Medium"` or `"Medium-High"`, or the single class when both are equal |
+| `follow_up_needed` | `true` when `risk_class` is `Unassigned` (a follow-up visit should fill the blanks) |
+
+For assigned cases `best_case_class == worst_case_class == risk_class`. For Unassigned cases the bounds always differ, and the last reason says how high the class could go.
 
 Signals are counted, never cancelled. `risk_ord`, `signal_count` and `unknown_count` can be used directly as `F_Risk_Ord_t`, `F_Risk_Signal_Count_t` and `F_Risk_Unknown_t` in `/api/risk/predict`. Unassigned gives `risk_ord: null`, which the model median-imputes.
 

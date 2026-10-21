@@ -236,3 +236,7 @@ class IdentifyResponse(BaseModel):
     unknown_count: int = Field(description="Number of the three stress signals left blank; usable as F_Risk_Unknown_t.")
     reasons: list[str]
     rule_version: str
+    best_case_class: RiskClass = Field(description="Class if every blank signal is 0 and a blank business status means running.")
+    worst_case_class: RiskClass = Field(description="Class if every blank signal is 1 and a blank business status means not running (High).")
+    possible_range: str = Field(description="'<best>-<worst>' (e.g. 'Medium-High'), or the single class when both are equal.")
+    follow_up_needed: bool = Field(description="True when risk_class is Unassigned: a follow-up visit should fill the blank answers.")
