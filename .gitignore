@@ -48,6 +48,12 @@ private_data/
 *.parquet
 *.feather
 
+!backend/app/components/livelihood_planning/model_1_recommend/artifacts/area_index.csv
+!backend/app/components/livelihood_planning/model_1_recommend/artifacts/district_livelihood_shares.csv
+!backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_data_dictionary.csv
+!backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_cleaning_log.csv
+!backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/market_filter_log.csv
+
 # BRIGHT research data - keep local, never commit
 /Data/
 

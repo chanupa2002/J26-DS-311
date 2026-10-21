@@ -1,0 +1,43 @@
+{
+  "component": "livelihood_planning",
+  "model_name": "model_v1.joblib",
+  "model_type": "LogisticRegression (multinomial)",
+  "version": "v1",
+  "trained_on": "2026-10-18",
+  "sklearn_version": "1.6.1",
+  "features": [
+    "district",
+    "ds_division",
+    "gender",
+    "female_headed",
+    "disability",
+    "aswesuma_category",
+    "age",
+    "food_insecurity_score",
+    "debt_pct",
+    "land_pct"
+  ],
+  "categories": [
+    "AGRICULTURE & PLANTATION CROPS",
+    "BEAUTY AND WELLNESS",
+    "CONSTRUCTION, BUILDING AND REPAIR",
+    "FOOD PROCESSING & PRODUCTION",
+    "GARMENT TEXTILE, HANDICRAFTS",
+    "LIVESTOCK & ANIMAL HUSBANDRY",
+    "OTHER",
+    "TRADE",
+    "TRANSPORT & LOGISTICS"
+  ],
+  "rows_train": 302,
+  "rows_test_real": 61,
+  "rows_generated_in_train": 62,
+  "best_C": 0.1,
+  "metrics_real_test": {
+    "top1": 0.393,
+    "top3": 0.689,
+    "baseline_top1": 0.344,
+    "random_top3": 0.333,
+    "top1_mean_10_splits": 0.374,
+    "top3_mean_10_splits": 0.636
+  }
+}
