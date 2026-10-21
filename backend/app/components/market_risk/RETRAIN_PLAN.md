@@ -1,6 +1,6 @@
 # market_risk: retrain plan from the cleaned monitoring data
 
-Status: **PLAN ONLY**, no code. Branch: `chamoda-cleaned-retrain` (as stated by the owner; not checked, because no git commands were run).
+Status: **STEP 2 DONE**: implemented and run (see §8 and `RETRAIN_REPORT.md`). Decisions are in §6. Branch: `chamoda-cleaned-retrain` (as stated by the owner; not checked, because no git commands were run).
 Goal: retrain the 3M and 6M models from the team's **cleaned** monitoring data, **without touching the deployed models** in `ml/models/`.
 
 > **Data basis for every result in this plan and in the future script: SYNTHETIC panel (70 households, 9 categories).**
@@ -58,7 +58,7 @@ All features use visit *t* and **earlier visits of the same `household_id`** onl
 | `F_Female_Participant` | `participant_gender`: Female→1, Male→0 | 100% |
 | `F_Months_Since_Prev_Visit`, 5 × `F_Prev_*`, `F_Risk_Change_vs_Prev`, `F_Tenure_Months`, `F_N_Prior_Visits` | household history by `household_id` + `month_index` | same logic as §13 |
 | `F_Risk_Mean_3M_Window`, `F_NoProfit_Rate_3M_Window`, `F_MarketStress_Rate_3M_Window`, `F_High_Count_6M_Window` | calendar-month windows [t−2, t] and [t−5, t] | same logic as §13 |
-| **`F_Months_Since_Grant`** | **No grant date in the cleaned file.** Proposed: take `6.2. Grant Received date` from `combined.xlsx` for the 448 matched rows (166 have a date), carry it forward within the household as §13 does, and leave it blank for the 102 new rows | see risk R3 / Q2 |
+| **`F_Months_Since_Grant`** | **No grant date in the cleaned file.** Decided (Q2): take `6.2. Grant Received date` from `combined.xlsx` for the 448 matched rows (166 have a date), carry it forward within the household as §13 does, and leave it blank for the 102 new rows | see risk R3 / Q2 |
 | 8 × `F_Mkt_*` | §1.3 join | 100% |
 | 5 × `F_Macro_*` | §1.3 join | 100% |
 | `F_Category` | `category` mapped with the notebook's `KEY_TO_PROG`, **plus** `BEAUTY AND WELLNESS`→`Beauty & Wellness` and `TRANSPORT & LOGISTICS`→`Transport & Logistics` (the names in the notebook's `PROG_CATS`) | 100% for the 7 old levels |
@@ -110,18 +110,20 @@ Excluded, as in the notebook: identifiers (`visit_id`, `source_uuid`, `household
 |---|---|
 | `ml/training/__init__.py` | empty |
 | `ml/training/features.py` | Pure functions, unit-testable on tiny inline frames: `t_signals(cleaned)`, `risk_rule_a(T)` (vectorised notebook rule), `build_features(df, market, macro, grant_dates)`, `build_targets(df, horizons)`, `category_level(key)` |
+| `ml/training/xlsx_reader.py` | Small standard-library `.xlsx` reader (Q4: no openpyxl) and Excel serial-date conversion |
 | `ml/training/train_from_cleaned.py` | CLI / orchestration (below) |
-| `tests/test_training_features.py` | Inline toy data only: mappings, rule A equals `services.identify_current_risk` on all 81 combinations, history and window features, exact t+h target matching, leakage truncation test, category mapping. An end-to-end test is **skipped** unless `SUSTAIN_CLEANED` and `SUSTAIN_COMBINED` are set |
+| `tests/test_training_features.py` | Inline toy data only: mappings, rule A equals `services.identify_current_risk` on all 81 combinations, history and window features, exact t+h target matching, leakage truncation test, category mapping, panel matching and its guards, xlsx reader. There is no end-to-end test with the real files: that is the script itself |
 
 **Run (from `backend/`, in the shared `.venv` with scikit-learn 1.6.1):**
 ```bash
 SUSTAIN_CLEANED=~/Documents/sustain_data/monitoring_visits_clean.csv \
 SUSTAIN_COMBINED=~/Documents/sustain_data/combined.xlsx \
-python -m app.components.market_risk.ml.training.train_from_cleaned [--subset original448] [--out <dir>]
+SUSTAIN_CANDIDATE_OUT=~/Documents/sustain_data/models_candidate \
+python -m app.components.market_risk.ml.training.train_from_cleaned [--gate-only] [--report app/components/market_risk/RETRAIN_REPORT.md]
 ```
 
 **Steps:**
-1. **Load and guard.** Read the env vars. Stop with a clear message if they are missing, or if the output folder resolves to `ml/models/` (the deployed folder is never written). The default output is `ml/models_candidate/`.
+1. **Load and guard.** Read the env vars. Stop with a clear message if they are missing, or if the output folder resolves to **anywhere inside the repository** (Q5). The default output is `~/Documents/sustain_data/models_candidate/` (`SUSTAIN_CANDIDATE_OUT`).
 2. **Verify inputs.** Stop if any of these fail:
    - The 448 HH-n ↔ SYN-HH-n + month match is still one-to-one.
    - The `T_*` signals rebuilt from cleaned equal the original on those rows (0 mismatches).
@@ -134,14 +136,22 @@ python -m app.components.market_risk.ml.training.train_from_cleaned [--subset or
    - **Candidates:** LogisticRegression (C ∈ {0.01, 0.1, 1, 10}, balanced) and RandomForest (300 trees, balanced_subsample, max_depth ∈ {3, 5, None}, min_samples_leaf ∈ {1, 5, 10}).
    - **Tuning:** `GridSearchCV(scoring="f1_macro", cv=GroupKFold(4) by household)` on the **training set only**. The selected model is the best CV macro-F1, and the test month is used once.
    - **Reported:** majority and persistence baselines, test metrics (accuracy, macro P/R/F1, balanced accuracy, High precision/recall), a bootstrap 95% CI, and per-category test counts.
-   - XGBoost is **not** a candidate (see R5).
+   - XGBoost is **not** a candidate (see R5). **Only the Random Forest is saved** (Q3), whichever model wins CV; the winner is recorded as `selected_by_cv`.
 5. **Walk-forward** (§29 E1) for the selected configuration, with persistence and LR alongside. Per fold: macro-F1, High recall and High precision.
-6. **Reproduction gate.** With `--subset original448`, check that the split sizes (3M 102/39, 6M 77/39) and test metrics reproduce the current `ml/models/*/metadata.json` (3M macro-F1 0.3026, 6M 0.4302, up to tiny parallel-summation noise). The full 550-row run is trusted only after this gate passes.
-7. **Save** to `ml/models_candidate/{3M,6M}/`:
+6. **Reproduction gate** (on the 448 original rows, run first; with `--gate-only`, only the gate runs). As run, the gate requires all of the following:
+   - **Split sizes:** 3M 102/39, 6M 77/39.
+   - **Training statistics:** equal to the deployed pipeline's (imputer medians, scaler means/scales, missing indicators, one-hot levels).
+   - **Test metrics:** the test Macro-F1 and High recall of the **deployed configuration** (`max_depth` 3, `min_samples_leaf` 10) reproduce 3M 0.3026 / 0.56 and 6M 0.4302 / 0.88.
+   - **Walk-forward:** the notebook §29 means are reproduced.
+
+   The grid search's own choice of hyperparameters is **reported but not gated**, because it does not reproduce across machines (see §8). The candidate is trained only if the gate passes (`--force` overrides).
+7. **Save** to `$SUSTAIN_CANDIDATE_OUT/{3M,6M}/` (outside the repo):
    - **`model.joblib`.**
    - **`feature_schema.json`:** the same 53 names, types and descriptions.
    - **`metadata.json`:** the same keys the loader requires and the current files have: `feature_names_in_order`, `numeric_features`, `categorical_features`, `categorical_levels` (from the training rows), `classes`, `class_encoding`, `category_mapping` (+2 new keys), `deployment_status` and `deployment_reason`, `software_versions`, `test_metrics`, `persistence_baseline_test_macro_f1`, `training_period`, `validation_methodology`, `target_rule`, `target_generation_method`. Added: `data_basis: "SYNTHETIC panel (70 households, 9 categories)"`, `model_version: "2.0-cleaned-candidate"`, `input_sha256` for both files, and `source: "train_from_cleaned.py"`.
-   - **`training_report.json` and `.md`** at the top level: aggregates only (counts, metrics, walk-forward table, checks). **No rows, no IDs, no CSV.**
+   - **`training_report.json`** at the top level, plus the Markdown report `RETRAIN_REPORT.md` in this folder (`--report`): aggregates only (counts, metrics, walk-forward table, checks). **No rows, no IDs, no CSV, no local paths.**
+   - **Walk-forward comparison:** *current* = the deployed RF configuration retrained per fold on the original-category rows; *candidate* = the candidate RF configuration retrained per fold on all rows. Both are scored on the same test months (all rows, and original-category rows).
+   - **Proxy check for `F_Months_Since_Grant`:** missing rates by category group, permutation importance on the test month, and SHAP mean |contribution| and rank of its missing flag.
 8. **Deployment status.** Always `NOT_READY`, with reasons: synthetic only, unvalidated rule, no real follow-up, no embargo for 6M, plus "does not beat persistence" where true.
 
 **Not changed:** `ml/models/`, the notebook (its §13 stays the reference), `ml/sustain_predict.py`, and the API code. This step adds training code only.
@@ -158,7 +168,7 @@ Almost all of it is already **metadata-driven**:
 | `ml/sustain_predict.validate_input`, `services._convert_category` | Read `categorical_levels` and `category_mapping` from metadata. With the new mapping, `"BEAUTY AND WELLNESS"` / `"TRANSPORT & LOGISTICS"` are **converted with a warning** instead of being treated as unknown |
 | `GET /model-info` | Lists 9 levels automatically |
 | `ml/explainer.py` | Generic `cat__F_Category_` mapping, no change. The one-hot width grows from 94 to 96 columns |
-| `ml/loader.py` | No change for promotion by copying files. Optional, separate step: an env var (for example `MARKET_RISK_MODELS_DIR`) so the API can point at `ml/models_candidate/` for side-by-side testing |
+| `ml/loader.py` | No change for promotion by copying files. **Done (Q7):** `MARKET_RISK_MODELS_DIR` points the API at another model folder **for local testing only**; the default is unchanged (`ml/models/`) |
 | Tests to update **at promotion** | `test_services.test_category_not_in_mapping_stays_unknown` uses `"TRANSPORT & LOGISTICS"` as its unknown example, so it would then be converted. Switch it to a truly unknown name. The other tests read metadata and should pass. Keep `model_name` = `SUSTAIN_Model_3M/6M`, because the tests and clients check it |
 | Docs at promotion | `README.md` (coverage limitation, metrics), `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `CONTRACTS_UPDATE.md` (still accurate), `IMPLEMENTATION_PLAN.md` |
 
@@ -175,24 +185,27 @@ Almost all of it is already **metadata-driven**:
 | R3 | **`F_Months_Since_Grant` is not in the cleaned file.** Blank for all 102 new rows, so its missing indicator becomes a proxy for the new categories (spurious signal) | Best: the cleaning team adds the grant date (Q2). Otherwise join it from `combined.xlsx` for the 448 rows and report the importance of `missingindicator_F_Months_Since_Grant` |
 | R4 | **The selected model could be LogisticRegression.** `/explain` uses `shap.TreeExplainer` and would fail on LR | Either restrict candidates to RandomForest (consistent with the §29 decision), or choose and record what to do if LR wins (Q3) |
 | R5 | XGBoost is not in `requirements.txt` or the `.venv`. A selected XGB model could not be loaded by the API | Not a candidate |
-| R6 | **Reading `combined.xlsx` needs `openpyxl`**, which is not in `requirements.txt` or the `.venv`. For this plan the file was read with a throwaway standard-library reader in the scratchpad (not in the repo) | Q4: add `openpyxl` (shared file, leader approval), keep a stdlib reader in `ml/training/`, or export the two sheets to files outside the repo |
+| R6 | **Reading `combined.xlsx` needs `openpyxl`**, which is not in `requirements.txt` or the `.venv` | **Resolved (Q4):** `ml/training/xlsx_reader.py` (standard library only) |
 | R7 | Small samples: 3M test 49 rows, 6M 47. The 6M split cannot be embargoed. Results remain optimistic and noisy | Report bootstrap CIs and walk-forward, and compare with persistence |
 | R8 | The library and Python versions must match what the loader checks (scikit-learn 1.6.1). The rules say Python 3.11 while the `.venv` is 3.13 | Train in the shared `.venv` and record `software_versions`. The loader rejects a mismatch |
 | R9 | Data leakage into the repo | Paths only from env vars; the script writes only models and aggregate reports; `*.csv` / `*.xlsx` are gitignored; review `git status` before committing |
 | R10 | Category name drift: the cleaned file uses `BEAUTY AND WELLNESS`, the notebook names use `Beauty & Wellness`, and livelihood_planning uses the upper-case names | Use the notebook names as levels and map the upper-case names in `category_mapping` (Q1) |
-| R11 | `n_jobs=-1` gives about 1e-16 differences between runs | The reproduction gate uses a tolerance (1e-9 for probabilities, an exact match for split sizes) |
+| R11 | `n_jobs=-1` gives about 1e-16 differences between runs, and exactly tied duplicate columns make about 10 of 300 trees differ between Colab and this Mac | The gate checks data, statistics and the deployed configuration's metrics, not the grid choice (§8) |
+| R12 | **Hyperparameter choice is unstable**: on the same data, grid search here picks (3, 5) / (3, 1) instead of Colab's (3, 10) | Report it, and consider fixing the deployed configuration for the candidate (§8 next steps) |
 
 ---
 
-## 6. Open questions
+## 6. Decisions
 
-1. **New level names:** `Beauty & Wellness` and `Transport & Logistics` (notebook style), or the upper-case official names? Proposed: notebook style, with the upper-case names mapped.
-2. **Grant date:** can the cleaning team add `grant_date` to `monitoring_visits_clean.csv`? If not, is it OK to join it from `combined.xlsx` for the 448 rows and leave the 102 new rows blank?
-3. **Candidate models:** keep LR + RF exactly as in the notebook, or RF only so that `/explain` keeps working whichever model wins? Proposed: RF only for the saved candidate, with LR still reported as a comparison.
-4. **Excel reader:** add `openpyxl` to `requirements.txt` (the leader's decision), or use a small stdlib reader inside `ml/training/`?
-5. **Commit the candidate:** should `ml/models_candidate/` (two joblib files of about 0.3–0.4 MB each, plus JSON) be committed on this branch, or kept local until promotion? NDA sign-off is still pending for committed models.
-6. **Promotion bar:** what must the candidate show before it replaces `ml/models/`? Proposed: the reproduction gate passes; walk-forward 3M macro-F1 ≥ persistence and High recall ≥ the current model; no category with zero test support; the owner and supervisor agree.
-7. **Loader env var** for side-by-side testing (`MARKET_RISK_MODELS_DIR`): wanted? It's inside my folder, but it changes how the API can be configured.
+| # | Question | Decision |
+|---|---|---|
+| Q1 | New level names | Notebook style: `Beauty & Wellness`, `Transport & Logistics`; the upper-case names are mapped in `category_mapping` |
+| Q2 | Grant date | Taken from `combined.xlsx` for the 448 matched rows, null for the 102 new rows. The report checks whether the missing flag acts as a proxy (permutation importance + SHAP) |
+| Q3 | Candidate models | Compare all candidates (baselines, LR, RF) as in the notebook; **save only the Random Forest** |
+| Q4 | Excel reader | **No openpyxl.** A small built-in reader in `ml/training/xlsx_reader.py` |
+| Q5 | Where candidates go | **Outside the repo**: `SUSTAIN_CANDIDATE_OUT`, default `~/Documents/sustain_data/models_candidate/`. The script refuses any path inside the repository |
+| Q6 | Promotion bar | The reproduction gate passes; walk-forward candidate RF Macro-F1 is not lower than the current model's by more than 0.02, and High recall is not lower (all test rows, mean over folds); all tests pass |
+| Q7 | Side-by-side testing | `MARKET_RISK_MODELS_DIR` in `ml/loader.py`, **local testing only**; default unchanged (`ml/models/`) |
 
 ---
 
@@ -200,8 +213,24 @@ Almost all of it is already **metadata-driven**:
 
 | # | File | Change | Why |
 |---|---|---|---|
-| 1 | `backend/requirements.txt`, market_risk section | Only if Q4 = openpyxl: add `openpyxl==<pinned version>` (following `docs/REQUIREMENTS_RULES.md`, leader approval) | Read `combined.xlsx` in the training script |
-| 2 | `livelihood_planning/data_prep/` (cleaning owner, **not** me) | Only if Q2 = yes: add a `grant_date` column to the cleaned output and dictionary | `F_Months_Since_Grant` for all rows |
+| 1 | ~~`backend/requirements.txt`~~ | **Not needed:** Q4 uses the built-in reader | — |
+| 2 | `livelihood_planning/data_prep/` (cleaning owner, **not** me) | Optional, for a later retrain: add a `grant_date` column to the cleaned output and dictionary, so the 102 new rows also get `F_Months_Since_Grant` | Removes the confounding of the missing flag with the new categories |
 | 3 | `docs/DATA_AND_MODELS_RULES.md` §4 | NDA sign-off (still pending) also covers any committed candidate model | Committed models built from the NDA dataset |
 
 Nothing else outside `market_risk/` is needed. The data files stay in `~/Documents/sustain_data/` and are never copied into the repo.
+
+---
+
+## 8. Step 2 results (summary; full aggregates in `RETRAIN_REPORT.md`)
+
+- **Reproduction gate: PASS.** The splits, the deployed pipeline's fitted training statistics, the deployed configuration's test metrics (3M Macro-F1 0.3026, High recall 0.56; 6M 0.4302 / 0.88) and the notebook §29 walk-forward (3M 0.356 vs 0.295; 6M 0.431 vs 0.179) are reproduced exactly.
+- **Gate definition changed from the plan:** the plan required the grid search to pick the same RF parameters. On this machine it picks (3, 5) for 3M and (3, 1) for 6M instead of Colab's (3, 10), even though the data are identical. The cause is about 10 of 300 trees choosing differently between exactly tied, duplicate columns, which is platform-dependent floating point. That's why the gate checks the deployed configuration instead.
+- **Candidate** (550 rows; 3M train/test 127/49 embargoed, 6M 91/47 not embargoed): RF 3M (`max_depth` None, `min_samples_leaf` 5), RF 6M (3, 1). Both NOT_READY; data basis "SYNTHETIC panel (70 households, 9 categories)"; saved outside the repo.
+- **Promotion bar: NOT MET.** Walk-forward on all test rows:
+  - 3M Macro-F1: candidate 0.347 vs current 0.350 (within 0.02).
+  - 3M High recall: 0.301 vs 0.397 (lower).
+  - 6M Macro-F1: 0.382 vs 0.422 (more than 0.02 lower).
+  - 6M High recall: 0.667 vs 0.876 (lower).
+- **Grant-date proxy:** the missing flag is fully confounded with the new categories (missing for 100% of their rows). But it is not a strong driver in either candidate (SHAP rank 32 and 42 of 96; permutation importance within noise).
+- **Side-by-side** (`MARKET_RISK_MODELS_DIR` = candidate): 138 of 140 market_risk tests pass. The 2 failures are expected at promotion, because both assume the 7 deployed categories: `test_category_not_in_mapping_stays_unknown` and `test_category_mapping_keeps_the_seven_deployed_levels_and_adds_two`.
+- **Next steps (not done):** separate the data effect from the hyperparameter effect by also training the candidate with the deployed configuration (3, 10). Repeat the grid with several seeds, or report CV ties. Get the grant date for the 102 new rows.

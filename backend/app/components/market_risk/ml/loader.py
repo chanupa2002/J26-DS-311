@@ -6,17 +6,22 @@ the server starts, and then kept in memory.
 
 Both models are currently deployment_status "NOT_READY"; callers must pass
 model_status and deployment_reason on to the user (see get_model_status).
+
+For LOCAL side-by-side testing only, the environment variable
+MARKET_RISK_MODELS_DIR can point to another folder with the same layout (for
+example the retraining candidate outside the repo). Default: ml/models/.
 """
 
 import copy
 import json
 import logging
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 ML_DIR = Path(__file__).parent
-MODELS_DIR = ML_DIR / "models"
+MODELS_DIR = Path(os.environ.get("MARKET_RISK_MODELS_DIR") or ML_DIR / "models").expanduser()
 HORIZONS = ("3M", "6M")
 MODEL_FILENAME = "model.joblib"
 METADATA_FILENAME = "metadata.json"
