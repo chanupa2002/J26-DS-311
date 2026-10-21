@@ -1,4 +1,19 @@
-import { UNAVAILABLE_MESSAGE_PREFIX } from "./constants"
+import { BLANK, UNAVAILABLE_MESSAGE_PREFIX } from "./constants"
+
+/** Select values ("1" / "0" / "blank") -> /identify body (1 / 0 / null). */
+export function toSignals(formValues) {
+  return Object.fromEntries(
+    Object.entries(formValues).map(([key, value]) => [
+      key,
+      value === BLANK ? null : Number(value),
+    ]),
+  )
+}
+
+/** Backend reasons use "->"; show an arrow instead. */
+export function formatReason(reason) {
+  return String(reason).replaceAll("->", "→")
+}
 
 export function formatMetric(value, digits = 3) {
   const number = Number(value)

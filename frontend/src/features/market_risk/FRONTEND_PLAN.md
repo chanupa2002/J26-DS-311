@@ -1,6 +1,6 @@
 # market_risk: frontend plan
 
-Status: **decisions made (§6). Step F2 (foundation + Overview) built; Risk Check and Future Risk not yet.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
+Status: **decisions made (§6). Steps F2 (foundation + Overview) and F3 (Risk Check) built; Future Risk not yet.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
 
 Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: SYNTHETIC panel (70 households, 9 categories), **NOT_READY**.
 
@@ -12,7 +12,7 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `api(path, options)` returns the parsed JSON body. On any error it **shows a toast** and throws `new Error(message)`. The message is the `detail` string, or for a 422 the joined `detail[].msg`. **The HTTP status and the `loc` of 422 errors are not kept** | `src/lib/api.js` | We cannot tell 422 from 503 by status. See §5 for the workaround and Q1 for the proposed shared change. Do not add a second toast: errors are already toasted |
 | The ESLint rule blocks imports from other features | `eslint.config.js` | Livelihood is used only as a style reference. Its `PageState` pattern is **re-implemented** in our folder, not imported |
 | Available UI: `badge`, `button`, `card`, `collapsible`, `dialog`, `input`, `label`, `select`, `separator`, `skeleton`, `table`, `tabs`, `tooltip`, `sonner`. **No** `alert`, `progress`, `checkbox`, `radio-group`, `switch`, `textarea` | `src/components/ui/` | Notices are a `Card` with an icon and `role="alert"`. Bars are Tailwind divs. 0/1/blank answers use `Select` |
-| `Badge` variants: `default`, `secondary`, `destructive`, `outline` | `badge.jsx` | Class colours: High → `destructive`, Medium → `default`, Low → `secondary`, Unassigned → `outline`. We do not add new variants |
+| `Badge` variants: `default`, `secondary`, `destructive`, `outline` | `badge.jsx` | Class colours (`RiskBadge`, F3): Low green, Medium amber, High red, Unassigned grey, set with Tailwind classes on `Badge`. No new variants are added to the shared file |
 | `recharts` 3.10.1, `react-hook-form`, `zod` and TanStack Query are already dependencies | `package.json` | No new libraries are needed. SHAP chart: recharts. Forms: react-hook-form + zod |
 | `@/components/explain`: `ConfidenceBadge`, `EstimatedTag`, `EvidenceCard`, `ScoreRange`, `WeakSignalTag`. Their texts are fixed (e.g. ScoreRange says "Viability score") | `src/components/explain/` | Only `WeakSignalTag` and `EvidenceCard` fit as they are; see §4 |
 | The dashboard already calls `/api/risk/health` | `DashboardPage.jsx` | No health page in this feature |
@@ -47,20 +47,23 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 - **Form:** 4 `Select`s, one per signal:
   - `business_not_running`, `no_profit_last_month`, `not_progressing_well`, `market_stress_any`;
   - options: Yes (1), No (0), Not answered (null); default "Not answered";
-  - a plain-English `Label` and a hint from the backend field descriptions;
-  - buttons: Check risk (submit) and Reset.
+  - a plain-English `Label` and a hint from the backend field descriptions. Every question is phrased so that Yes = 1 (e.g. "Has the business stopped running?");
+  - example buttons: **All OK** (→ Low), **Two signals** (→ High), **Missing answer** (→ Unassigned, Medium–High, follow-up);
+  - buttons: Check risk (submit) and Reset;
+  - plain React state (4 selects cannot hold an invalid value, so no zod is needed).
 - **Result card:**
   - `risk_class` as a large `Badge`;
   - "Possible range" `best_case_class` – `worst_case_class` (from `possible_range`), shown when the two differ;
-  - if `follow_up_needed`: a notice "Follow-up visit needed: fill the blank answers" with `WeakSignalTag`;
+  - if `follow_up_needed`: an amber callout **"Follow-up visit recommended"** with `WeakSignalTag` and the possible range;
   - the `reasons` list;
   - `signal_count` / `unknown_count`;
-  - `rule_version` in small text.
-- **"Use in Future Risk" button** (decision Q6): navigates to `/risk/future` with router state `{ prefill: {...} }`. It prefills 7 of the 53 features from this result:
+  - `rule_version` in small text;
+  - "The answers have changed since this check" when the form differs from the answers that were sent.
+- **"Use in Future Risk" button** (decision Q6): navigates to `/risk/future` with router state `{ signals, risk_ord, signal_count, unknown_count }`. `signals` holds the 4 answers that were **sent** (0/1/null, keyed as in `/identify`). Future Risk maps them to 7 of the 53 features:
   - `F_Risk_Ord_t` = `risk_ord`, `F_Risk_Signal_Count_t` = `signal_count`, `F_Risk_Unknown_t` = `unknown_count`;
   - `F_Business_Not_Running_t`, `F_No_Profit_Last_Month_t`, `F_Not_Progressing_Well_t`, `F_Market_Stress_Any_t` = the 4 submitted signals (0/1/null).
-  Future Risk reads `useLocation().state?.prefill` once, shows "7 fields prefilled from Risk Check", and leaves the other fields blank. A page reload loses the state, which is acceptable.
-- Note under the result: "Rule-based (SUSTAIN-HH-Risk-Rule v1.0, provisional, not validated by experts). No ML model."
+  Future Risk reads `useLocation().state` once, shows "7 fields prefilled from Risk Check", and leaves the other fields blank. A page reload loses the state, which is acceptable.
+- `ValidationNotice` at the top: "Provisional rule · validation pending", with "Why": rule-based (no ML), not validated by experts, the class rules, and blanks ≠ No.
 
 ### 1.3 Future Risk (`/risk/future`)
 - **Toolbar:**
@@ -106,13 +109,13 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `components/ValidationNotice.jsx` | Compact neutral (amber) notice "Prototype model · validation pending", with status badges and a collapsible "Why" listing the reasons (`deployment_reason` or given `reasons`). **Used on all 3 pages instead of a red banner** (on Risk Check with the rule's reasons) |
 | `components/StatusBadge.jsx` | Shows "Validation pending" (or "Ready"); the raw `model_status` is in a tooltip |
 | `components/AboutDataCard.jsx` | Overview: collapsible "About the data". The one-line summary (synthetic panel, demonstration only) is always visible |
-| `components/RiskBadge.jsx` | Class → `Badge` variant + text (built with Risk Check) |
+| `components/RiskBadge.jsx` | Class → coloured `Badge` (Low green, Medium amber, High red, Unassigned grey); `size="lg"` |
 | `components/ModelMetricsCard.jsx` | One horizon on Overview (metrics `Table`, baseline, tooltip) |
 | `components/TradeOffTable.jsx` | Static 1.0 vs 2.0 walk-forward table |
 | `components/LevelList.jsx` | Category / district `Badge`s |
 | `components/LimitationsList.jsx` | Static list + `Collapsible` |
 | `components/FeatureList.jsx` | Collapsible table of the 53 features (Overview) |
-| `components/SignalForm.jsx` | 4 `Select`s (react-hook-form + zod) |
+| `components/SignalForm.jsx` | 4 `Select`s + example buttons + Check risk / Reset |
 | `components/CurrentRiskResult.jsx` | The Risk Check result card |
 | `components/FeatureForm.jsx` | The grouped 53-field form, the category/district `Select`s, filled counter |
 | `components/FeatureField.jsx` | One numeric field with `Label` + description `Tooltip` |
@@ -132,7 +135,7 @@ No files outside this folder are changed. No `.env` and no new dependencies.
 | Page | `@/components/ui` | `@/components/explain` | Other |
 |---|---|---|---|
 | Overview | `card`, `table`, `badge`, `collapsible`, `tooltip`, `skeleton`, `button` (Retry, Show all), `separator` | `WeakSignalTag` (next to the 6M metrics: "test split not embargoed") | `lucide-react` icons |
-| Risk Check | `card`, `select`, `label`, `button`, `badge`, `tooltip`, `separator` | `WeakSignalTag` (follow-up needed / blanks), `EvidenceCard` (each reason as `text`, `source` = rule version) | react-hook-form + zod |
+| Risk Check | `card`, `select`, `label`, `button`, `badge`, `tooltip`, `separator` | `WeakSignalTag` (follow-up callout). `EvidenceCard` was not used: a card per reason was too heavy, so the reasons are a list | `ValidationNotice`, `RiskBadge` |
 | Future Risk | `card`, `input`, `label`, `select`, `button`, `badge`, `collapsible`, `tabs`, `tooltip`, `table`, `skeleton`, `separator` | `WeakSignalTag` (blank inputs among the top factors; models NOT_READY) | react-hook-form + zod, recharts |
 
 `ConfidenceBadge`, `ScoreRange` and `EstimatedTag` are **not** used: their fixed texts ("Viability score", "District-level monitoring data…") do not match market risk. Decision Q4: own small components instead.
@@ -186,5 +189,5 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
 |---|---|---|
 | F1 | This plan | ✅ Done |
 | F2 | Foundation (`api/riskApi.js` with all 4 calls, `hooks/useModelInfo.js`, `constants.js`, `utils.js`), shared components (`PageState`, `ValidationNotice`, `StatusBadge`, `AboutDataCard`, `ModelMetricsCard`, `TradeOffTable`, `LevelList`, `LimitationsList`, `FeatureList`), `OverviewPage` at `/risk/overview`, routes and nav | ✅ Done |
-| F3 | Risk Check page | ⏳ Next |
-| F4 | Future Risk page | ⏳ |
+| F3 | Risk Check page: `hooks/useIdentify.js`, `RiskBadge`, `SignalForm`, `CurrentRiskResult`, `RiskCheckPage` at `/risk/check`, route + nav | ✅ Done |
+| F4 | Future Risk page | ⏳ Next |

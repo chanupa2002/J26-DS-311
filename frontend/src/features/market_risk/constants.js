@@ -4,11 +4,87 @@ export const UNAVAILABLE_MESSAGE_PREFIX = "Market-risk model is unavailable"
 
 export const RISK_CLASSES = ["Low", "Medium", "High"]
 
-export const RISK_BADGE_VARIANT = {
-  Low: "secondary",
-  Medium: "default",
-  High: "destructive",
-  Unassigned: "outline",
+// Badge colours per class (Low green, Medium amber, High red, Unassigned grey).
+export const RISK_BADGE_CLASS = {
+  Low: "border-transparent bg-emerald-600 text-white dark:bg-emerald-500/80",
+  Medium: "border-transparent bg-amber-500 text-black dark:bg-amber-400/90",
+  High: "border-transparent bg-red-600 text-white dark:bg-red-500/80",
+  Unassigned: "border-transparent bg-muted text-muted-foreground",
+}
+
+// The 4 /identify signals. Every question is phrased so that "Yes" = 1 (a risk signal).
+export const SIGNALS = [
+  {
+    key: "business_not_running",
+    label: "Has the business stopped running?",
+    hint: "Yes if the business is not running at this visit.",
+  },
+  {
+    key: "no_profit_last_month",
+    label: "No profit last month?",
+    hint: "Yes if the business made no profit last month.",
+  },
+  {
+    key: "not_progressing_well",
+    label: "Business not progressing well?",
+    hint: "Yes if the coach judged the business as not progressing well.",
+  },
+  {
+    key: "market_stress_any",
+    label: "Any market stress?",
+    hint: "Yes if sales were below expected, input costs were high or inputs were unavailable.",
+  },
+]
+
+export const BLANK = "blank"
+
+export const SIGNAL_OPTIONS = [
+  { value: "1", label: "Yes" },
+  { value: "0", label: "No" },
+  { value: BLANK, label: "Not answered" },
+]
+
+export const EMPTY_SIGNAL_FORM = Object.fromEntries(
+  SIGNALS.map(({ key }) => [key, BLANK]),
+)
+
+export const IDENTIFY_EXAMPLES = [
+  {
+    label: "All OK",
+    values: {
+      business_not_running: "0",
+      no_profit_last_month: "0",
+      not_progressing_well: "0",
+      market_stress_any: "0",
+    },
+  },
+  {
+    label: "Two signals",
+    values: {
+      business_not_running: "0",
+      no_profit_last_month: "1",
+      not_progressing_well: "1",
+      market_stress_any: "0",
+    },
+  },
+  {
+    label: "Missing answer",
+    values: {
+      business_not_running: "0",
+      no_profit_last_month: "1",
+      not_progressing_well: BLANK,
+      market_stress_any: "0",
+    },
+  },
+]
+
+export const RULE_NOTICE = {
+  title: "Provisional rule · validation pending",
+  reasons: [
+    "The class comes from SUSTAIN-HH-Risk-Rule v1.0, a rule-based check with no ML model. The rule is provisional and has not yet been validated by experts.",
+    "High: the business is not running, or 2 or more of the 3 signals are Yes. Medium: exactly one signal. Low: business running and all signals No.",
+    "A blank answer is not treated as No. If blanks could change the class, the result is Unassigned and a follow-up visit is recommended.",
+  ],
 }
 
 // [test_metrics key, label] in display order.
