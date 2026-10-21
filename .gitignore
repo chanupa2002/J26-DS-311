@@ -47,3 +47,6 @@ private_data/
 *.tsv
 *.parquet
 *.feather
+
+# Locally stored trained model
+/backend/app/components/evidence_trust/ml/image_verification/model_artifacts/category_relevance_model/lora_adapter/model.safetensors

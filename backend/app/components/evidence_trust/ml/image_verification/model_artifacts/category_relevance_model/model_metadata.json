@@ -1,0 +1,22 @@
+{
+    "model_name": "Document AI Livelihood Image Classifier",
+    "base_model_name": "openai/clip-vit-base-patch32",
+    "num_classes": 7,
+    "embedding_dimension": 512,
+    "categories": [
+        "AGRICULTURE & PLANTATION CROPS",
+        "LIVESTOCK & ANIMAL HUSBANDRY",
+        "FOOD PROCESSING & PRODUCTION",
+        "TRADE",
+        "GARMENT TEXTILE, HANDICRAFTS",
+        "CONSTRUCTION, BUILDING AND REPAIR",
+        "BEAUTY AND WELLNESS"
+    ],
+    "architecture": "CLIP vision encoder + LoRA adapter + linear classification head",
+    "best_validation_loss": 0.7726224621136983,
+    "previous_test_accuracy": 0.8125,
+    "previous_test_macro_f1": 0.5591,
+    "test_images": 16,
+    "correct_test_predictions": 13,
+    "note": "Previously measured test metrics. These values are not a guarantee of generalization. Verify category IDs against the original training mapping."
+}

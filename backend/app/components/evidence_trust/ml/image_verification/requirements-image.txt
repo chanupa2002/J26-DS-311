@@ -1,0 +1,22 @@
+# Install from this file when enabling image verification.
+Pillow>=10.0,<13.0
+PyYAML>=6.0,<7.0
+numpy>=1.24,<3.0
+opencv-contrib-python>=4.8,<5.0
+# Optional quality comparisons and calibration only:
+# scikit-image>=0.22,<1.0
+# image-quality>=1.2
+# scikit-learn>=1.3,<2.0
+# Optional real Block 3 zero-shot CLIP runtime:
+# open_clip_torch>=2.20,<3.0
+# Fine-tuned category artifact runtime:
+# transformers>=4.41,<5.0
+# torch>=2.2,<3.0
+# Optional real Block 4 AI-generated detector:
+# torch>=2.2,<3.0
+# transformers>=4.41,<5.0
+# accelerate>=0.30,<2.0
+# Optional authenticated Google web-image lookup:
+# google-cloud-vision>=3.7,<4.0
+# SerpApi uses Python's standard library HTTP client; no API key belongs here.
+python-multipart>=0.0.9,<1.0
