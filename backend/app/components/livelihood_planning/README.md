@@ -11,9 +11,13 @@ SWOT and viability summary, and saves beneficiary assessments as drafts.
 | POST | `/api/livelihood/recommend` | Return Model 1 top-three recommendations |
 | POST | `/api/livelihood/swot` | Return recommendations, SWOT, viability, confidence, and notes |
 | POST | `/api/livelihood/plan` | Return the current placeholder plan |
-| GET | `/api/livelihood/beneficiaries` | List beneficiary summaries |
+| GET | `/api/livelihood/beneficiaries` | List beneficiary profiles for assessment |
 | POST | `/api/livelihood/assess/{beneficiary_id}` | Build and save a draft assessment |
 | GET | `/api/livelihood/assessments/{beneficiary_id}` | List saved assessments, newest first |
+
+The beneficiaries response includes `id`, `full_name`, `district`, `age`,
+`gender`, `female_headed`, `disability`, `aswesuma_category`, and `is_demo`.
+Nullable database values are returned as `null`.
 
 ## Data flow
 

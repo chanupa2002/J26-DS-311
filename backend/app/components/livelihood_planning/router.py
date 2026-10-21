@@ -26,7 +26,10 @@ BENEFICIARY_FEATURE_FIELDS = (
     "disability",
     "aswesuma_category",
 )
-BENEFICIARY_SUMMARY_COLUMNS = "id,full_name,district,age,gender"
+BENEFICIARY_SUMMARY_COLUMNS = (
+    "id,full_name,district,age,gender,female_headed,disability,"
+    "aswesuma_category,is_demo"
+)
 BENEFICIARY_ASSESSMENT_COLUMNS = (
     "id,full_name,district,ds_division,age,gender,female_headed,"
     "disability,aswesuma_category,is_demo"

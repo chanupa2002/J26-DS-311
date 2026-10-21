@@ -87,6 +87,10 @@ class BeneficiarySummary(BaseModel):
     district: str | None = None
     age: int | None = None
     gender: str | None = None
+    female_headed: bool | None = None
+    disability: bool | None = None
+    aswesuma_category: str | None = None
+    is_demo: bool | None = None
 
 
 class AssessmentResponse(BaseModel):
