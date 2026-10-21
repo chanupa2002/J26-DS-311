@@ -8,6 +8,8 @@ pydantic-settings==2.15.0
 supabase==2.32.0
 httpx==0.28.1
 pytest==9.1.1
+google-genai
+python-dotenv
 
 # === beneficiary_selection (@wichitawolf) ===
 
@@ -21,3 +23,4 @@ scipy==1.14.1
 # === evidence_trust (@Punsandali) ===
 
 # === market_risk (@Chamosithmini) ===
+shap==0.54.1

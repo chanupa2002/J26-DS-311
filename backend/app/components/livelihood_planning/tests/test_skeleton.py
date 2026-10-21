@@ -15,6 +15,7 @@ from app.components.livelihood_planning.model_1_recommend.predict import (
 from app.components.livelihood_planning.model_2_swot.factors import (
     get_livelihood_factors,
 )
+from app.components.livelihood_planning.model_2_swot import swot as swot_module
 from app.components.livelihood_planning.model_2_swot.scoring import score_factors
 from app.components.livelihood_planning.model_2_swot.swot import build_swot
 from app.components.livelihood_planning.model_3_plan.checker import check_plan
@@ -33,8 +34,10 @@ NEW_MODULES = (
     "app.components.livelihood_planning.model_1_recommend.predict",
     "app.components.livelihood_planning.model_2_swot",
     "app.components.livelihood_planning.model_2_swot.factors",
+    "app.components.livelihood_planning.model_2_swot.grounding",
     "app.components.livelihood_planning.model_2_swot.scoring",
     "app.components.livelihood_planning.model_2_swot.swot",
+    "app.components.livelihood_planning.model_2_swot.writer",
     "app.components.livelihood_planning.model_3_plan",
     "app.components.livelihood_planning.model_3_plan.retrieval",
     "app.components.livelihood_planning.model_3_plan.writer",
@@ -72,8 +75,23 @@ def test_model_recommendations_have_the_expected_shape():
     )
 
 
-def test_swot_placeholders_have_the_expected_shape():
-    factors = get_livelihood_factors("TRADE")
+def test_swot_modules_have_the_expected_shape(monkeypatch):
+    factors = [
+        {
+            "category": category,
+            "text": f"Evidence for {category}.",
+            "source": "Test source",
+            "district": None,
+            "is_estimated": False,
+        }
+        for category in ("strengths", "weaknesses", "opportunities", "threats")
+    ]
+    monkeypatch.setattr(
+        swot_module,
+        "get_livelihood_factors",
+        lambda livelihood, district=None: factors,
+    )
+    monkeypatch.setattr(swot_module, "rewrite_factors", lambda selected: selected)
     scored_factors = score_factors(factors, {})
     result = build_swot("TRADE", {})
 
@@ -86,13 +104,18 @@ def test_swot_placeholders_have_the_expected_shape():
         "threats",
     }
     assert all(
-        set(item) == {"text", "source"}
+        set(item) == {"text", "source", "evidence", "strength"}
         for items in result.values()
         for item in items
     )
 
 
-def test_plan_placeholders_have_the_expected_shape():
+def test_plan_placeholders_have_the_expected_shape(monkeypatch):
+    monkeypatch.setattr(
+        swot_module,
+        "get_livelihood_factors",
+        lambda livelihood, district=None: [],
+    )
     swot = build_swot("TRADE", {})
     financials = build_financials("TRADE", {})
     context = retrieve_chunks("trade plan")
@@ -105,7 +128,17 @@ def test_plan_placeholders_have_the_expected_shape():
     assert result == {"ok": True, "issues": []}
 
 
-def test_public_service_returns_the_full_placeholder_chain():
+def test_public_service_returns_the_full_placeholder_chain(monkeypatch):
+    monkeypatch.setattr(
+        services,
+        "build_swot",
+        lambda livelihood, features: {
+            "strengths": [],
+            "weaknesses": [],
+            "opportunities": [],
+            "threats": [],
+        },
+    )
     result = services.recommend_livelihood({})
 
     assert {
