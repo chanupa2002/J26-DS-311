@@ -1,4 +1,4 @@
-import { ChevronDown, Languages, LogOut, Moon, Sun } from "lucide-react"
+import { ChevronDown, LogOut, Moon, Sun } from "lucide-react"
 import { useMatches, useNavigate } from "react-router-dom"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -43,23 +43,6 @@ export function Topbar() {
       >
         {theme === "dark" ? <Sun /> : <Moon />}
       </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="hidden sm:flex">
-            <Languages />
-            English
-            <ChevronDown className="opacity-60" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Language</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>English</DropdownMenuItem>
-          <DropdownMenuItem disabled>Sinhala</DropdownMenuItem>
-          <DropdownMenuItem disabled>Tamil</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

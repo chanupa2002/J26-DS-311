@@ -44,7 +44,7 @@ src/
   components/layout/   Sidebar, top bar, and page header
   components/explain/  Confidence and evidence display helpers
   features/            One owned folder per backend component
-  i18n/                English, Sinhala, and Tamil resources
+  i18n/                English resources
   lib/                 API, auth, environment, and utility helpers
 ```
 
