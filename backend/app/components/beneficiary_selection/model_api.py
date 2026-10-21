@@ -1,6 +1,7 @@
 """Local-only API for saved Component 1 scores and BN what-if scoring."""
 from __future__ import annotations
 import hashlib, json, os, sys
+import csv, io, time, uuid
 from pathlib import Path
 from typing import Any
 import numpy as np
@@ -12,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.routing import APIRoute
 from starlette.routing import Mount
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -25,6 +26,11 @@ LABEL = "Research output - not an eligibility determination"
 MODEL_VERSION = "bn_v0.1.0"
 SPEC_VERSION = "component1-v0.2-interim"
 LEAVES = ("shelter_quality","sanitation","crowding_tenure","food","demographic","health","economic","financial_resilience")
+MAX_CSV_BYTES = 2_000_000
+MAX_BATCH_ROWS = 1_000
+BATCH_TTL_SECONDS = 30 * 60
+BATCH_LIMIT = 5
+CSV_COLUMNS = tuple(c for leaf in LEAVES for c in (f"{leaf}_degree", f"{leaf}_coverage_fraction"))
 sys.path.insert(0,str(PROJECT/"bn_engine")); sys.path.insert(0,str(PROJECT/"fuzzy_engine"))
 import bn_v0_1
 from fuzzy_v0_1 import soft_levels
@@ -93,7 +99,6 @@ class Data:
         self.frame["sensitivity_expected_min"]=np.nanmin(vm,axis=0); self.frame["sensitivity_expected_max"]=np.nanmax(vm,axis=0)
         self.frame["sensitivity_rank_min"]=np.nanmin(rm,axis=0); self.frame["sensitivity_rank_max"]=np.nanmax(rm,axis=0)
         self.sorted_expected=np.sort(self.frame.bn_expected_vulnerability.to_numpy(float))
-        self.sorted_expected=np.sort(self.frame.bn_expected_vulnerability.to_numpy(float))
         self.comparison=pd.read_csv(self.directory/"sensitivity_comparison.csv").replace({np.nan:None}).to_dict("records")
         self.province=self.aggregate("by_province.csv"); self.district=self.aggregate("by_district.csv")
         self.fuzzy_check="unavailable"; self.fuzzy_rows=None
@@ -130,6 +135,7 @@ class Data:
 
 def create_app(data: Data|None=None,force_synthetic=False):
     d=data or Data(force_synthetic)
+    batches = {}
     app=FastAPI(title="Component 1 local scored-model API",version="0.1.0")
     app.state.data=d
     def env(**kwargs): return {"research_label":LABEL,"model_version":MODEL_VERSION,"spec_version":SPEC_VERSION,"data_manifest_sha256":d.manifest_hash,"data_mode":d.mode,**kwargs}
@@ -147,6 +153,10 @@ def create_app(data: Data|None=None,force_synthetic=False):
     def page(): return FileResponse(FRONTEND/"index.html")
     @app.get("/openapi.yaml",include_in_schema=False)
     def contract(): return Response((API_DIR/"openapi.yaml").read_text(encoding="utf-8"),media_type="application/yaml")
+    @app.get("/whatif/template.csv",include_in_schema=False)
+    def csv_template():
+        header=",".join(CSV_COLUMNS)+"\n"
+        return Response(header,media_type="text/csv",headers={"Content-Disposition":"attachment; filename=component1_whatif_template.csv"})
     @app.get("/households")
     def households(province:str|None=None,district:str|None=None,min_percentile:float|None=Query(None,ge=0,le=100),max_percentile:float|None=Query(None,ge=0,le=100),offset:int=Query(0,ge=0),limit:int=Query(50,ge=1,le=100)):
         if min_percentile is not None and max_percentile is not None and min_percentile>max_percentile: raise HTTPException(422,"min_percentile must be <= max_percentile")
@@ -169,12 +179,11 @@ def create_app(data: Data|None=None,force_synthetic=False):
             hi=lo+10; n=int(((f.percentile_rank>lo)&(f.percentile_rank<=hi)).sum())
             bands.append({"percentile_band":f"({lo}, {hi}]","households_n":n} if n>=10 else {"percentile_band":f"({lo}, {hi}]","suppressed":True})
         return env(household_count=len(f),score_summary={"expected_vulnerability_quantiles":{str(k):float(v) for k,v in q.items()},"mean_bn_p_high":float(f.bn_p_high.mean()),"mean_uncertainty_entropy":float(f.bn_uncertainty_entropy.mean())},percentile_bands=bands,geography={"by_province":d.province,"by_district":d.district})
-    @app.post("/whatif")
-    def whatif(body:WhatIf):
-        if set(body.leaves)!=set(LEAVES): raise HTTPException(422,"leaves must contain exactly the eight baseline domains")
+    def input_record(leaves):
+        if set(leaves)!=set(LEAVES): raise HTTPException(422,"leaves must contain exactly the eight baseline domains")
         rec={}
         for leaf in LEAVES:
-            item=body.leaves[leaf]; c=float(item.coverage_fraction)
+            item=leaves[leaf]; c=float(item.coverage_fraction)
             if not 0<=c<=1: raise HTTPException(422,f"{leaf} coverage_fraction must be in [0,1]")
             val=item.degree
             if isinstance(val,str) and val.lower()=="unobserved":
@@ -187,13 +196,93 @@ def create_app(data: Data|None=None,force_synthetic=False):
                 m=soft_levels(pd.Series([val])).iloc[0]
                 for s in ("low","medium","high"): rec[f"soft_{leaf}_{s}"]=float(m[s])
             rec[f"dom_{leaf}_n_used"]=c; rec[f"dom_{leaf}_n_total"]=1.0
-        scored=bn_v0_1.score(pd.DataFrame([rec]),bn_v0_1.config_v02_interim()).iloc[0]
-        nodes={node:{s:float(scored[f"bn_{node}_{s}"]) for s in ("low","medium","high")} for node in ("living_conditions","sensitivity","adaptive_capacity","vulnerability")}
-        expected=float(scored.bn_expected_vulnerability); pos=int(np.searchsorted(d.sorted_expected,expected,side="left"))
+        return rec
+    def score_records(entries):
+        frame=pd.DataFrame([input_record(x["leaves"]) for x in entries])
+        scored_frame=bn_v0_1.score(frame,bn_v0_1.config_v02_interim())
+        output=[]
+        for index,(_,scored) in enumerate(scored_frame.iterrows()):
+            nodes={node:{s:float(scored[f"bn_{node}_{s}"]) for s in ("low","medium","high")} for node in ("living_conditions","sensitivity","adaptive_capacity","vulnerability")}
+            expected=float(scored.bn_expected_vulnerability); pos=int(np.searchsorted(d.sorted_expected,expected,side="left"))
+            result={"candidate_row_id":entries[index]["candidate_row_id"],"domain_inputs":entries[index]["domain_inputs"],"node_posteriors":nodes,
+              "expected_vulnerability":expected,"uncertainty_entropy":float(scored.bn_uncertainty_entropy),"bn_p_high":float(scored.bn_p_high),
+              "comparison_percentile":float(np.searchsorted(d.sorted_expected,expected,side="right")/len(d.sorted_expected)*100),
+              "candidate_rank_among_baseline_plus_candidate":len(d.sorted_expected)-pos+1,"baseline_household_count":len(d.sorted_expected)}
+            output.append(result)
+        return output,scored_frame
+    def clear_expired_batches():
+        now=time.monotonic()
+        for batch_id in list(batches):
+            if now-batches[batch_id]["created"]>BATCH_TTL_SECONDS: batches.pop(batch_id,None)
+    def parse_csv(raw):
+        if len(raw)>MAX_CSV_BYTES: raise HTTPException(413,f"CSV exceeds the {MAX_CSV_BYTES} byte limit")
+        try: text=raw.decode("utf-8-sig")
+        except UnicodeDecodeError: raise HTTPException(400,"CSV must use UTF-8 encoding")
+        reader=csv.DictReader(io.StringIO(text,newline=""))
+        headers=reader.fieldnames or []
+        if len(headers)!=len(set(headers)): raise HTTPException(422,"CSV has duplicate column names")
+        if set(headers)!=set(CSV_COLUMNS):
+            raise HTTPException(422,{"message":"CSV columns must exactly match the downloadable template","missing_columns":sorted(set(CSV_COLUMNS)-set(headers)),"unexpected_columns":sorted(set(headers)-set(CSV_COLUMNS))})
+        accepted=[]; errors=[]; count=0
+        for row_number,row in enumerate(reader,start=2):
+            count+=1
+            if count>MAX_BATCH_ROWS: raise HTTPException(413,f"CSV exceeds the {MAX_BATCH_ROWS} row limit")
+            if row.get(None):
+                errors.append({"row":row_number,"errors":["row has more values than the template columns"]})
+                continue
+            leaves={}; row_errors=[]
+            for leaf in LEAVES:
+                raw_degree=(row.get(f"{leaf}_degree") or "").strip()
+                raw_coverage=(row.get(f"{leaf}_coverage_fraction") or "").strip()
+                if not raw_degree or raw_degree.lower()=="unobserved":
+                    degree="unobserved"; coverage=0.0
+                else:
+                    try: degree=float(raw_degree)
+                    except ValueError: row_errors.append(f"{leaf}_degree must be a number or unobserved"); continue
+                    if not np.isfinite(degree) or not 0<=degree<=1: row_errors.append(f"{leaf}_degree must be within 0..1"); continue
+                    try: coverage=float(raw_coverage)
+                    except ValueError: row_errors.append(f"{leaf}_coverage_fraction is required for an observed degree"); continue
+                    if not np.isfinite(coverage) or not 0<=coverage<=1: row_errors.append(f"{leaf}_coverage_fraction must be within 0..1"); continue
+                leaves[leaf]=Leaf(degree=degree,coverage_fraction=coverage)
+            if row_errors: errors.append({"row":row_number,"errors":row_errors})
+            else:
+                values={leaf:{"degree":leaves[leaf].degree,"coverage_fraction":float(leaves[leaf].coverage_fraction)} for leaf in LEAVES}
+                accepted.append({"candidate_row_id":row_number,"leaves":leaves,"domain_inputs":values})
+        return accepted,errors,count
+    async def read_csv_limited(request):
+        chunks=[]; size=0
+        async for chunk in request.stream():
+            size+=len(chunk)
+            if size>MAX_CSV_BYTES: raise HTTPException(413,f"CSV exceeds the {MAX_CSV_BYTES} byte limit")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    @app.post("/whatif")
+    async def whatif(request:Request):
+        content_type=request.headers.get("content-type","").split(";",1)[0].strip().lower()
+        if content_type in ("text/csv","application/csv"):
+            accepted,errors,submitted=parse_csv(await read_csv_limited(request))
+            if not accepted: raise HTTPException(422,{"message":"No valid candidate rows to score","submitted_rows":submitted,"rejected_rows":len(errors),"errors":errors[:100]})
+            results,_=score_records(accepted)
+            clear_expired_batches()
+            while len(batches)>=BATCH_LIMIT:
+                oldest=min(batches,key=lambda key:batches[key]["created"]); batches.pop(oldest,None)
+            batch_id=uuid.uuid4().hex
+            batches[batch_id]={"created":time.monotonic(),"results":results}
+            return env(batch_id=batch_id,submitted_rows=submitted,scored_rows=len(results),rejected_rows=len(errors),errors=errors[:100],
+                       results_url=f"/whatif/batches/{batch_id}?offset=0&limit=50",page_limit=100,expires_in_seconds=BATCH_TTL_SECONDS)
+        if content_type!="application/json": raise HTTPException(415,"Send application/json for one candidate or text/csv for a batch")
+        try: body=WhatIf.model_validate(await request.json())
+        except (ValidationError,ValueError) as exc: raise HTTPException(422,"Invalid what-if JSON") from exc
+        entry={"candidate_row_id":1,"leaves":body.leaves,"domain_inputs":{leaf:{"degree":body.leaves[leaf].degree,"coverage_fraction":float(body.leaves[leaf].coverage_fraction)} for leaf in body.leaves}}
+        results,scored_frame=score_records([entry]); result=results[0]
         cpt=bn_v0_1.cpt_table("vulnerability",bn_v0_1.config_v02_interim()).to_dict("records")
-        return env(node_posteriors=nodes,expected_vulnerability=expected,uncertainty_entropy=float(scored.bn_uncertainty_entropy),bn_p_high=float(scored.bn_p_high),
-          vulnerability_conditional_table=cpt,comparison_percentile=float(np.searchsorted(d.sorted_expected,expected,side="right")/len(d.sorted_expected)*100),
-          candidate_rank_among_baseline_plus_candidate=len(d.sorted_expected)-pos+1,baseline_household_count=len(d.sorted_expected))
+        return env(**{k:v for k,v in result.items() if k!="candidate_row_id"},vulnerability_conditional_table=cpt)
+    @app.get("/whatif/batches/{batch_id}")
+    def batch_results(batch_id:str,offset:int=Query(0,ge=0),limit:int=Query(50,ge=1,le=100)):
+        clear_expired_batches(); batch=batches.get(batch_id)
+        if batch is None: raise HTTPException(404,"Batch not found or expired")
+        results=batch["results"]
+        return env(batch_id=batch_id,total=len(results),offset=offset,limit=limit,items=results[offset:offset+limit],expires_in_seconds=max(0,int(BATCH_TTL_SECONDS-(time.monotonic()-batch["created"]))))
     @app.get("/sensitivity")
     def sensitivity(): return env(scenarios=d.comparison)
     @app.get("/spec")

@@ -1,5 +1,7 @@
 from __future__ import annotations
 import unittest
+import csv
+import io
 import numpy as np
 import pandas as pd
 from fastapi.testclient import TestClient
@@ -60,5 +62,22 @@ class ApiContractTests(unittest.TestCase):
         unknown={x:{"degree":"unobserved","coverage_fraction":0} for x in api.LEAVES}
         result=self.client.post("/whatif",json={"leaves":unknown}).json()
         self.assertAlmostEqual(result["node_posteriors"]["vulnerability"]["low"],result["node_posteriors"]["vulnerability"]["high"],places=12)
+    def test_csv_bulk_upload_is_validated_paginated_and_kept_out_of_response_body(self):
+        self.assertEqual(self.client.get("/whatif/template.csv").status_code,200)
+        stream=io.StringIO(); writer=csv.writer(stream); writer.writerow(api.CSV_COLUMNS)
+        valid=[]; invalid=[]
+        for leaf in api.LEAVES:
+            valid.extend(["" if leaf=="health" else "0.6", "" if leaf=="health" else "1.0"])
+            invalid.extend(["1.5" if leaf=="shelter_quality" else "0.4", "1.0"])
+        writer.writerow(valid); writer.writerow(invalid)
+        upload=self.client.post("/whatif",content=stream.getvalue(),headers={"Content-Type":"text/csv"})
+        self.assertEqual(upload.status_code,200,upload.text)
+        receipt=upload.json(); self.assertEqual(receipt["submitted_rows"],2); self.assertEqual(receipt["scored_rows"],1); self.assertEqual(receipt["rejected_rows"],1)
+        self.assertNotIn("items",receipt); self.assertNotIn("hhcode",str(receipt).lower())
+        page=self.client.get(receipt["results_url"])
+        self.assertEqual(page.status_code,200,page.text); result=page.json()
+        self.assertEqual(result["total"],1); self.assertEqual(result["items"][0]["candidate_row_id"],2)
+        self.assertEqual(result["items"][0]["domain_inputs"]["health"]["degree"],"unobserved")
+        self.assertNotIn("hhcode",str(result).lower())
 
 if __name__=="__main__": unittest.main()

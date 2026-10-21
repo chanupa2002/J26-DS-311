@@ -36,7 +36,18 @@ paths:
                 leaves:
                   type: object
                   description: Exactly the eight baseline leaves; each has degree 0..1 or unobserved and coverage_fraction 0..1.
-      responses: {'200': {description: BN posteriors, uncertainty, conditional table, and temporary candidate rank}}
+          text/csv:
+            schema: {type: string, format: binary, description: CSV using the template columns; maximum 2 MB and 1000 rows.}
+      responses: {'200': {description: Single-candidate BN result or a bulk batch receipt with pagination URL}}
+  /whatif/template.csv:
+    get: {responses: {'200': {description: Download a blank CSV template}}}
+  /whatif/batches/{batch_id}:
+    get:
+      parameters:
+        - {name: batch_id, in: path, required: true, schema: {type: string}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+      responses: {'200': {description: Paginated results for an in-memory what-if batch}}
   /sensitivity: {get: {responses: {'200': {description: Saved Stage 5 comparison table}}}}
   /spec: {get: {responses: {'200': {description: Decision log and decision status/open conditions}}}}
   /model-info: {get: {responses: {'200': {description: Model versions and loaded data mode}}}}

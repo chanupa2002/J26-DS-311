@@ -78,7 +78,34 @@ use "unobserved" and a coverage_fraction of 0. Coverage fractions are from 0
 to 1. The result includes the candidate's temporary rank and percentile beside
 the saved baseline distribution. It does not update saved household rankings.
 
-10. Synthetic mode for demonstrations
+10. Download the CSV template for bulk what-if scoring
+-------------------------------------------------------
+Invoke-WebRequest -Uri 'http://127.0.0.1:8000/whatif/template.csv' -OutFile '.\component1_whatif_template.csv'
+
+The template has 16 columns: one degree and one coverage fraction for each of
+the eight baseline leaves. For an unknown degree, leave the degree cell blank
+or enter "unobserved". Blank degree cells remain unknown; they are never set
+to zero. For observed degrees, supply a coverage fraction from 0 to 1.
+
+11. Upload and score a CSV batch
+-------------------------------
+curl.exe -X POST 'http://127.0.0.1:8000/whatif' -H 'Content-Type: text/csv' --data-binary '@candidates.csv'
+
+The upload response contains batch_id, scored_rows, rejected_rows, row-level
+validation errors, and results_url. The server processes the file in memory;
+it does not save uploaded files or candidate results to the database or disk.
+Files are limited to 2 MB and 1000 rows. At most five batches are kept, and
+each expires after 30 minutes.
+
+12. Page through bulk results (maximum 100 rows per request)
+-----------------------------------------------------------
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/whatif/batches/BATCH_ID?offset=0&limit=50'
+
+Replace BATCH_ID with the value returned by the upload call. Increase offset
+by the page size to fetch a later page. Bulk responses do not include household
+codes and are not returned all at once.
+
+13. Synthetic mode for demonstrations
 -------------------------------------
 Set the process environment variable COMPONENT1_API_SYNTHETIC=1 before starting
 the backend to force generated fake records. Responses then report data_mode as

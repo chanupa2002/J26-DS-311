@@ -23,7 +23,7 @@ from app.core.config import settings
 app = FastAPI(title="SWSS Backend", version="0.1.0")
 component1_api_paths = {
     "/", "/health", "/households", "/summary", "/whatif", "/sensitivity",
-    "/spec", "/model-info", "/openapi.yaml",
+    "/spec", "/model-info", "/openapi.yaml", "/whatif/template.csv",
 }
 
 
@@ -42,7 +42,7 @@ def component1_metadata():
 async def component1_response_metadata(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in component1_api_paths or path.startswith("/households/") or path.startswith("/assets/"):
+    if path in component1_api_paths or path.startswith("/households/") or path.startswith("/whatif/batches/") or path.startswith("/assets/"):
         for key, value in component1_metadata().items():
             header = "X-" + "-".join(part.title() for part in key.split("_"))
             response.headers[header] = str(value)
@@ -51,14 +51,14 @@ async def component1_response_metadata(request: Request, call_next):
 
 @app.exception_handler(StarletteHTTPException)
 async def component1_http_error(request: Request, exc: StarletteHTTPException):
-    if request.url.path in component1_api_paths or request.url.path.startswith("/households/"):
+    if request.url.path in component1_api_paths or request.url.path.startswith("/households/") or request.url.path.startswith("/whatif/batches/"):
         return JSONResponse(status_code=exc.status_code, content={**component1_metadata(), "error": exc.detail})
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.exception_handler(RequestValidationError)
 async def component1_validation_error(request: Request, exc: RequestValidationError):
-    if request.url.path in component1_api_paths or request.url.path.startswith("/households/"):
+    if request.url.path in component1_api_paths or request.url.path.startswith("/households/") or request.url.path.startswith("/whatif/batches/"):
         return JSONResponse(status_code=422, content=jsonable_encoder({**component1_metadata(), "error": "Invalid request", "details": exc.errors()}))
     return JSONResponse(status_code=422, content=jsonable_encoder({"detail": exc.errors()}))
 
