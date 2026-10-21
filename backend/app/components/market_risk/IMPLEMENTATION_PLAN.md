@@ -218,8 +218,8 @@ None of these is needed for the endpoints to work (router registration is automa
 
 | # | File | Exact change | Why |
 |---|---|---|---|
-| 1 | `docs/CONTRACTS.md`, §2 | Replace the row `\| market_risk \| predict_market_risk \| TBD \| TBD \| Not started \|` with the two rows in `backend/app/components/market_risk/CONTRACTS_UPDATE.md` (`predict_market_risk` and `get_model_info`) | Public functions must be listed there. Leader-only (CONTRACTS §4) |
-| 2 | `J26-DS-311.postman_collection.json`, `"market_risk"` folder (empty) | Add `risk_health` GET `http://127.0.0.1:8000/api/risk/health`; `risk_predict` POST `http://127.0.0.1:8000/api/risk/predict` (raw JSON body = `sample_data/predict_request_example.json`); `risk_model_info` GET `http://127.0.0.1:8000/api/risk/model-info` (optional `?horizon=3M`) | Team testing. Repo-root shared file |
+| 1 | `docs/CONTRACTS.md`, §2 | Replace the row `\| market_risk \| predict_market_risk \| TBD \| TBD \| Not started \|` with the three rows in `backend/app/components/market_risk/CONTRACTS_UPDATE.md` (`predict_market_risk`, `get_model_info`, `identify_current_risk`) | Public functions must be listed there. Leader-only (CONTRACTS §4) |
+| 2 | `J26-DS-311.postman_collection.json`, `"market_risk"` folder (empty) | Add `risk_health` GET `http://127.0.0.1:8000/api/risk/health`; `risk_predict` POST `http://127.0.0.1:8000/api/risk/predict` (raw JSON body = `sample_data/predict_request_example.json`); `risk_model_info` GET `http://127.0.0.1:8000/api/risk/model-info` (optional `?horizon=3M`); `risk_identify` POST `http://127.0.0.1:8000/api/risk/identify` (raw JSON body with the four signals, see README) | Team testing. Repo-root shared file |
 | 3 | `docs/DATA_AND_MODELS_RULES.md`, §4 | Tick `[ ] Confirmed on ____ by ____` once the supervisor agrees | NDA check for committed models: **pending supervisor sign-off** |
 | 4 | `backend/requirements.txt`, `# === market_risk (@Chamosithmini) ===` (optional) | At most a comment line `# uses scikit-learn, numpy, pandas, joblib pinned in livelihood_planning section`; **no package lines** | Records the dependency without duplicating anyone's pins (REQUIREMENTS_RULES 3). Can be skipped |
 | — | Not needed: git history of the notebook | The owner confirmed the old outputs had no real row-level data. They were cleared in place, and history is not rewritten | — |
@@ -238,7 +238,9 @@ Owner decision (inside my folder, not done): the notebook source still has Colab
 | 4 | `schemas.py` | ✅ Done |
 | 5 | `services.py` (+ `CONTRACTS_UPDATE.md`) | ✅ Done |
 | 6 | `router.py` | ✅ Done |
-| 7 | Tests (`conftest.py`, `test_loader.py`, `test_services.py`, `test_endpoints.py`) | ✅ Done: 38 passed |
+| 7 | Tests (`conftest.py`, `test_loader.py`, `test_services.py`, `test_endpoints.py`) | ✅ Done: 38 passed at the time |
 | 8 | Review; `model_info.json`; `DATA_DESCRIPTION.md`; `README.md`; this plan | ✅ Done |
+| 9A | Current-risk identification (rule-based, SUSTAIN-HH-Risk-Rule v1.0 variant A): `IdentifyRequest` / `IdentifyResponse` in `schemas.py`, public `identify_current_risk` in `services.py`, row added to `CONTRACTS_UPDATE.md`. Follows the notebook code: blank business status + 2 or more signals → High. Checked against the notebook's `risk_rule` on all 81 input combinations (0 mismatches) | ✅ Done |
+| 9B | `POST /api/risk/identify` in `router.py`; `tests/test_identify.py` (all verify-table cases via service and endpoint, 422 cases, true/false and 1.0/0.0 accepted as 1/0); README updated | ✅ Done: market_risk 81 passed |
 | — | NDA supervisor sign-off (Q7) | ⏳ **Pending supervisor sign-off** |
 | — | Leader-approved shared changes (§6) | ⏳ Waiting for the leader |

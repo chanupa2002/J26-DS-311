@@ -1,6 +1,6 @@
 # market_risk: 3-month and 6-month household market-risk prediction
 
-Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `get_model_info`
+Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `get_model_info`, `identify_current_risk`
 
 > **Status: NOT_READY.** Both models were trained and tested on **synthetic data only**.
 > Every prediction includes `model_status` and `deployment_reason`, and they must be shown to users.
@@ -15,7 +15,9 @@ For one SUSTAIN household at monitoring month *t*, the component predicts the ho
 - **Models:** scikit-learn Pipeline + RandomForest.
 - **Target rule:** SUSTAIN-HH-Risk-Rule v1.0 (provisional).
 
-The input is the engineered features, not raw survey answers, because many features need the household's earlier visits. They are built as in `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb`, section 13 (`build_features`).
+It also **identifies the household's current risk class** (Low / Medium / High / Unassigned) from four current-visit answers. This uses the rule-based SUSTAIN-HH-Risk-Rule v1.0, with no ML model.
+
+The prediction input is the engineered features, not raw survey answers, because many features need the household's earlier visits. They are built as in `notebooks/SUSTAIN_3M_6M_Risk_Prediction.ipynb`, section 13 (`build_features`).
 
 ## Folder layout
 
@@ -23,13 +25,13 @@ The input is the engineered features, not raw survey answers, because many featu
 |---|---|
 | `router.py` | FastAPI endpoints (`/api/risk/...`) |
 | `schemas.py` | Pydantic request/response models (53 explicit feature fields) |
-| `services.py` | Public functions `predict_market_risk`, `get_model_info` |
+| `services.py` | Public functions `predict_market_risk`, `get_model_info`, `identify_current_risk` |
 | `ml/loader.py` | Cached loading of models and metadata, plus the scikit-learn version check |
 | `ml/sustain_predict.py` | Colab export; the API reuses its `validate_input` |
 | `ml/models/3M/`, `ml/models/6M/` | `model.joblib`, `metadata.json`, `feature_schema.json` |
 | `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `ml/Methodology_Results_Summary.md` | Model card, data description (no real values), methodology |
 | `sample_data/predict_request_example.json` | One synthetic example request |
-| `tests/` | Loader, service and endpoint tests (inputs built inline from `metadata.json`) |
+| `tests/` | Loader, service, endpoint and identification tests (inputs built inline) |
 
 ## Endpoints
 
@@ -98,6 +100,48 @@ The complete body is in `sample_data/predict_request_example.json`. Shortened:
 | Missing key, extra or misspelled key, non-numeric or infinite value, bad `horizon` | **422** |
 | Model files missing, or scikit-learn ≠ 1.6.1 | **503**, with a short message. Details go only to the server log |
 
+### `POST /api/risk/identify`
+
+This identifies the **current** risk class with SUSTAIN-HH-Risk-Rule v1.0 (notebook section 12, variant A). It is **rule-based, not ML**, and the rule is **provisional** (not yet validated by experts).
+
+**Request.** All four keys are required. Each is `0`, `1` or `null` (not answered); `true`/`false` and `1.0`/`0.0` are also accepted as 1/0. Extra keys, missing keys and other values → **422**.
+
+```json
+{
+  "business_not_running": 0,
+  "no_profit_last_month": 1,
+  "not_progressing_well": 1,
+  "market_stress_any": null
+}
+```
+
+**Response 200**
+
+```json
+{
+  "risk_class": "High",
+  "risk_ord": 2,
+  "signal_count": 2,
+  "unknown_count": 1,
+  "reasons": [
+    "No profit last month",
+    "Not progressing well",
+    "Not answered: market stress",
+    "2 or more risk signals -> High"
+  ],
+  "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
+}
+```
+
+| Class | Rule |
+|---|---|
+| High | Business not running, **or** at least 2 of {no profit last month, not progressing well, market stress} |
+| Medium | Business running and exactly one signal |
+| Low | Business running and all three signals answered 0 |
+| Unassigned | The class would differ between blanks = 0 and blanks = 1, **or** business status is blank (unless the signals alone already give High, as in the notebook) |
+
+Signals are counted, never cancelled. `risk_ord`, `signal_count` and `unknown_count` can be used directly as `F_Risk_Ord_t`, `F_Risk_Signal_Count_t` and `F_Risk_Unknown_t` in `/api/risk/predict`. Unassigned gives `risk_ord: null`, which the model median-imputes.
+
 ### `GET /api/risk/model-info[?horizon=3M|6M]`
 This returns, for each model: name, horizon, algorithm, classes, `model_status`, `deployment_reason`, data basis, target rule, validation method, test metrics, persistence baseline, training period and created date. It also returns the **53 input features** (name, type, description) and the allowed `categorical_levels` for `F_Category` and `F_District`. It reads metadata only, without loading the models.
 
@@ -140,10 +184,20 @@ The tests build their inputs from `metadata.json` and never read CSV files or `s
 ## Calling from another component
 
 ```python
-from app.components.market_risk.services import predict_market_risk, get_model_info
+from app.components.market_risk.services import (
+    get_model_info,
+    identify_current_risk,
+    predict_market_risk,
+)
 
 result = predict_market_risk({"horizon": "6M", "features": features_dict})  # 53 keys
 result.predictions[0].predicted_risk, result.predictions[0].model_status
+
+current = identify_current_risk({
+    "business_not_running": 0, "no_profit_last_month": 1,
+    "not_progressing_well": 0, "market_stress_any": None,
+})
+current.risk_class  # "Unassigned"
 ```
 
 Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).
@@ -155,7 +209,8 @@ Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).
 - **No persistent household ID in real data.** The 99 real rows (Jan–Mar 2026) cannot be linked across months, so no real 3- or 6-month outcome exists to train or test on.
 - **The 3M model is below the persistence baseline.** On its embargoed test month, its macro-F1 is 0.303 [95% CI 0.194–0.407], while "predict the current class" scores 0.356.
 - **The 6M result is optimistic.** Its macro-F1 is 0.430, against a baseline of 0.157, but its test split could not be embargoed.
-- **The target rule is provisional.** SUSTAIN-HH-Risk-Rule v1.0 has not been validated by experts, and the market-tier thresholds are only partly verified.
+- **The target rule is provisional.** SUSTAIN-HH-Risk-Rule v1.0 has not been validated by experts, and the market-tier thresholds are only partly verified. This affects both the predictions and `/identify`.
+- **`/identify` follows the notebook code where it differs from the written rule.** If the business status is blank but 2 or more signals are 1, the class is High. The written rule in `metadata.json` would say Unassigned.
 - **Coverage.** The models know only 4 districts and 7 categories. Transport & Logistics and Beauty & Wellness are unseen (they get a warning). Garment and Handicrafts are combined, and "Other" is mixed.
 - **Small samples.** The 3M model has 102 training and 39 test rows; the 6M model has 77 and 39.
 - **No per-prediction explanations yet.** Global feature importance is in `ml/Methodology_Results_Summary.md`.

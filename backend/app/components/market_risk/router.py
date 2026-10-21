@@ -7,6 +7,8 @@ from app.components.market_risk import services
 from app.components.market_risk.schemas import (
     HealthResponse,
     Horizon,
+    IdentifyRequest,
+    IdentifyResponse,
     ModelInfoResponse,
     PredictRequest,
     PredictResponse,
@@ -63,6 +65,29 @@ def predict(request: PredictRequest) -> PredictResponse:
         return services.predict_market_risk(request)
     except (FileNotFoundError, RuntimeError) as exc:
         raise _model_unavailable(exc) from None
+
+
+@router.post(
+    "/identify",
+    response_model=IdentifyResponse,
+    summary="Identify a household's current risk class (rule-based)",
+    description=(
+        "Applies SUSTAIN-HH-Risk-Rule v1.0 to the current visit. This is "
+        "**rule-based, not an ML model**, and the rule is **provisional (not yet "
+        "validated by experts)**.\n\n"
+        "Send all four signals, each `0`, `1` or `null` (not answered); extra "
+        "keys are rejected with 422. High = business not running, or 2+ of "
+        "{no profit last month, not progressing well, market stress}; Medium = "
+        "exactly one; Low = business running and all three answered 0; "
+        "Unassigned = blanks could change the class, or business status blank "
+        "(unless the signals alone already give High).\n\n"
+        "`risk_ord`, `signal_count` and `unknown_count` can be used as "
+        "`F_Risk_Ord_t`, `F_Risk_Signal_Count_t` and `F_Risk_Unknown_t` in "
+        "`/api/risk/predict`."
+    ),
+)
+def identify(request: IdentifyRequest) -> IdentifyResponse:
+    return services.identify_current_risk(request)
 
 
 @router.get(
