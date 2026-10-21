@@ -1,0 +1,10 @@
+step,rows
+Rows read,122078
+Excluded: Derived month-on-month rows,7772
+Excluded: Prior-year comparison rows,229
+Excluded: Reporting-count rows,3138
+Excluded: Incomplete last month,112
+Excluded: Outlier review flag,247
+Excluded: OCR or secondary source to verify,15
+Rows kept in monthly series table,110565
+Series with at least 12 months,5279
