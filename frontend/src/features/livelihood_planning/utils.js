@@ -1,3 +1,17 @@
+export const MODEL1_TRAINED_DISTRICTS = ["Badulla", "Monaragala"]
+
+export function isUntrainedDistrict(district) {
+  const normalizedDistrict = String(district ?? "")
+    .trim()
+    .toLowerCase()
+
+  if (!normalizedDistrict) return false
+
+  return !MODEL1_TRAINED_DISTRICTS.some(
+    (trainedDistrict) => trainedDistrict.toLowerCase() === normalizedDistrict,
+  )
+}
+
 export function titleCaseLivelihood(value) {
   return String(value || "")
     .toLocaleLowerCase("en")

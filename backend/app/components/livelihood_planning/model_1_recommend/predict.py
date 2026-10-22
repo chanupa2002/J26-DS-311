@@ -7,7 +7,7 @@ from app.components.livelihood_planning.model_1_recommend.loader import (
     load_model,
 )
 
-# Tune these two thresholds when the team recalibrates confidence on new data.
+# Tune these thresholds when the team recalibrates the close-score note.
 LOW_CONFIDENCE_TOP_SCORE = 0.30
 LOW_CONFIDENCE_GAP = 0.05
 MIN_REASON_CONTRIBUTION = 0.02
@@ -240,21 +240,24 @@ def recommend_with_context(features: dict, k: int = 3) -> dict:
         else 1.0
     )
     if top_score < LOW_CONFIDENCE_TOP_SCORE or top_gap < LOW_CONFIDENCE_GAP:
-        notes.append("Low confidence: the top suggestions are close together.")
+        notes.append("The top suggestions are close in score; review them carefully.")
 
     known_districts = _known_districts(preprocessor)
-    if isinstance(district, str) and district.casefold() not in {
+    district_is_trained = isinstance(district, str) and district.casefold() in {
         known.casefold() for known in known_districts
-    }:
-        known_district_list = ", ".join(known_districts)
+    }
+    if not district_is_trained:
+        district_name = (
+            district if isinstance(district, str) else "this district"
+        )
         notes.append(
-            "This district was not in the training data "
-            f"({known_district_list}); results are less reliable."
+            f"Low confidence for {district_name}. Results are general "
+            "suggestions; review carefully."
         )
 
     return {
         "recommendations": recommendations,
-        "confidence": "low" if notes else "normal",
+        "confidence": "normal" if district_is_trained else "low",
         "notes": notes,
     }
 

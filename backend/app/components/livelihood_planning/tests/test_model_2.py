@@ -200,6 +200,34 @@ def test_estimated_viability_makes_report_low_confidence(monkeypatch):
     assert any("estimated" in note.lower() for note in result["notes"])
 
 
+def test_low_stored_viability_confidence_only_adds_note(monkeypatch):
+    monkeypatch.setattr(
+        swot,
+        "get_viability",
+        lambda livelihood, district: {
+            "score": 70.0,
+            "low": 65.0,
+            "high": 75.0,
+            "profitability": 60.0,
+            "market": 65.0,
+            "area": 80.0,
+            "resilience": 75.0,
+            "confidence": 0.4,
+            "estimated": False,
+        },
+    )
+    monkeypatch.setattr(
+        swot,
+        "build_swot",
+        lambda livelihood, features: {key: [] for key in SWOT_KEYS},
+    )
+
+    result = swot.build_swot_report("TRADE", {"district": "Badulla"})
+
+    assert result["confidence"] == "normal"
+    assert "Stored viability confidence is below 0.5." in result["notes"]
+
+
 def test_gemini_failure_falls_back_to_source_statement(monkeypatch):
     source = "Observed market score was 61."
     monkeypatch.setattr(

@@ -93,10 +93,7 @@ def build_swot_report(livelihood: str, features: dict) -> dict:
             )
 
     is_low_confidence = (
-        district_missing
-        or district_unknown
-        or estimated
-        or stored_confidence < 0.5
+        district_missing or district_unknown or estimated
     )
     return {
         "swot": swot_result,

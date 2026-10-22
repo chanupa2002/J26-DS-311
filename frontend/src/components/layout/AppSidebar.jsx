@@ -241,7 +241,7 @@ export function AppSidebar() {
   const { collapsed, mobileOpen, setMobileOpen } = useSidebar()
   return (
     <>
-      <Sidebar>
+      <Sidebar className="sticky top-0 h-svh self-start">
         <SidebarHeader>
           <Brand collapsed={collapsed} />
         </SidebarHeader>
@@ -260,7 +260,7 @@ export function AppSidebar() {
             <Brand onNavigate={() => setMobileOpen(false)} />
           </div>
           <div className="flex h-[calc(100%_-_4rem)] flex-col">
-            <div className="flex-1 p-2">
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
               <Navigation mobile onNavigate={() => setMobileOpen(false)} />
             </div>
             <div className="border-t p-3">
