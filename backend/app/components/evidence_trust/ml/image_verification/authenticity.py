@@ -7,11 +7,9 @@ import math
 import io
 import json
 import os
-import urllib.error
-import urllib.parse
-import urllib.request
 import uuid
 import asyncio
+import requests
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -332,6 +330,7 @@ class SerpApiGoogleLensMatcher:
         self.api_key = api_key or os.getenv(api_key_env)
         self.timeout_seconds = timeout_seconds
         self.last_error_code: str | None = None
+        self.last_error_detail: str | None = None
 
     @property
     def available(self) -> bool:
@@ -373,64 +372,48 @@ class SerpApiGoogleLensMatcher:
         )
 
     def _post_image(self, image_bytes: bytes, boundary: str) -> dict[str, Any]:
-        fields = (
-            f"--{boundary}\r\n"
-            "Content-Disposition: form-data; name=\"api_key\"\r\n\r\n"
-            f"{self.api_key}\r\n"
-            f"--{boundary}\r\n"
-            "Content-Disposition: form-data; name=\"image\"; "
-            "filename=\"evidence.jpg\"\r\n"
-            "Content-Type: image/jpeg\r\n\r\n"
-        ).encode("utf-8")
-
-        body = (
-            fields
-            + image_bytes
-            + f"\r\n--{boundary}--\r\n".encode("utf-8")
-        )
-
-        request = urllib.request.Request(
+        del boundary  # requests generates a valid multipart boundary itself.
+        response = requests.post(
             "https://serpapi.com/image",
-            data=body,
-            headers={
-                "Content-Type": f"multipart/form-data; boundary={boundary}"
-            },
-            method="POST",
-        )
-
-        with urllib.request.urlopen(
-            request,
+            files={"image": ("evidence.jpg", image_bytes, "image/jpeg")},
+            data={"api_key": self.api_key},
             timeout=self.timeout_seconds,
-        ) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        )
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            response.raise_for_status()
+            raise RuntimeError("SerpApi returned invalid JSON for image upload") from exc
 
-        if payload.get("error") or not payload.get("image_id"):
+        if response.status_code >= 400 or payload.get("error") or not payload.get("image_id"):
+            if response.status_code >= 400:
+                self.last_error_code = f"http_{response.status_code}"
+            self.last_error_detail = str(payload.get("error") or response.text[:500])
             raise RuntimeError("SerpApi image upload failed")
 
         return payload
 
     def _search(self, image_id: str) -> dict[str, Any]:
-        query = urllib.parse.urlencode(
-            {
+        response = requests.get(
+            "https://serpapi.com/search",
+            params={
                 "engine": "google_lens",
                 "image_id": image_id,
                 "type": "exact_matches",
                 "api_key": self.api_key,
-            }
-        )
-
-        request = urllib.request.Request(
-            f"https://serpapi.com/search?{query}",
-            method="GET",
-        )
-
-        with urllib.request.urlopen(
-            request,
+            },
             timeout=self.timeout_seconds,
-        ) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        )
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            response.raise_for_status()
+            raise RuntimeError("SerpApi returned invalid JSON for Google Lens") from exc
 
-        if payload.get("error"):
+        if response.status_code >= 400 or payload.get("error"):
+            if response.status_code >= 400:
+                self.last_error_code = f"http_{response.status_code}"
+            self.last_error_detail = str(payload.get("error") or response.text[:500])
             raise RuntimeError("SerpApi Google Lens search failed")
 
         return payload
@@ -441,6 +424,7 @@ class SerpApiGoogleLensMatcher:
         config: dict[str, Any],
     ) -> dict[str, Any] | None:
         self.last_error_code = None
+        self.last_error_detail = None
 
         if not self.available or context.original is None:
             return None
@@ -455,21 +439,25 @@ class SerpApiGoogleLensMatcher:
             )
             payload = self._search(str(upload["image_id"]))
 
-        except urllib.error.HTTPError as exc:
-            self.last_error_code = f"http_{exc.code}"
-            raise RuntimeError("online image lookup failed") from exc
-
-        except urllib.error.URLError as exc:
-            self.last_error_code = "network_error"
-            raise RuntimeError("online image lookup failed") from exc
-
-        except TimeoutError as exc:
+        except requests.Timeout as exc:
             self.last_error_code = "timeout"
+            self.last_error_detail = str(exc)
             raise RuntimeError("online image lookup timed out") from exc
+
+        except requests.HTTPError as exc:
+            self.last_error_code = f"http_{exc.response.status_code if exc.response is not None else 'error'}"
+            self.last_error_detail = str(exc)
+            raise RuntimeError("online image lookup failed") from exc
+
+        except requests.RequestException as exc:
+            self.last_error_code = "network_error"
+            self.last_error_detail = str(exc)
+            raise RuntimeError("online image lookup failed") from exc
 
         except (OSError, ValueError, RuntimeError) as exc:
             if self.last_error_code is None:
                 self.last_error_code = "service_error"
+            self.last_error_detail = str(exc)
             raise RuntimeError("online image lookup failed") from exc
 
         matches = (

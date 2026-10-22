@@ -75,7 +75,7 @@ class SimilarityBlock(VerificationBlock):
     """Compare consecutive household photos without making a benefit decision."""
 
     name = "similarity_change"
-    check_codes = ("SIMILARITY_SCORE", "SAME_PLACE", "PROGRESS", "PROGRESS_NOT_DECLINED")
+    check_codes = ("SIMILARITY_SCORE", "SAME_PLACE", "PROGRESS", "PROGRESS_REVIEW_REQUIRED")
 
     def __init__(self, embedder: Embedder | None = None, config: dict[str, Any] | None = None, change_detector: ChangeDetector | None = None, directional_scorer: DirectionalProgressScorer | None = None, repository: MonitoringRepository | None = None) -> None:
         self.embedder = embedder or FakeEmbedder()
@@ -90,7 +90,7 @@ class SimilarityBlock(VerificationBlock):
             CheckResult("SIMILARITY_SCORE", None, reason, severity="info"),
             CheckResult("SAME_PLACE", None, reason, severity="info"),
             CheckResult("PROGRESS", None, reason, severity="info"),
-            CheckResult("PROGRESS_NOT_DECLINED", None, reason, severity="review"),
+            CheckResult("PROGRESS_REVIEW_REQUIRED", None, reason, severity="review"),
         ])
 
     def _same_place(self, previous: ImageContext, current: ImageContext) -> tuple[float | None, bool | None, dict[str, Any]]:
@@ -155,8 +155,10 @@ class SimilarityBlock(VerificationBlock):
             return self.directional_scorer.score(previous.fixed, current.fixed, category)
         if ssim is None:
             return ChangePrediction("not_comparable", 0.0, {"method": "ssim_unavailable"})
-        same_threshold = float(self.settings.get("ssim_same_threshold", 0.88))
-        if ssim >= same_threshold:
+        # Moderate visual changes are normal between monthly photos. Only a
+        # very large change should produce a progress review signal.
+        major_change_threshold = float(self.settings.get("major_change_ssim_threshold", 0.40))
+        if ssim >= major_change_threshold:
             return ChangePrediction("same", max(0.0, min(1.0, ssim)), {"method": "ssim", "ssim": ssim})
         return ChangePrediction("declined", max(0.0, min(1.0, 1.0 - ssim)), {"method": "ssim", "ssim": ssim})
 
@@ -193,12 +195,14 @@ class SimilarityBlock(VerificationBlock):
         score_check = CheckResult("SIMILARITY_SCORE", None, f"similarity zone: {zone}", raw_measure=score, threshold=zone_limits, evidence={**gate_evidence, "zone": zone}, severity="info")
         same_check = CheckResult("SAME_PLACE", None if same_place is None else (1 if same_place else 0), reason, raw_measure=score, threshold=self.settings.get("same_place_embedding_threshold"), evidence=gate_evidence, severity="review" if same_place is False else "info")
         if same_place is not True:
-            return BlockResult(self.name, [score_check, same_check, CheckResult("PROGRESS", None, "progress is not comparable", evidence={"label": "not_comparable", "strength": 0.0}, severity="info"), CheckResult("PROGRESS_NOT_DECLINED", None, "progress is not comparable", evidence={}, severity="review")])
+            return BlockResult(self.name, [score_check, same_check, CheckResult("PROGRESS", None, "progress is not comparable", evidence={"label": "not_comparable", "strength": 0.0}, severity="info"), CheckResult("PROGRESS_REVIEW_REQUIRED", None, "progress is not comparable", evidence={}, severity="review")])
         ssim = _ssim(previous.fixed, context.fixed, self.settings) if self.settings.get("ssim_enabled", True) else None
         prediction = self._progress(previous, context, category, ssim)
         valid_labels = {"improved", "same", "declined", "not_comparable"}
         label = prediction.label if prediction.label in valid_labels else "not_comparable"
-        progress_check = CheckResult("PROGRESS", None, f"progress label: {label}", raw_measure=prediction.strength, evidence={**prediction.evidence, "label": label, "strength": prediction.strength}, severity="review" if label == "declined" else "info")
+        major_change = label == "declined"
+        progress_check = CheckResult("PROGRESS", 0 if major_change else 1, "major visual change detected; officer review required" if major_change else "no major visual change detected", raw_measure=prediction.strength, evidence={**prediction.evidence, "label": label, "strength": prediction.strength}, severity="review" if major_change else "info")
         not_declined = None if label == "not_comparable" else (0 if label == "declined" else 1)
-        not_declined_check = CheckResult("PROGRESS_NOT_DECLINED", not_declined, "decline is a review hint only" if label == "declined" else "progress is same or improved", raw_measure=prediction.strength, evidence={"label": label, "strength": prediction.strength}, severity="review" if label == "declined" else "info")
-        return BlockResult(self.name, [score_check, same_check, progress_check, not_declined_check])
+        review_required = 1 if label != "declined" else 0
+        review_check = CheckResult("PROGRESS_REVIEW_REQUIRED", review_required, "officer review is required for a major visual change" if label == "declined" else "no progress review is required", raw_measure=prediction.strength, evidence={"label": label, "strength": prediction.strength}, severity="review" if label == "declined" else "info")
+        return BlockResult(self.name, [score_check, same_check, progress_check, review_check])

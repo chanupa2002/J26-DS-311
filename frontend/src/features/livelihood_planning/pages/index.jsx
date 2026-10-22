@@ -1,0 +1,5 @@
+export { AssessPage } from "./AssessPage"
+export { BeneficiariesPage } from "./BeneficiariesPage"
+export { HistoryPage } from "./HistoryPage"
+export { RecommendPage } from "./RecommendPage"
+export { SwotPage } from "./SwotPage"

@@ -1,9 +1,10 @@
 {
   "component": "evidence_trust",
-  "model_name": null,
+  "model_name": "grant_risk",
   "trained_on": null,
   "trained_in": "Google Colab",
   "metrics": {},
   "library_versions": {},
-  "download_location": null
+  "download_location": "private artifact path configured by GRANT_RISK_ARTIFACT_PATH",
+  "notes": "Artifact is not committed. See ml/financial_risk/requirements-financial.txt."
 }

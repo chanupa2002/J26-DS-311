@@ -52,12 +52,18 @@ class ImageVerificationPipeline:
         self.blocks = blocks or default_blocks(self.embedder, config, DuplicateIndex(index_path) if index_path else None, category_embedder, monitoring_repository)
         if not blocks:
             from .authenticity import AuthenticityBlock, GoogleWebImageMatcher, SerpApiGoogleLensMatcher, WebImageMatcher
+            from app.core.config import settings as app_settings
             auth_settings = config.get("authenticity", {}) if config else {}
             provider = auth_settings.get("web_provider", "local")
-            if provider == "local" and os.getenv("SERPAPI_ENABLED", "false").lower() == "true":
+            serpapi_enabled = os.getenv(
+                "SERPAPI_ENABLED",
+                str(app_settings.serpapi_enabled).lower(),
+            ).lower() == "true"
+            if provider == "local" and serpapi_enabled:
                 provider = "serpapi"
             if provider == "serpapi":
                 web_matcher = SerpApiGoogleLensMatcher(
+                    api_key=app_settings.serpapi_key or None,
                     api_key_env=str(auth_settings.get("serpapi_api_key_env", "SERPAPI_KEY")),
                     timeout_seconds=float(auth_settings.get("serpapi_timeout_seconds", 30.0)),
                 )

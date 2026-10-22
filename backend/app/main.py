@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.components.beneficiary_selection.router import router as beneficiary_router
 from app.components.evidence_trust.router import router as trust_router
+from app.components.evidence_trust.financial_router import router as financial_router
 from app.components.livelihood_planning.router import router as livelihood_router
 from app.components.market_risk.router import router as risk_router
 from app.core.config import settings
@@ -28,4 +29,5 @@ def health():
 app.include_router(beneficiary_router)
 app.include_router(livelihood_router)
 app.include_router(trust_router)
+app.include_router(financial_router)
 app.include_router(risk_router)

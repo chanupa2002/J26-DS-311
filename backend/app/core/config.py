@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_key: str = ""
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    serpapi_enabled: bool = False
+    serpapi_key: str = ""
+    tesseract_cmd: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

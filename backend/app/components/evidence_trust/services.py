@@ -42,3 +42,64 @@ async def verify_image_upload(image_bytes: bytes, household_id: str, month: str,
     image = ImageInput(image_bytes, household_id, month, registered_category, previous_bytes or previous_image_reference or None)
     report = await ImageVerificationPipeline(monitoring_repository=repository).process(image)
     return report_dict(report)
+
+
+async def verify_category_match(image_bytes: bytes, registered_category: str) -> dict[str, Any]:
+    """Run only the livelihood category-match block for diagnostic testing."""
+    image = ImageInput(image_bytes, "category-test", "category-test", registered_category)
+    pipeline = ImageVerificationPipeline()
+    pipeline.config["pipeline"] = {"blocks": [{"name": "category_match", "enabled": True}]}
+    report = await pipeline.process(image)
+    block = next((item for item in report.blocks if item.block_name == "category_match"), None)
+    check = block.checks[0] if block and block.checks else None
+    return {
+        "registered_category": registered_category,
+        "check": {
+            "code": check.check_code,
+            "value": check.value,
+            "reason": check.reason,
+            "raw_measure": check.raw_measure,
+            "threshold": check.threshold,
+            "evidence": check.evidence,
+        } if check else None,
+    }
+
+
+async def verify_progress_only(
+    previous_image_bytes: bytes,
+    current_image_bytes: bytes,
+    household_id: str,
+    previous_month: str,
+    current_month: str,
+    registered_category: str,
+) -> dict[str, Any]:
+    """Compare two monthly images using only the progress block."""
+    pipeline = ImageVerificationPipeline()
+    pipeline.config["pipeline"] = {"blocks": [{"name": "similarity_change", "enabled": True}]}
+    current = ImageInput(
+        current_image_bytes,
+        household_id,
+        current_month,
+        registered_category,
+        previous_image=previous_image_bytes,
+    )
+    report = await pipeline.process(current)
+    block = next((item for item in report.blocks if item.block_name == "similarity_change"), None)
+    return {
+        "household_id": household_id,
+        "previous_month": previous_month,
+        "current_month": current_month,
+        "registered_category": registered_category,
+        "checks": [
+            {
+                "code": check.check_code,
+                "value": check.value,
+                "reason": check.reason,
+                "raw_measure": check.raw_measure,
+                "threshold": check.threshold,
+                "evidence": check.evidence,
+                "severity": check.severity,
+            }
+            for check in (block.checks if block else [])
+        ],
+    }

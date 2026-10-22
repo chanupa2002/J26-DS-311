@@ -50,3 +50,10 @@ private_data/
 
 # Locally stored trained model
 /backend/app/components/evidence_trust/ml/image_verification/model_artifacts/category_relevance_model/lora_adapter/model.safetensors
+
+# Financial risk artifacts and private reports
+**/financial_risk/grant_risk.joblib
+**/financial_risk/model_artifacts/grant_risk.joblib
+**/financial_risk/model_artifacts/bill_model.joblib
+**/financial_risk/.financial_risk_runtime/
+**/financial_risk/reports/

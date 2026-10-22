@@ -20,3 +20,4 @@ opencv-contrib-python>=4.8,<5.0
 # google-cloud-vision>=3.7,<4.0
 # SerpApi uses Python's standard library HTTP client; no API key belongs here.
 python-multipart>=0.0.9,<1.0
+requests>=2.31,<3.0

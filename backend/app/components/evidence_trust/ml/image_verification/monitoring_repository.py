@@ -33,6 +33,10 @@ class MonitoringRepository(ABC):
         """Return earlier records in the same livelihood category."""
 
     @abstractmethod
+    def all_records(self, through_month: str | None = None) -> list[MonitoringRecord]:
+        """Return all stored records through the requested monitoring month."""
+
+    @abstractmethod
     def latest_previous(self, household_id: str, before_month: str) -> MonitoringRecord | None:
         """Return the latest earlier record for a household."""
 
@@ -60,6 +64,9 @@ class InMemoryMonitoringRepository(MonitoringRepository):
 
     def same_category(self, category: str, before_month: str | None = None) -> list[MonitoringRecord]:
         return [record for record in self.records if record.livelihood_category == category and (before_month is None or _month_key(record.entry.month) < _month_key(before_month))]
+
+    def all_records(self, through_month: str | None = None) -> list[MonitoringRecord]:
+        return [record for record in self.records if through_month is None or _month_key(record.entry.month) <= _month_key(through_month)]
 
     def latest_previous(self, household_id: str, before_month: str) -> MonitoringRecord | None:
         records = self.same_household(household_id, before_month)
@@ -102,6 +109,13 @@ class SupabaseMonitoringRepository(MonitoringRepository):
 
     def same_category(self, category: str, before_month: str | None = None) -> list[MonitoringRecord]:
         return self._query("livelihood_category", category, before_month)
+
+    def all_records(self, through_month: str | None = None) -> list[MonitoringRecord]:
+        query = self.client.table(self.table).select("*")
+        if through_month:
+            query = query.lte("monitoring_month_key", _month_key(through_month))
+        response = query.execute()
+        return [self._record(row) for row in (response.data or [])]
 
     def latest_previous(self, household_id: str, before_month: str) -> MonitoringRecord | None:
         records = self.same_household(household_id, before_month)

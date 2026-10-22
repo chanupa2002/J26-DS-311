@@ -185,13 +185,18 @@ class DuplicateBlock(VerificationBlock):
         current_orb = self._orb_features(context.fixed)
         if self.repository:
             household_records = self.repository.same_household(context.image_input.household_id, context.image_input.month)
-            category_records = self.repository.same_category(context.image_input.registered_category or "", context.image_input.month) if context.image_input.registered_category else []
-            candidates = [record.entry for record in household_records + category_records if record.entry.household_id != context.image_input.household_id or record.entry.month not in {context.image_input.month}]
+            all_records = self.repository.all_records(context.image_input.month)
+            cross_household_records = [
+                record
+                for record in all_records
+                if record.entry.household_id != context.image_input.household_id
+            ]
+            candidates = [record.entry for record in household_records + cross_household_records]
             matches = [match for entry in candidates if (match := self._match(context, entry, current_orb)) is not None]
             current = IndexEntry(context.image_input.household_id, context.image_input.month, context.content_hash, features[0], features[1], features[2], current_orb[0], current_orb[1], current_orb[2], current_orb[3])
             self.repository.save(MonitoringRecord(current, context.image_input.metadata.get("division"), context.image_input.registered_category, context.image_input.image_path, context.image_input.image if isinstance(context.image_input.image, bytes) else None))
             self_history_available = bool(household_records)
-            category_history_available = bool(category_records)
+            cross_household_history_available = bool(cross_household_records)
         else:
             with self.index.lock:
                 matches = [match for entry in self.index.entries if (match := self._match(context, entry, current_orb)) is not None]
@@ -209,7 +214,7 @@ class DuplicateBlock(VerificationBlock):
                 )
                 self.index.add(current)
             self_history_available = True
-            category_history_available = True
+            cross_household_history_available = True
         best_duplicate = max((match for match in matches if match.zone == "duplicate"), key=lambda item: item.similarity, default=None)
         best_scene = max((match for match in matches if match.zone == "same_place"), key=lambda item: item.similarity, default=None)
         self_match = best_duplicate if best_duplicate and best_duplicate.entry.household_id == context.image_input.household_id else None
@@ -221,7 +226,7 @@ class DuplicateBlock(VerificationBlock):
         cross_scene_match = best_scene if best_scene and best_scene.entry.household_id != context.image_input.household_id else None
         checks = [
             CheckResult("DUPLICATE_SELF", 0 if self_match else 1 if self_history_available else None, "same-household duplicate detected" if self_match else "no same-household duplicate found" if self_history_available else "no previous household monitoring image is available", evidence={**(self._evidence(self_match) if self_match else {}), "comparison_scope": "same_household_history"}, severity="critical" if self_match else "info"),
-            CheckResult("DUPLICATE_CROSS", 0 if cross_match else 1 if category_history_available else None, "cross-household duplicate detected; human review required" if cross_match else "no same-category duplicate found" if category_history_available else "no same-category monitoring image is available", evidence={**(self._evidence(cross_match) if cross_match else {}), "comparison_scope": "same_livelihood_category_history"}, severity="critical" if cross_match else "info"),
+            CheckResult("DUPLICATE_CROSS", 0 if cross_match else 1 if cross_household_history_available else None, "cross-household duplicate detected; human review required" if cross_match else "no cross-household duplicate found" if cross_household_history_available else "no cross-household monitoring image is available", evidence={**(self._evidence(cross_match) if cross_match else {}), "comparison_scope": "all_cross_household_history"}, severity="critical" if cross_match else "info"),
             CheckResult("SAME_SCENE_SELF", 1 if self_scene_match else None, "same place, different photo is informational" if self_scene_match else "no same-place match found", evidence=self._evidence(self_scene_match) if self_scene_match else {}, severity="info"),
             CheckResult("SAME_SCENE_CROSS", None, "same place across households; human review advised" if cross_scene_match else "no cross-household same-place match found", evidence=self._evidence(cross_scene_match) if cross_scene_match else {}, severity="review" if cross_scene_match else "info"),
         ]
