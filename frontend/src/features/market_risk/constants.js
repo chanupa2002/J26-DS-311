@@ -307,17 +307,12 @@ export const MARKET_CONTEXT_TEXT = {
   outOfRange: "No market or national data for this month, so these values stay empty. Nothing is estimated.",
 }
 
-// Risk Check router state -> feature names (decision Q6).
+// Last Risk Check answers -> feature names (decision Q6; in-memory store since F7).
 export const RISK_CHECK_SIGNAL_FEATURES = {
   business_not_running: "F_Business_Not_Running_t",
   no_profit_last_month: "F_No_Profit_Last_Month_t",
   not_progressing_well: "F_Not_Progressing_Well_t",
   market_stress_any: "F_Market_Stress_Any_t",
-}
-export const RISK_CHECK_COUNT_FEATURES = {
-  risk_ord: "F_Risk_Ord_t",
-  signal_count: "F_Risk_Signal_Count_t",
-  unknown_count: "F_Risk_Unknown_t",
 }
 
 export const PROBABILITY_BAR_CLASS = {
@@ -528,3 +523,33 @@ export const OVERVIEW_TEXT = {
 }
 // Macro-F1 difference vs the "same as last visit" baseline that counts as similar.
 export const BASELINE_SIMILAR_MARGIN = 0.03
+
+// ------------------------------------------------- Derived current fields (F6) ----
+
+// Never typed in: calculated from the current answers. The class and counts come from
+// POST /api/risk/identify (the backend rule); the market problem is aggregated here.
+export const MARKET_PROBLEM_PARTS = ["F_Sales_Below_Expected_t", "F_High_Input_Cost_t", "F_Inputs_Unavailable_t"]
+export const DERIVED_FEATURES = ["F_Market_Stress_Any_t", "F_Risk_Ord_t", "F_Risk_Signal_Count_t", "F_Risk_Unknown_t"]
+export const RISK_ORD = { Low: 0, Medium: 1, High: 2 }
+
+export const DERIVED_TEXT = {
+  marketTooltip:
+    "Yes if sales below expected, high input costs or inputs unavailable is Yes; No if all three are No; otherwise Not answered.",
+  riskTooltip:
+    "From the risk rule (SUSTAIN-HH-Risk-Rule v1.0): High = business not running or 2+ of the 3 signals (no profit, not progressing, market problem); Medium = 1 signal; Low = 0 signals. Unassigned if blank answers could change the class.",
+  unassigned: "Unassigned (not enough answers)",
+  fromRiskCheck: "(from Risk Check)",
+  calculating: "Calculating…",
+  failed: "Could not be calculated",
+}
+
+// Risk Check answers that are auto-filled on Future Risk (the market answer is the F6 fallback).
+export const PREFILLED_ANSWER_FEATURES = ["F_Business_Not_Running_t", "F_No_Profit_Last_Month_t", "F_Not_Progressing_Well_t"]
+
+export const PREFILL_TEXT = {
+  note: (time) => `Prefilled from your last Risk Check (${time})`,
+  discard: "Don't use",
+  fieldTooltip: (time) => `Taken from the last Risk Check (${time}). Change this answer in Risk Check.`,
+  fieldSuffix: "(from Risk Check)",
+  fieldNote: "Auto-filled",
+}

@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useLocation } from "react-router-dom"
 
 import { DateField } from "../components/DateField"
 import { ExplanationPanel } from "../components/ExplanationPanel"
@@ -15,29 +14,38 @@ import {
   CATEGORICAL_FEATURES,
   CONTEXT_FEATURES,
   CURRENT_VISIT_ANSWERS,
+  DERIVED_TEXT,
   FEATURE_GROUPS,
   FEATURE_OPTIONS,
   FUTURE_RISK_NOTICE_REASON,
   GRANT_DATE_HELP,
   HISTORY_FEATURES,
+  MARKET_PROBLEM_PARTS,
+  PREFILL_TEXT,
   PROTOTYPE_REASON,
-  RISK_CHECK_COUNT_FEATURES,
+  PREFILLED_ANSWER_FEATURES,
   RISK_CHECK_SIGNAL_FEATURES,
+  RISK_ORD,
   VISIT_DATE_HELP,
 } from "../constants"
+import { useCurrentRisk } from "../hooks/useCurrentRisk"
 import { useFutureRisk } from "../hooks/useFutureRisk"
 import { useHistoryFeatures } from "../hooks/useHistoryFeatures"
+import { getLastRiskCheck } from "../hooks/useLastRiskCheck"
 import { useMarketContext, useMarketMonths } from "../hooks/useMarketContext"
 import { useModelInfo } from "../hooks/useModelInfo"
 import {
+  answersFromRiskCheck,
   buildHistoryRequest,
-  featuresFromRiskCheck,
-  featuresToForm,
+  deriveMarketProblem,
+  featureValueText,
   formToFeatures,
   historyErrorTargets,
   isValidDate,
   lastDayOfMonth,
   monthLabel,
+  riskFeaturesFromIdentify,
+  timeLabel,
 } from "../utils"
 
 // Features that are filled automatically and never typed in.
@@ -60,26 +68,30 @@ function groupsFor(featureNames) {
     : groups
 }
 
-function initialForm(state) {
-  const prefill = featuresFromRiskCheck(
-    state,
-    RISK_CHECK_SIGNAL_FEATURES,
-    RISK_CHECK_COUNT_FEATURES,
-  )
+/**
+ * Prefill from the last Risk Check (in-memory store), however the page is opened: the 3 answers
+ * go into the form; the overall market answer is only a fallback until a detailed market
+ * question is answered (F6). The derived fields are recalculated via /identify.
+ */
+function initialForm(lastRiskCheck) {
+  if (!lastRiskCheck) return { values: {}, prefilledAt: null, marketFallback: "" }
+  const market = lastRiskCheck.signals.market_stress_any
   return {
-    values: prefill ? featuresToForm(Object.keys(prefill), prefill) : {},
-    prefilled: Boolean(prefill),
+    values: answersFromRiskCheck(lastRiskCheck.signals, RISK_CHECK_SIGNAL_FEATURES),
+    prefilledAt: lastRiskCheck.savedAt,
+    marketFallback: market === null || market === undefined ? "" : String(market),
   }
 }
 
 export function FutureRiskPage() {
-  const location = useLocation()
   const modelInfo = useModelInfo()
   const futureRisk = useFutureRisk()
 
-  const [initial] = useState(() => initialForm(location.state))
+  // Read once when the page opens (the form starts empty on every open).
+  const [initial] = useState(() => initialForm(getLastRiskCheck()))
   const [values, setValues] = useState(initial.values)
-  const [prefilled, setPrefilled] = useState(initial.prefilled)
+  const [prefilledAt, setPrefilledAt] = useState(initial.prefilledAt)
+  const [marketFallback, setMarketFallback] = useState(initial.marketFallback)
   const [horizon, setHorizon] = useState("both")
   const [invalid, setInvalid] = useState([])
   const [visitDate, setVisitDate] = useState("")
@@ -104,9 +116,61 @@ export function FutureRiskPage() {
   const marketContext = useMarketContext(category, visitMonth)
   const contextReady = Boolean(category && visitMonth)
 
+  // Derived current fields: market problem from its 3 parts, class and counts from /identify.
+  const marketProblem = deriveMarketProblem(values, MARKET_PROBLEM_PARTS, marketFallback)
+  const answers = { ...values, F_Market_Stress_Any_t: marketProblem.value }
+  const toSignal = (value) => (value === "" || value === undefined ? null : Number(value))
+  const currentRisk = useCurrentRisk({
+    business_not_running: toSignal(answers.F_Business_Not_Running_t),
+    no_profit_last_month: toSignal(answers.F_No_Profit_Last_Month_t),
+    not_progressing_well: toSignal(answers.F_Not_Progressing_Well_t),
+    market_stress_any: toSignal(answers.F_Market_Stress_Any_t),
+  })
+  const riskResult = currentRisk.current ? currentRisk.query.data : null
+  const derived = {
+    F_Market_Stress_Any_t: toSignal(marketProblem.value),
+    ...riskFeaturesFromIdentify(riskResult, RISK_ORD),
+  }
+  const riskText = (text) =>
+    currentRisk.waiting ? DERIVED_TEXT.calculating : currentRisk.query.isError ? DERIVED_TEXT.failed : text
+  // Answers taken from the last Risk Check: read-only like the derived fields (changed in
+  // Risk Check, or released with "Don't use").
+  const prefillLocked = Boolean(prefilledAt)
+  const prefillTime = prefilledAt ? timeLabel(prefilledAt) : ""
+  const prefillAnswers = Object.fromEntries(
+    PREFILLED_ANSWER_FEATURES.map((name) => [
+      name,
+      {
+        text: `${featureValueText(name, toSignal(values[name]), "Not answered")} ${PREFILL_TEXT.fieldSuffix}`,
+        tooltip: PREFILL_TEXT.fieldTooltip(prefillTime),
+        note: PREFILL_TEXT.fieldNote,
+        countAsFilled: true,
+      },
+    ]),
+  )
+  const readOnly = {
+    ...(prefillLocked ? prefillAnswers : {}),
+    F_Market_Stress_Any_t: {
+      text: `${featureValueText("F_Market_Stress_Any_t", derived.F_Market_Stress_Any_t, "Not answered")}${marketProblem.fromRiskCheck ? ` ${DERIVED_TEXT.fromRiskCheck}` : ""}`,
+      tooltip: DERIVED_TEXT.marketTooltip,
+    },
+    F_Risk_Ord_t: {
+      text: riskText(riskResult?.risk_class === "Unassigned" ? DERIVED_TEXT.unassigned : riskResult?.risk_class),
+      tooltip: DERIVED_TEXT.riskTooltip,
+    },
+    F_Risk_Signal_Count_t: {
+      text: riskText(featureValueText("F_Risk_Signal_Count_t", derived.F_Risk_Signal_Count_t)),
+      tooltip: DERIVED_TEXT.riskTooltip,
+    },
+    F_Risk_Unknown_t: {
+      text: riskText(featureValueText("F_Risk_Unknown_t", derived.F_Risk_Unknown_t)),
+      tooltip: DERIVED_TEXT.riskTooltip,
+    },
+  }
+
   // History: current answers in the form + previous visits -> /history-features (debounced).
   const historyInput = buildHistoryRequest({
-    values,
+    values: answers,
     visitDate: usableVisitDate,
     grantDate,
     firstVisit,
@@ -177,6 +241,7 @@ export function FutureRiskPage() {
   const historyValues = history.current ? history.query.data.features : {}
   const body = {
     ...typed,
+    ...derived,
     ...Object.fromEntries(CONTEXT_FEATURES.map((name) => [name, context[name] ?? null])),
     ...Object.fromEntries(HISTORY_FEATURES.map((name) => [name, historyValues[name] ?? null])),
   }
@@ -189,11 +254,13 @@ export function FutureRiskPage() {
     futureRisk.isSuccess &&
     JSON.stringify(request) !== JSON.stringify(futureRisk.variables)
 
-  const waitingFor = contextReady && marketContext.isPending
-    ? "Filling market data…"
-    : history.waiting
-      ? "Calculating history…"
-      : null
+  const waitingFor = currentRisk.waiting
+    ? "Calculating risk class…"
+    : contextReady && marketContext.isPending
+      ? "Filling market data…"
+      : history.waiting
+        ? "Calculating history…"
+        : null
 
   const changeValues = (next) => {
     setValues(next)
@@ -205,8 +272,17 @@ export function FutureRiskPage() {
     setGrantDate("")
     setFirstVisit(false)
     setVisits([])
-    setPrefilled(false)
+    setPrefilledAt(null)
+    setMarketFallback("")
     futureRisk.reset()
+  }
+  // "Don't use": remove the prefilled answers from this form (the store is kept).
+  const discardPrefill = () => {
+    const next = { ...values }
+    for (const name of Object.values(RISK_CHECK_SIGNAL_FEATURES)) delete next[name]
+    changeValues(next)
+    setMarketFallback("")
+    setPrefilledAt(null)
   }
   const submit = () => {
     if (invalidNow.length) {
@@ -232,7 +308,14 @@ export function FutureRiskPage() {
         horizon={horizon}
         onHorizonChange={setHorizon}
         invalid={invalid}
-        prefilledFromRiskCheck={prefilled}
+        prefillNote={
+          prefilledAt && {
+            text: PREFILL_TEXT.note(timeLabel(prefilledAt)),
+            discard: PREFILL_TEXT.discard,
+            onDiscard: discardPrefill,
+          }
+        }
+        readOnly={readOnly}
         extraFields={{
           F_Category: (
             <DateField

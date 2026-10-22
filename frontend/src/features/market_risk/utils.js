@@ -98,17 +98,18 @@ export function featuresToForm(featureNames, features) {
   )
 }
 
-/** Risk Check router state -> partial feature object (7 features), or null. */
-export function featuresFromRiskCheck(state, signalMap, countMap) {
-  if (!state?.signals) return null
-  const prefill = {}
+/** Last Risk Check signals -> the 3 answer features as form strings ("1" / "0" / ""). */
+export function answersFromRiskCheck(signals, signalMap) {
+  const form = {}
   for (const [key, feature] of Object.entries(signalMap)) {
-    prefill[feature] = state.signals[key] ?? null
+    if (feature === "F_Market_Stress_Any_t") continue
+    form[feature] = signals?.[key] === null || signals?.[key] === undefined ? "" : String(signals[key])
   }
-  for (const [key, feature] of Object.entries(countMap)) {
-    prefill[feature] = state[key] ?? null
-  }
-  return prefill
+  return form
+}
+
+export function timeLabel(epochMs) {
+  return new Date(epochMs).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
 
 /**
@@ -322,4 +323,28 @@ export function comparedWithBaseline(model, baseline, margin) {
   if (difference > margin) return "better"
   if (difference < -margin) return "worse"
   return "about the same"
+}
+
+// ------------------------------------------------- Derived current fields ----
+
+/**
+ * "Any market problem reported" from its 3 parts: "1" if any is Yes, "0" if all are No,
+ * else "". Until a part is answered, an overall answer from Risk Check (`fallback`) is used.
+ */
+export function deriveMarketProblem(values, parts, fallback = "") {
+  const answers = parts.map((name) => String(values[name] ?? ""))
+  if (answers.every((answer) => answer === "") && fallback !== "") return { value: fallback, fromRiskCheck: true }
+  if (answers.includes("1")) return { value: "1", fromRiskCheck: false }
+  if (answers.every((answer) => answer === "0")) return { value: "0", fromRiskCheck: false }
+  return { value: "", fromRiskCheck: false }
+}
+
+/** /identify response -> the 3 derived numeric features (Unassigned -> null). */
+export function riskFeaturesFromIdentify(result, riskOrd) {
+  if (!result) return { F_Risk_Ord_t: null, F_Risk_Signal_Count_t: null, F_Risk_Unknown_t: null }
+  return {
+    F_Risk_Ord_t: riskOrd[result.risk_class] ?? null,
+    F_Risk_Signal_Count_t: result.signal_count,
+    F_Risk_Unknown_t: result.unknown_count,
+  }
 }

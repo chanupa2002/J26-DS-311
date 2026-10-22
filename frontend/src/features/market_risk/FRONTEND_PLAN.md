@@ -59,7 +59,7 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
   - `signal_count` / `unknown_count`;
   - `rule_version` in small text;
   - "The answers have changed since this check" when the form differs from the answers that were sent.
-- **"Use in Future Risk" button** (decision Q6): navigates to `/risk/future` with router state `{ signals, risk_ord, signal_count, unknown_count }`. `signals` holds the 4 answers that were **sent** (0/1/null, keyed as in `/identify`). Future Risk maps them to 7 of the 53 features:
+- **"Use in Future Risk" button** (decision Q6): navigates to `/risk/future` (F7: the answers come from the in-memory last-Risk-Check store, not router state). `signals` holds the 4 answers that were **sent** (0/1/null, keyed as in `/identify`). Future Risk maps them to 7 of the 53 features:
   - `F_Risk_Ord_t` = `risk_ord`, `F_Risk_Signal_Count_t` = `signal_count`, `F_Risk_Unknown_t` = `unknown_count`;
   - `F_Business_Not_Running_t`, `F_No_Profit_Last_Month_t`, `F_Not_Progressing_Well_t`, `F_Market_Stress_Any_t` = the 4 submitted signals (0/1/null).
   Future Risk reads `useLocation().state` once, shows "7 fields prefilled from Risk Check", and leaves the other fields blank. A page reload loses the state, which is acceptable.
@@ -225,6 +225,23 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
   - **Notice:** the backend `deployment_reason` is no longer shown verbatim. `ValidationNotice` lists our own reasons (`PROTOTYPE_REASON`: "Prototype model: not yet validated on real household outcomes.").
   - **Badges:** prediction cards show `ConfidenceBadge` "Low confidence" when the horizon has the weak-signal flag (no embargo) or the top probability is below 0.5, else an outline "Prototype" badge. Overview model cards keep one "Validation pending". The weak-signal tags, status badges in the notice and the Auto-filled / Auto-calculated / Prefilled badges became plain text.
   - **Overview:** shorter; the reliability footer is shown once and the About-the-data text once, in the page-level Technical details | ✅ Done |
+| F6 | Current risk fields auto-calculated on Future Risk:
+  - **Read-only fields:** "Any market problem reported", "Current risk class", "Number of risk signals" and "Number of unanswered signals" are read-only (`ReadOnlyField`: "Auto-calculated", with a tooltip for the rule).
+  - **Market problem:** aggregated in the page from its 3 parts (Yes if any Yes, No if all No, else Not answered).
+  - **Class and counts:** come only from `POST /api/risk/identify` (`hooks/useCurrentRisk.js`, debounced via the shared `useDebouncedValue`). Unassigned is sent as blank and shown as "Unassigned (not enough answers)".
+  - **Shared answers:** the same derived answers feed `/history-features`.
+  - **Risk Check prefill:** fills the answers. Its overall market answer is used, marked "(from Risk Check)", until a detailed market question is answered.
+  - **Predict and Clear:** Predict waits ("Calculating risk class…"); Clear resets the fallback too | ✅ Done |
+| F7 | Risk Check answers reach Future Risk however it is opened:
+  - **Store:** `hooks/useLastRiskCheck.js` is a module-level in-memory store (`useSyncExternalStore`). It needs no provider outside the feature folder and no browser storage, and a refresh clears it.
+  - **Saving:** Risk Check saves the sent answers and the time when a result arrives. Reset clears the store, and the "Use in Future Risk" button just opens `/risk/future`; router state is no longer used.
+  - **Prefill on open:** Future Risk prefills business not running / no profit / not progressing, plus the market fallback from F6, from the store on every open (sidebar, button, back/forward). It shows "Prefilled from your last Risk Check (HH:MM)" with a "Don't use" link that removes them from the form (the store is kept). The derived fields recalculate via `/identify`.
+  - **Clear:** empties the form and keeps the store | ✅ Done |
+| F7b | Risk Check answers shown as auto-filled:
+  - **Read-only:** with a stored Risk Check, business not running / no profit / not progressing are read-only `ReadOnlyField`s showing e.g. "Yes (from Risk Check)", with "Auto-filled" and the tooltip "Taken from the last Risk Check (HH:MM). Change this answer in Risk Check."
+  - **Edit (removed in F7c):** there is no edit link. To change an answer, the officer changes Risk Check (tooltip: "…Change this answer in Risk Check."); "Don't use" turns the fields back into normal selects.
+  - **Unchanged:** with no stored Risk Check, or after "Don't use", the fields are normal selects; the 4 market detail questions stay editable; the derived fields work as in F6.
+  - **Counts:** the section count treats the auto-filled answers as filled (x / 7) | ✅ Done |
   - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
   - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
   - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |

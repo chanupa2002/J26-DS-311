@@ -27,9 +27,12 @@ import {
 import { HORIZON_OPTIONS } from "../constants"
 import { countFilled, featureLabel } from "../utils"
 import { FeatureField } from "./FeatureField"
+import { ReadOnlyField } from "./ReadOnlyField"
 
-function FeatureSection({ group, values, setValue, descriptions, choices, invalid, defaultOpen, extraFields }) {
-  const filled = countFilled(Object.fromEntries(group.features.map((name) => [name, values[name]])))
+function FeatureSection({ group, values, setValue, descriptions, choices, invalid, defaultOpen, extraFields, readOnly }) {
+  // Counted: editable fields and auto-filled answers (countAsFilled); not calculated fields.
+  const editable = group.features.filter((name) => !readOnly?.[name] || readOnly[name].countAsFilled)
+  const filled = countFilled(Object.fromEntries(editable.map((name) => [name, values[name]])))
 
   return (
     <Collapsible defaultOpen={defaultOpen} className="rounded-lg border">
@@ -40,7 +43,7 @@ function FeatureSection({ group, values, setValue, descriptions, choices, invali
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-xs tabular-nums text-muted-foreground">
-            {filled} / {group.features.length}
+            {filled} / {editable.length}
           </span>
           <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </div>
@@ -48,6 +51,9 @@ function FeatureSection({ group, values, setValue, descriptions, choices, invali
       <CollapsibleContent className="grid gap-4 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
         {group.features.map((name) => (
           <Fragment key={name}>
+            {readOnly?.[name] ? (
+              <ReadOnlyField name={name} {...readOnly[name]} />
+            ) : (
             <FeatureField
               name={name}
               description={descriptions[name]}
@@ -56,6 +62,7 @@ function FeatureSection({ group, values, setValue, descriptions, choices, invali
               choice={choices[name]}
               invalid={invalid.includes(name)}
             />
+            )}
             {extraFields?.[name]}
           </Fragment>
         ))}
@@ -73,8 +80,9 @@ export function FeatureForm({
   horizon,
   onHorizonChange,
   invalid = [],
-  prefilledFromRiskCheck = false,
+  prefillNote,
   extraFields,
+  readOnly,
   sections,
   advanced,
   waitingFor,
@@ -82,7 +90,10 @@ export function FeatureForm({
   onSubmit,
   pending,
 }) {
-  const total = groups.reduce((sum, group) => sum + group.features.length, 0)
+  const total = groups.reduce(
+    (sum, group) => sum + group.features.filter((name) => !readOnly?.[name] || readOnly[name].countAsFilled).length,
+    0,
+  )
   const setValue = (name, value) => onChange({ ...values, [name]: value })
 
   return (
@@ -99,19 +110,26 @@ export function FeatureForm({
               <CardTitle>Household features</CardTitle>
               <CardDescription>
                 {countFilled(values)} of {total} filled. Blank numbers are sent
-                as null and filled with the training median by the model. The 13
-                market and macro values and the 14 history values are filled
-                automatically.
+                as null and filled with the training median by the model. The
+                current risk fields, the 13 market and macro values and the 14
+                history values are calculated automatically.
               </CardDescription>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={onClear}>
               Clear
             </Button>
           </div>
-          {prefilledFromRiskCheck && (
-            <div>
-              <p className="text-xs text-muted-foreground">Prefilled from Risk Check (7 fields).</p>
-            </div>
+          {prefillNote && (
+            <p className="text-xs text-muted-foreground">
+              {prefillNote.text} ·{" "}
+              <button
+                type="button"
+                className="underline underline-offset-4 hover:text-foreground"
+                onClick={prefillNote.onDiscard}
+              >
+                {prefillNote.discard}
+              </button>
+            </p>
           )}
         </CardHeader>
 
@@ -127,6 +145,7 @@ export function FeatureForm({
               invalid={invalid}
               defaultOpen={index === 0}
               extraFields={extraFields}
+              readOnly={readOnly}
             />
           ))}
           {sections}
