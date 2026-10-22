@@ -1,4 +1,5 @@
 export { useFutureRisk } from "./useFutureRisk"
+export { useHistoryFeatures } from "./useHistoryFeatures"
 export { useIdentify } from "./useIdentify"
 export { useMarketContext, useMarketMonths } from "./useMarketContext"
 export { useModelInfo } from "./useModelInfo"

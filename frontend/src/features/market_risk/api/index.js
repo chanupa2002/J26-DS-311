@@ -1,4 +1,5 @@
 export {
+  computeHistoryFeatures,
   explainMarketRisk,
   getMarketContext,
   getRiskModelInfo,

@@ -76,6 +76,7 @@ export function FeatureForm({
   invalid = [],
   prefilledFromRiskCheck = false,
   extraFields,
+  sections,
   advanced,
   waitingFor,
   onClear,
@@ -100,7 +101,8 @@ export function FeatureForm({
               <CardDescription>
                 {countFilled(values)} of {total} filled. Blank numbers are sent
                 as null and filled with the training median by the model. The 13
-                market and macro values are filled automatically.
+                market and macro values and the 14 history values are filled
+                automatically.
               </CardDescription>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={onClear}>
@@ -128,6 +130,7 @@ export function FeatureForm({
               extraFields={extraFields}
             />
           ))}
+          {sections}
           {advanced}
         </CardContent>
 

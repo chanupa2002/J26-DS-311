@@ -1,6 +1,6 @@
 # market_risk: frontend plan
 
-Status: **decisions made (§6). Steps F2 (foundation + Overview), F3 (Risk Check), F4 (Future Risk) and F5 (market/macro auto-fill) built.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
+Status: **decisions made (§6). Steps F2 (foundation + Overview), F3 (Risk Check), F4 (Future Risk), F5 (market/macro auto-fill) and H2 (history from previous visits) built.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
 
 Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: SYNTHETIC panel (70 households, 9 categories), **NOT_READY**.
 
@@ -199,6 +199,18 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
   - **Missing data:** if `evidence_missing`, the page says "No market price data for this category…". If `in_data_range` is false, it shows the note and sends nulls (never guessed).
   - **Month list:** one market-context call for the current month.
   - **503 detection:** also recognises the backend's "Market-context data is unavailable" message | ✅ Done |
+| H2 | History from previous visits:
+  - **Visit date:** "Visit month" is replaced by a "Visit date" date input, limited by `min`/`max` to `available_months`, with a message if outside. Its month drives `/market-context`. An optional "Grant received date" sits next to grant status and must not be after the visit date.
+  - **Previous visits:** a section with a "First visit for this household" checkbox, or up to 12 rows: Month (only the 24 months before the visit month, each used once), the 4 answers Yes/No/Not answered, and Remove.
+  - **History values:** the 14 history fields left the form. `hooks/useHistoryFeatures.js` calls `POST /api/risk/history-features` (debounced 400 ms) with the current answers from the form (incl. the Risk Check prefill) and the previous visits. The values are shown read-only in a collapsed "Advanced · History" section with an "Auto-calculated" badge, plain labels and the visits with their risk class, and go into the request at Predict time.
+  - **No history given:** neither the checkbox nor any rows means the 14 values are sent as null, with a note.
+  - **Errors:** client checks mark the row or field. Backend 422 messages are matched to the grant date or to the rows by month (`api()` drops `loc`).
+  - **Predict and Clear:** Predict waits ("Calculating history…"); Clear also empties visit date, grant date and previous visits | ✅ Done |
+| H2b | Previous visits feel "saved":
+  - **Done:** each row has a Done button, enabled when the month is chosen and there is no error. Enter on the row also counts, except on a select or button, which keep their own Enter. Done collapses the row into a one-line summary with the risk class from the `/history-features` visits list, plus Edit and Remove. New rows start open, and "Add previous visit" is disabled while an open row is invalid.
+  - **Status line:** Calculating… / ✓ History updated (N previous visits) / the error.
+  - **Not stored:** a note under the header says visits are not stored (no browser storage is used).
+  - **Wording:** "Market stress" is now "Household reported market problems" with help text, and the Market & macro subtitle notes that previous visits don't need market data. The calculation is unchanged | ✅ Done |
   - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
   - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
   - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |

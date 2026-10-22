@@ -196,30 +196,9 @@ export const FEATURE_GROUPS = [
     features: ["F_Age", "F_Female_Participant", "F_Female_Head"],
   },
   {
-    key: "history",
-    title: "History",
-    description: "The same household's earlier visits only.",
-    features: [
-      "F_Months_Since_Prev_Visit",
-      "F_Prev_Risk_Ord",
-      "F_Prev_No_Profit_Last_Month",
-      "F_Prev_Market_Stress_Any",
-      "F_Prev_Not_Progressing_Well",
-      "F_Prev_Business_Not_Running",
-      "F_Risk_Change_vs_Prev",
-      "F_Tenure_Months",
-      "F_N_Prior_Visits",
-      "F_Risk_Mean_3M_Window",
-      "F_NoProfit_Rate_3M_Window",
-      "F_MarketStress_Rate_3M_Window",
-      "F_High_Count_6M_Window",
-      "F_Months_Since_Grant",
-    ],
-  },
-  {
     key: "location",
-    title: "Category, visit month & District",
-    description: "Category and visit month also fill the market and macro values automatically.",
+    title: "Category, visit date & District",
+    description: "Category and visit date also fill the market and macro values automatically.",
     features: ["F_Category", "F_District"],
   },
 ]
@@ -258,8 +237,66 @@ export const CONTEXT_GROUPS = [
 
 export const CONTEXT_FEATURES = CONTEXT_GROUPS.flatMap((group) => group.features)
 
-export const VISIT_MONTH_HELP =
-  "The month of this visit; the model predicts 3 and 6 months after it."
+export const VISIT_DATE_HELP =
+  "The date of this visit; the model predicts 3 and 6 months after its month."
+export const GRANT_DATE_HELP = "Optional. The date the grant was received; not after the visit date."
+
+// History (14 features): never typed in. They come from POST /api/risk/history-features
+// (step H2), calculated from the current answers and the previous visits, and are shown
+// read-only in the "Advanced · History" section with these plain labels.
+export const HISTORY_LABELS = {
+  F_Months_Since_Prev_Visit: "Months since the previous visit",
+  F_Prev_Risk_Ord: "Risk class at the previous visit",
+  F_Prev_No_Profit_Last_Month: "No profit at the previous visit",
+  F_Prev_Market_Stress_Any: "Market stress at the previous visit",
+  F_Prev_Not_Progressing_Well: "Not progressing well at the previous visit",
+  F_Prev_Business_Not_Running: "Business not running at the previous visit",
+  F_Risk_Change_vs_Prev: "Change in risk class since the previous visit",
+  F_Tenure_Months: "Months since the first recorded visit",
+  F_N_Prior_Visits: "Number of earlier visits",
+  F_Risk_Mean_3M_Window: "Average risk class, last 3 months (0 = Low, 2 = High)",
+  F_NoProfit_Rate_3M_Window: "Share of visits with no profit, last 3 months",
+  F_MarketStress_Rate_3M_Window: "Share of visits with market stress, last 3 months",
+  F_High_Count_6M_Window: "Visits with High risk, last 6 months",
+  F_Months_Since_Grant: "Months since the grant was received",
+}
+export const HISTORY_FEATURES = Object.keys(HISTORY_LABELS)
+
+export const MAX_PREVIOUS_VISITS = 12
+// How far back the previous-visit month list goes.
+export const PREVIOUS_VISIT_MONTH_RANGE = 24
+export const PREVIOUS_VISITS_HELP =
+  "Answers from earlier monitoring visits of this household. Do not enter names or IDs."
+
+// Previous-visit answers (positively worded, as the backend expects).
+// label: in the open row; short: in the one-line summary of a finished row.
+export const PREVIOUS_VISIT_ANSWERS = [
+  { key: "business_running", label: "Business running", short: "Business running" },
+  { key: "profit_last_month", label: "Profit last month", short: "Profit" },
+  { key: "progressing_well", label: "Progressing well", short: "Progressing" },
+  {
+    key: "market_stress",
+    label: "Household reported market problems",
+    short: "Market problems",
+    help: "The household's own answer at that visit (not market price data)",
+  },
+]
+
+export const PREVIOUS_VISITS_NOTE =
+  "Visits are used for this prediction only and are not stored. Refreshing the page clears them."
+
+// Current-visit answers in the form (negatively worded F_* features) -> request fields.
+export const CURRENT_VISIT_ANSWERS = {
+  business_running: { feature: "F_Business_Not_Running_t", invert: true },
+  profit_last_month: { feature: "F_No_Profit_Last_Month_t", invert: true },
+  progressing_well: { feature: "F_Not_Progressing_Well_t", invert: true },
+  market_stress: { feature: "F_Market_Stress_Any_t", invert: false },
+}
+
+export const HISTORY_TEXT = {
+  choose: "Enter the visit date, then tick \"First visit for this household\" or add the previous visits.",
+  unknown: "History not given: these 14 values are sent as blank, and the model fills them with the training median.",
+}
 
 export const MARKET_CONTEXT_TEXT = {
   choose: "Choose a category and visit month to fill these 13 values automatically.",

@@ -31,3 +31,10 @@ export function getMarketContext(category, month) {
   const params = new URLSearchParams({ category, month })
   return api(`${BASE_PATH}/market-context?${params}`)
 }
+
+export function computeHistoryFeatures(body) {
+  return api(`${BASE_PATH}/history-features`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}

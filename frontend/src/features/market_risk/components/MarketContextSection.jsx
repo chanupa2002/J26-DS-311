@@ -43,7 +43,8 @@ export function MarketContextSection({ context, ready, descriptions, onRetry }) 
         <div className="min-w-0 space-y-0.5">
           <p className="text-sm font-medium">Advanced · Market & macro</p>
           <p className="text-xs text-muted-foreground">
-            13 values from category and visit month. Read-only.
+            13 values from category and visit month. Read-only. Used for this visit only;
+            previous visits don't need market data.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
