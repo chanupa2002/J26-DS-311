@@ -255,5 +255,10 @@ Owner decision (inside my folder, not done): the notebook source still has Colab
   - **422:** bad date or month, duplicate months, previous visit not before the visit month, grant after visit, more than 12 visits.
   - **Check:** `ml/training/check_history_features.py` rebuilds every keyed training row from its own earlier visits: 14 of 14 features equal on 550 of 550 rows. It fails on any mismatch.
   - **Tests:** `tests/test_history_features.py` (20 tests, inline data). README and `CONTRACTS_UPDATE.md` row | ✅ Done |
+| 16 (D1) | **Explanation sanity check (SHAP direction)** recorded in `EXPLANATION_CHECK.md` (linked from the README limitations):
+  - **Labels:** all 53 frontend labels are correct.
+  - **6M:** the model reverses the no-profit and risk-history features, matching the synthetic training labels (91 training rows). 3M is mostly as expected.
+  - **Action:** re-check directions with real data and expert review before any use, and after every retraining.
+  Docs only; no code or data changes | ✅ Done |
 | — | NDA supervisor sign-off (Q7) | ⏳ **Pending supervisor sign-off** |
 | — | Leader-approved shared changes (§6) | ⏳ Waiting for the leader |
