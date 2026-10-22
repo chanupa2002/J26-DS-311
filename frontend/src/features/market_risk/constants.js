@@ -1,6 +1,10 @@
 export const BASE_PATH = "/api/risk"
 
-export const UNAVAILABLE_MESSAGE_PREFIX = "Market-risk model is unavailable"
+// Fixed starts of the backend 503 messages (api() does not expose the status; FRONTEND_PLAN.md §5).
+export const UNAVAILABLE_MESSAGE_PREFIXES = [
+  "Market-risk model is unavailable",
+  "Market-context data is unavailable",
+]
 
 export const RISK_CLASSES = ["Low", "Medium", "High"]
 
@@ -134,3 +138,238 @@ export const LIMITATIONS = [
 ]
 
 export const LIMITATIONS_SHOWN = 3
+
+// ------------------------------------------------------------ Future Risk ----
+
+export const TOP_K = 5
+
+export const HORIZON_OPTIONS = [
+  { value: "both", label: "Both (3M and 6M)" },
+  { value: "3M", label: "3 months (3M)" },
+  { value: "6M", label: "6 months (6M)" },
+]
+
+export const CATEGORICAL_FEATURES = ["F_Category", "F_District"]
+
+// Form sections for the 53 features. Any feature from /model-info that is not
+// listed here is shown in an extra "Other" section, so nothing can be lost.
+export const FEATURE_GROUPS = [
+  {
+    key: "signals",
+    title: "Current signals",
+    description: "Answers at this visit and the current risk class from the rule.",
+    features: [
+      "F_Business_Not_Running_t",
+      "F_No_Profit_Last_Month_t",
+      "F_Not_Progressing_Well_t",
+      "F_Revenue_Lowest_Band_t",
+      "F_Sales_Below_Expected_t",
+      "F_High_Input_Cost_t",
+      "F_Inputs_Unavailable_t",
+      "F_Market_Stress_Any_t",
+      "F_Risk_Ord_t",
+      "F_Risk_Signal_Count_t",
+      "F_Risk_Unknown_t",
+    ],
+  },
+  {
+    key: "business",
+    title: "Business",
+    description: "Operating conditions at this visit.",
+    features: [
+      "F_Hours_Ord_t",
+      "F_Records_Ord_t",
+      "F_Grant_Status_Ord_t",
+      "F_Borrowed_t",
+      "F_Saved_t",
+      "F_Cyclone_Affected_t",
+      "F_Asset_Lost_t",
+      "F_Storage_Transport_Issue_t",
+      "F_Machinery_Issue_t",
+      "F_Natural_Disaster_t",
+    ],
+  },
+  {
+    key: "participant",
+    title: "Participant",
+    description: "Age and gender of the participant and household head.",
+    features: ["F_Age", "F_Female_Participant", "F_Female_Head"],
+  },
+  {
+    key: "history",
+    title: "History",
+    description: "The same household's earlier visits only.",
+    features: [
+      "F_Months_Since_Prev_Visit",
+      "F_Prev_Risk_Ord",
+      "F_Prev_No_Profit_Last_Month",
+      "F_Prev_Market_Stress_Any",
+      "F_Prev_Not_Progressing_Well",
+      "F_Prev_Business_Not_Running",
+      "F_Risk_Change_vs_Prev",
+      "F_Tenure_Months",
+      "F_N_Prior_Visits",
+      "F_Risk_Mean_3M_Window",
+      "F_NoProfit_Rate_3M_Window",
+      "F_MarketStress_Rate_3M_Window",
+      "F_High_Count_6M_Window",
+      "F_Months_Since_Grant",
+    ],
+  },
+  {
+    key: "location",
+    title: "Category, visit month & District",
+    description: "Category and visit month also fill the market and macro values automatically.",
+    features: ["F_Category", "F_District"],
+  },
+]
+
+// Market (category x month) and macro (month) features: never typed in. They come from
+// GET /api/risk/market-context (step F5) and are shown read-only in the Advanced section.
+export const CONTEXT_GROUPS = [
+  {
+    key: "market",
+    title: "Market",
+    description: "Category market-price pressure and volatility (from category and month).",
+    features: [
+      "F_Mkt_Pressure_t",
+      "F_Mkt_Volatility_t",
+      "F_Mkt_Pressure_Change_1M",
+      "F_Mkt_Volatility_Change_1M",
+      "F_Mkt_Pressure_Tier_Ord_t",
+      "F_Mkt_Volatility_Tier_Ord_t",
+      "F_Mkt_Pressure_Tier_Ord_t_minus_1",
+      "F_Mkt_Evidence_Missing",
+    ],
+  },
+  {
+    key: "macro",
+    title: "Macro",
+    description: "National inflation, food prices and diesel price (from month).",
+    features: [
+      "F_Macro_CCPI_YoY_t",
+      "F_Macro_CCPI_YoY_Change_1M",
+      "F_Macro_Food_Index_Change_1M_pct",
+      "F_Macro_Diesel_t",
+      "F_Macro_Diesel_Change_1M_pct",
+    ],
+  },
+]
+
+export const CONTEXT_FEATURES = CONTEXT_GROUPS.flatMap((group) => group.features)
+
+export const VISIT_MONTH_HELP =
+  "The month of this visit; the model predicts 3 and 6 months after it."
+
+export const MARKET_CONTEXT_TEXT = {
+  choose: "Choose a category and visit month to fill these 13 values automatically.",
+  noEvidence:
+    "No market price data for this category in this month. Only national indicators were filled; the model handles the blanks.",
+  outOfRange: "No market or national data for this month, so these values stay empty. Nothing is estimated.",
+}
+
+// Risk Check router state -> feature names (decision Q6).
+export const RISK_CHECK_SIGNAL_FEATURES = {
+  business_not_running: "F_Business_Not_Running_t",
+  no_profit_last_month: "F_No_Profit_Last_Month_t",
+  not_progressing_well: "F_Not_Progressing_Well_t",
+  market_stress_any: "F_Market_Stress_Any_t",
+}
+export const RISK_CHECK_COUNT_FEATURES = {
+  risk_ord: "F_Risk_Ord_t",
+  signal_count: "F_Risk_Signal_Count_t",
+  unknown_count: "F_Risk_Unknown_t",
+}
+
+export const PROBABILITY_BAR_CLASS = {
+  Low: "bg-emerald-600 dark:bg-emerald-500",
+  Medium: "bg-amber-500 dark:bg-amber-400",
+  High: "bg-red-600 dark:bg-red-500",
+}
+
+export const SHAP_COLORS = { towardsHigh: "#dc2626", awayFromHigh: "#16a34a" }
+
+export const FUTURE_RISK_NOTICE_REASON =
+  "Predictions come from prototype models trained on a synthetic panel. They show what the model would say, not what will happen to a real household."
+
+// Coded features shown as selects. Values are the exact numbers the model was
+// trained with (sent as numbers); the blank option is sent as null.
+const YES_NO = [
+  { value: "1", label: "Yes" },
+  { value: "0", label: "No" },
+]
+const RISK_LEVELS = [
+  { value: "0", label: "Low" },
+  { value: "1", label: "Medium" },
+  { value: "2", label: "High" },
+]
+// Category_Month_Table coding: Low=0, Medium=1, High=2; "Insufficient Evidence" is blank.
+const MARKET_TIERS = RISK_LEVELS
+
+export const FEATURE_OPTIONS = {
+  ...Object.fromEntries(
+    [
+      "F_Business_Not_Running_t",
+      "F_No_Profit_Last_Month_t",
+      "F_Not_Progressing_Well_t",
+      "F_Revenue_Lowest_Band_t",
+      "F_Sales_Below_Expected_t",
+      "F_High_Input_Cost_t",
+      "F_Inputs_Unavailable_t",
+      "F_Market_Stress_Any_t",
+      "F_Borrowed_t",
+      "F_Saved_t",
+      "F_Cyclone_Affected_t",
+      "F_Female_Head",
+      "F_Asset_Lost_t",
+      "F_Storage_Transport_Issue_t",
+      "F_Machinery_Issue_t",
+      "F_Natural_Disaster_t",
+      "F_Prev_No_Profit_Last_Month",
+      "F_Prev_Market_Stress_Any",
+      "F_Prev_Not_Progressing_Well",
+      "F_Prev_Business_Not_Running",
+      "F_Mkt_Evidence_Missing",
+    ].map((name) => [name, { options: YES_NO, blank: "Not answered" }]),
+  ),
+  F_Female_Participant: {
+    options: [
+      { value: "1", label: "Female" },
+      { value: "0", label: "Male" },
+    ],
+    blank: "Not answered",
+  },
+  F_Risk_Ord_t: { options: RISK_LEVELS, blank: "Not answered (Unassigned)" },
+  F_Prev_Risk_Ord: { options: RISK_LEVELS, blank: "Not answered (no previous visit)" },
+  F_Hours_Ord_t: {
+    options: [
+      { value: "1", label: "1–4 hours a day" },
+      { value: "2", label: "5–8 hours a day" },
+      { value: "3", label: "9+ hours a day" },
+    ],
+    blank: "Not answered",
+  },
+  F_Records_Ord_t: {
+    options: [
+      { value: "0", label: "No records" },
+      { value: "1", label: "A few times a month" },
+      { value: "2", label: "Once or twice a week" },
+      { value: "3", label: "Daily" },
+    ],
+    blank: "Not answered",
+  },
+  F_Grant_Status_Ord_t: {
+    options: [
+      { value: "0", label: "Not received" },
+      { value: "1", label: "Received, not fully used" },
+      { value: "2", label: "Fully used, bills not settled" },
+      { value: "3", label: "Received, fully used" },
+    ],
+    blank: "Not answered",
+  },
+  F_Mkt_Pressure_Tier_Ord_t: { options: MARKET_TIERS, blank: "Insufficient evidence" },
+  F_Mkt_Volatility_Tier_Ord_t: { options: MARKET_TIERS, blank: "Insufficient evidence" },
+  F_Mkt_Pressure_Tier_Ord_t_minus_1: { options: MARKET_TIERS, blank: "Insufficient evidence" },
+}
+
+export const SHAP_NOTE = "SHAP shows what drives the model, not real-world causes."

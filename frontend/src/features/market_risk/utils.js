@@ -1,4 +1,4 @@
-import { BLANK, UNAVAILABLE_MESSAGE_PREFIX } from "./constants"
+import { BLANK, UNAVAILABLE_MESSAGE_PREFIXES } from "./constants"
 
 /** Select values ("1" / "0" / "blank") -> /identify body (1 / 0 / null). */
 export function toSignals(formValues) {
@@ -67,9 +67,69 @@ export function splitReasons(reason) {
  */
 export function errorKind(error) {
   const message = String(error?.message || "")
-  if (message.startsWith(UNAVAILABLE_MESSAGE_PREFIX)) return "unavailable"
+  if (UNAVAILABLE_MESSAGE_PREFIXES.some((prefix) => message.startsWith(prefix))) return "unavailable"
   if (error instanceof TypeError || /failed to fetch|networkerror/i.test(message)) {
     return "network"
   }
   return "invalid"
+}
+
+// ------------------------------------------------------------ Future Risk ----
+
+/** Form values are strings ("" = blank); this builds an empty form for the given feature names. */
+export function emptyFeatureForm(featureNames) {
+  return Object.fromEntries(featureNames.map((name) => [name, ""]))
+}
+
+/** Feature object (numbers / strings / null) -> form strings. */
+export function featuresToForm(featureNames, features) {
+  return Object.fromEntries(
+    featureNames.map((name) => {
+      const value = features?.[name]
+      return [name, value === null || value === undefined ? "" : String(value)]
+    }),
+  )
+}
+
+/** Risk Check router state -> partial feature object (7 features), or null. */
+export function featuresFromRiskCheck(state, signalMap, countMap) {
+  if (!state?.signals) return null
+  const prefill = {}
+  for (const [key, feature] of Object.entries(signalMap)) {
+    prefill[feature] = state.signals[key] ?? null
+  }
+  for (const [key, feature] of Object.entries(countMap)) {
+    prefill[feature] = state[key] ?? null
+  }
+  return prefill
+}
+
+/**
+ * Form strings -> { features, invalid }. All keys are always sent; blanks become null.
+ * Numeric fields that are not finite numbers are returned in `invalid`.
+ */
+export function formToFeatures(featureNames, categorical, values) {
+  const features = {}
+  const invalid = []
+  for (const name of featureNames) {
+    const raw = String(values[name] ?? "").trim()
+    if (raw === "") {
+      features[name] = null
+    } else if (categorical.includes(name)) {
+      features[name] = raw
+    } else {
+      const number = Number(raw)
+      if (Number.isFinite(number)) features[name] = number
+      else {
+        features[name] = null
+        invalid.push(name)
+      }
+    }
+  }
+  return { features, invalid }
+}
+
+export function countFilled(values) {
+  return Object.values(values).filter((value) => String(value ?? "").trim() !== "")
+    .length
 }

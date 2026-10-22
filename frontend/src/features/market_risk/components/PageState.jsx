@@ -10,7 +10,7 @@ const ERROR_TEXT = {
   unavailable: {
     icon: ServerCrash,
     title:
-      "The market-risk model is not available on the server right now. Contact the market_risk owner.",
+      "This market-risk service is not available on the server right now. Contact the market_risk owner.",
   },
   network: {
     icon: WifiOff,

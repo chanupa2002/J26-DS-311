@@ -26,3 +26,8 @@ export function explainMarketRisk(body) {
     body: JSON.stringify(body),
   })
 }
+
+export function getMarketContext(category, month) {
+  const params = new URLSearchParams({ category, month })
+  return api(`${BASE_PATH}/market-context?${params}`)
+}

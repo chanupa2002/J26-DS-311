@@ -1,4 +1,4 @@
-import { OverviewPage, RiskCheckPage } from "./pages"
+import { FutureRiskPage, OverviewPage, RiskCheckPage } from "./pages"
 
 export const routes = [
   {
@@ -10,5 +10,10 @@ export const routes = [
     path: "/risk/check",
     element: <RiskCheckPage />,
     handle: { title: "Risk Check" },
+  },
+  {
+    path: "/risk/future",
+    element: <FutureRiskPage />,
+    handle: { title: "Future Risk" },
   },
 ]

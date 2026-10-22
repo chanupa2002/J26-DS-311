@@ -1,5 +1,6 @@
 export {
   explainMarketRisk,
+  getMarketContext,
   getRiskModelInfo,
   identifyCurrentRisk,
   predictMarketRisk,

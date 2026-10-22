@@ -1,6 +1,6 @@
 # market_risk: frontend plan
 
-Status: **decisions made (§6). Steps F2 (foundation + Overview) and F3 (Risk Check) built; Future Risk not yet.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
+Status: **decisions made (§6). Steps F2 (foundation + Overview), F3 (Risk Check), F4 (Future Risk) and F5 (market/macro auto-fill) built.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
 
 Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: SYNTHETIC panel (70 households, 9 categories), **NOT_READY**.
 
@@ -67,7 +67,7 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 
 ### 1.3 Future Risk (`/risk/future`)
 - **Toolbar:**
-  - **Load sample:** fills the form from `sampleFeatures.js`, a copy of `backend/.../sample_data/predict_request_example.json` (synthetic, rounded). The button and a badge on the form say **"Synthetic sample"**;
+  - **No sample button** (removed after F4; `sampleFeatures.js` deleted). The form starts blank, or prefilled from Risk Check;
   - **Clear:** sets all fields to blank (null);
   - **Horizon:** a `Select` with both / 3M / 6M (default both).
 - **Features form (53 fields):**
@@ -97,7 +97,7 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `routes.jsx` | 3 routes with `handle.title` |
 | `README.md` | Pages, endpoints used, how to test locally (like livelihood's README) |
 | `constants.js` | `BASE_PATH = "/api/risk"`, class order, Badge variant per class, metric labels, signal options, feature groups (name lists), static trade-off numbers and limitations (decision Q2) |
-| `sampleFeatures.js` | The 53-key "Synthetic sample" object, from the backend sample JSON (decision Q3) |
+| ~~`sampleFeatures.js`~~ | Removed (F4 follow-up): the sample button was dropped |
 | `utils.js` | `formatMetric`, `formatPercent`, `formatSigned`, `formatDateTime`, `splitReasons`, `errorKind(error)` (§5); later `toNullableNumber`, `buildPredictBody(values, horizon)` |
 | `api/riskApi.js` | `getRiskModelInfo()`, `identifyCurrentRisk(signals)`, `predictMarketRisk(body)`, `explainMarketRisk(body)`, all via `api()` from `@/lib/api` |
 | `api/index.js` | Re-exports |
@@ -118,9 +118,9 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `components/SignalForm.jsx` | 4 `Select`s + example buttons + Check risk / Reset |
 | `components/CurrentRiskResult.jsx` | The Risk Check result card |
 | `components/FeatureForm.jsx` | The grouped 53-field form, the category/district `Select`s, filled counter |
-| `components/FeatureField.jsx` | One numeric field with `Label` + description `Tooltip` |
+| `components/FeatureField.jsx` | One feature: a `Select` for coded features (`FEATURE_OPTIONS`: Yes/No, Female/Male, risk levels, hours, records, grant status, market tiers; categorical levels from `/model-info`) or a number `Input` for continuous values, with `Label` + F_* name |
 | `components/ProbabilityBars.jsx` | 3 bars for one horizon |
-| `components/PredictionCard.jsx` | Badge + bars + `StatusBadge` for one horizon |
+| `components/PredictionCard.jsx` | Class badge + probability bars for one horizon (no status badge: the page-level `ValidationNotice` covers it) |
 | `components/WarningList.jsx` | `/predict` warnings |
 | `components/ShapChart.jsx` | recharts bar chart of `high_risk_factors` |
 | `components/FactorTable.jsx` | `top_factors` table (optional section) |
@@ -145,7 +145,7 @@ No files outside this folder are changed. No `.env` and no new dependencies.
 | State | Overview | Risk Check | Future Risk |
 |---|---|---|---|
 | Loading | `PageState loading` (Skeletons) while `/model-info` loads | Submit button "Checking…" + disabled | Form waits for `/model-info` (Skeletons). On submit, "Predicting…" + disabled, and Skeletons in the result area |
-| Empty | `PageState empty` if `models` is empty | Before submit: hint text "Choose the answers and press Check risk" | Before submit: "Fill the features or press Load sample". All 53 blank is allowed (the backend imputes), with a notice |
+| Empty | `PageState empty` if `models` is empty | Before submit: hint text "Choose the answers and press Check risk" | Before submit: "Fill in the features you know and press Predict". All 53 blank is allowed (the backend imputes), with a notice |
 | Error | `PageState error` + Retry (`refetch`) | Error card under the form + Retry. The form keeps its values | Error card above the results + Retry. If only `/explain` fails, the predictions still show, and the SHAP area shows the error |
 | Not validated | `ValidationNotice` always shown | `ValidationNotice` with the provisional-rule reasons always shown | `ValidationNotice` at the top + `StatusBadge` in every prediction card. Nothing is shown as "ready" |
 
@@ -172,7 +172,7 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
 |---|---|---|
 | Q1 | Telling 422 from 503 | Detect 503 by the backend message (`"Market-risk model is unavailable"`). **No change to `api.js`**; see the suggestion for the leader in §7 |
 | Q2 | Trade-off and limitations source | Constants in `constants.js` in this folder |
-| Q3 | Sample in the frontend | Yes: copy the sample request into `sampleFeatures.js`, labelled **"Synthetic sample"** |
+| Q3 | Sample in the frontend | First: copy the sample request, labelled "Synthetic sample". **Revised after F4:** the sample button and badge were removed and `sampleFeatures.js` deleted |
 | Q4 | `@/components/explain` with fixed texts | Build own small components (`ProbabilityBars`, `RiskBadge`, `ModelMetricsCard`) |
 | Q5 | i18n | Plain English strings |
 | Q6 | Risk Check → Future Risk | Yes: a **"Use in Future Risk"** button prefills `F_Risk_Ord_t`, `F_Risk_Signal_Count_t`, `F_Risk_Unknown_t` and the 4 signal features via router state (§1.2) |
@@ -190,4 +190,15 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
 | F1 | This plan | ✅ Done |
 | F2 | Foundation (`api/riskApi.js` with all 4 calls, `hooks/useModelInfo.js`, `constants.js`, `utils.js`), shared components (`PageState`, `ValidationNotice`, `StatusBadge`, `AboutDataCard`, `ModelMetricsCard`, `TradeOffTable`, `LevelList`, `LimitationsList`, `FeatureList`), `OverviewPage` at `/risk/overview`, routes and nav | ✅ Done |
 | F3 | Risk Check page: `hooks/useIdentify.js`, `RiskBadge`, `SignalForm`, `CurrentRiskResult`, `RiskCheckPage` at `/risk/check`, route + nav | ✅ Done |
-| F4 | Future Risk page | ⏳ Next |
+| F4 | Future Risk page: `hooks/useFutureRisk.js` (predict + explain in parallel with `Promise.allSettled`), `FeatureForm`, `FeatureField`, `PredictionCard`, `ProbabilityBars`, `WarningList`, `ShapChart`, `ExplanationPanel`, `FutureRiskPage` at `/risk/future`, route + nav. Built details:
+| F4b | Future Risk follow-up: 30 coded features as selects. Option values are the trained codes, so requests are unchanged. Market tiers are Low=0 / Medium=1 / High=2, blank = insufficient evidence (`Category_Month_Table`). Sample button, badge and `sampleFeatures.js` removed; status badge removed from prediction cards; SHAP note fixed to "SHAP shows what drives the model, not real-world causes." | ✅ Done |
+| F5 | Market and macro auto-fill:
+  - **Visit month:** a select next to Category, with options from `available_months`. It's not a model feature.
+  - **Advanced section:** the 13 `F_Mkt_*` / `F_Macro_*` features left the editable form. They are shown read-only in a collapsed "Advanced · Market & macro" section, with an "Auto-filled" badge and `source_note`.
+  - **Request:** the values come straight from `GET /api/risk/market-context` (`hooks/useMarketContext.js`) and go into the request at Predict time, so a new category or month replaces them and Clear empties them. Predict waits while they load.
+  - **Missing data:** if `evidence_missing`, the page says "No market price data for this category…". If `in_data_range` is false, it shows the note and sends nulls (never guessed).
+  - **Month list:** one market-context call for the current month.
+  - **503 detection:** also recognises the backend's "Market-context data is unavailable" message | ✅ Done |
+  - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
+  - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
+  - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |
