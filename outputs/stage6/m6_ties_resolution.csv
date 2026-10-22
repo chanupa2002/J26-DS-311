@@ -1,0 +1,6 @@
+research_label,method,tied_score_values_n,households_in_ties_n,tie_share,n_scored
+Research output - not an eligibility determination,F1,223,527,0.07696801518913393,6847
+Research output - not an eligibility determination,F0,595,1701,0.2484299693296334,6847
+Research output - not an eligibility determination,B1,80,164,0.023952095808383235,6847
+Research output - not an eligibility determination,B2,10,20,0.00422029964127453,4739
+Research output - not an eligibility determination,B3,52,6838,0.9986855557178326,6847

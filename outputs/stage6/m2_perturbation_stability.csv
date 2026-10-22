@@ -1,0 +1,2 @@
+research_label,replicates,spearman_mean,spearman_sd,spearman_p05,spearman_median,spearman_p95,top_decile_retention_mean,top_decile_retention_p05,top_decile_retention_p95
+Research output - not an eligibility determination,200,0.9511394971798427,0.0318168564431186,0.8884660489944674,0.9618160847054373,0.9902479750565173,0.8077591240875912,0.6859124087591242,0.8965693430656934

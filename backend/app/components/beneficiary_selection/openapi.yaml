@@ -6,6 +6,24 @@ info:
 servers:
   - url: http://127.0.0.1:8000
 paths:
+  /geography:
+    get: {responses: {'200': {description: Province and district codes, display names, and unweighted sample counts}}}
+  /glossary:
+    get: {responses: {'200': {description: Plain-language UI glossary entries}}}
+  /distribution:
+    get: {responses: {'200': {description: Expected-vulnerability histogram and median for the saved baseline comparison group}}}
+  /coverage:
+    get: {responses: {'200': {description: Stage 4 input availability counts by model input}}}
+  /assess/derive:
+    post:
+      requestBody: {required: true, content: {application/json: {schema: {type: object, description: Raw questionnaire answers. Unknown values remain unobserved.}}}}
+      responses: {'200': {description: Temporary derived-input preview; no record is saved}}
+      description: Uses the existing fuzzy engine and frozen references; unresolved fields remain Unknown.
+  /assess/score:
+    post:
+      requestBody: {required: true, content: {application/json: {schema: {type: object, description: Raw questionnaire answers. Unknown values remain unobserved.}}}}
+      responses: {'200': {description: Temporary what-if BN result, comparison group, and evidence-used count}}
+      description: Uses the existing fuzzy engine, frozen references, and v0.2 interim network; no record is saved.
   /households:
     get:
       parameters:

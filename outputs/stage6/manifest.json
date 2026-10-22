@@ -1,0 +1,92 @@
+{
+  "research_label": "Research output - not an eligibility determination",
+  "stage": 6,
+  "model_unchanged": true,
+  "stage5_pipeline": "stage5-v0.2.0",
+  "bn_model": "bn_v0.1.0",
+  "fuzzy_model": "fuzzy-0.1.0",
+  "seed": 20261022,
+  "seeds": {
+    "perturbation": 20261022,
+    "missingness": 20261023,
+    "rank_plot_sample": 20261024
+  },
+  "replicates": {
+    "perturbation": 200,
+    "missingness_per_fraction": 100
+  },
+  "parameters": {
+    "MIN_CELL": 10,
+    "B3_threshold_primary": 0.5,
+    "B3_threshold_sensitivity": [
+      0.4,
+      0.6
+    ],
+    "mask_rates": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "crowding_midpoint_range": [
+      2.5,
+      4.0
+    ],
+    "crowding_half_width_range": [
+      0.5,
+      1.5
+    ],
+    "dirichlet_total_concentration": 20
+  },
+  "alignment_n": 6847,
+  "stage4_sha256": "de78814295c7d95979ccea09c40051bb23e99622aa6bbdb69918e7eeed5c4db7",
+  "stage5_sha256": "2c96155fcf8502a24c41d6e252cd67b8c6f9fdc7a07f60495dea307e0fea11a7",
+  "runtime_synthetic_score_record_mean_seconds": 0.010608960499812383,
+  "baseline_rebuild_max_abs_difference": 4.440892098500626e-16,
+  "python": "3.13.7",
+  "numpy": "2.3.2",
+  "pandas": "2.3.3",
+  "scipy": "1.16.2",
+  "input_hashes": {
+    "component1_audit\\outputs\\stage4b\\fuzzy_scores_v0_2.csv": "de78814295c7d95979ccea09c40051bb23e99622aa6bbdb69918e7eeed5c4db7",
+    "component1_audit\\outputs\\stage5\\bn_scores_v0_2_interim.csv": "2c96155fcf8502a24c41d6e252cd67b8c6f9fdc7a07f60495dea307e0fea11a7",
+    "component1_audit\\outputs\\stage3\\modelling_inputs_v0_1.csv": "75b05e25b0ee8adb8e5cf3e6716384ed2fd73978d02c4fceab813843b15fa3b7",
+    "component1_audit\\outputs\\stage3b\\modelling_inputs_v0_2_additions.csv": "7706ce28b38d77b26d8d65090bbe2a9b1739487ddf42531a8614830378b34585",
+    "Data\\processed\\hh_context.csv": "973e2dfdfd31c0ca561c97fcde20a56959ae059f1348e3cf08ce2d63947309ea",
+    "component1_audit\\bn_engine\\bn_v0_1.py": "bd5312332b0c4e399447b9f0da66e318fa9040c3408b0a874ef18bde0fa325ce",
+    "component1_audit\\fuzzy_engine\\fuzzy_v0_1.py": "4eb84a59d97f7007bddd57a88dde32ee1a4eb5a41f537309c62f3d33504f9518"
+  },
+  "output_hashes": {
+    ".pytest_cache\\.gitignore": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+    ".pytest_cache\\CACHEDIR.TAG": "37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4",
+    ".pytest_cache\\README.md": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+    ".pytest_cache\\v\\cache\\nodeids": "a7634e2c039e23bbbf77f56392e583da7be77b2c68a46b414f4d93e44f97ffb8",
+    "__pycache__\\run_stage6.cpython-313.pyc": "cbc160a6b385be1e06abf46fce60dca38b92049a1d01e543120e5a5d7750b2da",
+    "__pycache__\\test_stage6.cpython-313-pytest-9.1.1.pyc": "fcf399dbd446778fe0319be345990d3b2d2b880ece41274fe521139147f56b5d",
+    "b3_threshold_sensitivity.csv": "b4d02fedcb09e644730d3da360702784e0bf32d7e5ab9392f30554f6a944b94d",
+    "figures\\masking_curve.png": "214ddb101ae2967a509faa030d0914f402e0d441ad40ed1b7b491dfec2336549",
+    "figures\\method_agreement_heatmap.png": "75d693e7fd4bd776377af1b5350aeb974ca9d3d828d3f411bca462692f84715f",
+    "figures\\rank_intervals_stratified_sample.png": "02d0ccedbcfa04fa82dd78eadcd222e291a1d98e611a2f8156c2032c01a78853",
+    "figures\\subgroup_district_F1.png": "c3bccb05bd84eb76fb7ae20014a4aa375866bfa8bcbe6b6cf31959c69430ae06",
+    "figures\\subgroup_province_F1.png": "23383b99ac55eff6c4309ac5dfe781ce45ff0cd6e10e0243bdff702de904a126",
+    "figures\\subgroup_sector_F1.png": "59d7230caf95c5df8104bf0294e9137e4cd9fbf68a186be12611a57fd1dbf28a",
+    "m1_method_agreement.csv": "6337521ead42b8ffd6929f9aca4fea2c01b1e7525430d5fe5f997c25a16a0d1a",
+    "m2_household_rank_intervals.csv": "ad4a42d85cdf97e9087e00010f3aa2d4a180d985894f3b7fc41101c4417cec8d",
+    "m2_perturbation_stability.csv": "98b5cff642b0d03cdbcb01d4c58fad31c002c1bb01ba6da4b801f5ac59e84ebe",
+    "m3_missing_evidence_stress.csv": "dcbeb1c2a072937057f1d895a16cdaa0f691b620ee5fe04899050ab45a3d6b51",
+    "m4_evidence_bands.csv": "cf15c4e99ab31b3f5258a5ee2878a95aec6f353baccc9512a11d1a3f64cb7040",
+    "m4_uncertainty_evidence.csv": "9f3d42c991c5410d645090f72a891be2106b63aef2fa00b38356d0c2a3513783",
+    "m5_subgroups.csv": "972e50842b9f806a78a0c54b51efa995edcd94773f691adbf5c7b43fd008d12d",
+    "m6_ties_resolution.csv": "aa78ac976963ea3d0109433485c4d6303d45308384fe9d3aac2882c8ae13fa1e",
+    "method_score_distributions.csv": "5fd73f127459c0da9a034e31350788478e4d0c9d466344bc9b43552d0d1db9fc",
+    "open_questions.md": "5e3bc1fccf34eea271c877f8098d5d43d0d9498ead12b8a6fb1f3ffee6d2be45",
+    "pca_loadings.csv": "f4fa4edbb3a6639cd7d30270576c8c3fd0ac0d5cc0af481c7e286f884bf169f2",
+    "proxy_reference\\proxy_agreement.csv": "d88c56ffeb90a4aed8dc9f83711c9221ce303c8d90787c4f890a944159da9965",
+    "proxy_reference\\README.md": "edbfe19ef608cff72e1f761e2a22cbbd0a2ce7aef2e874ef3e743cf4837acbba",
+    "run_stage6.py": "4f2ab7a84f6848ce6b2a4dbba221de2517cf9963a4fe176c488550683db82dc4",
+    "scores_all_methods.csv": "43decc63114a5f96db57ff5322d61801085a8dff3d0ef195c66a790d7b43c434",
+    "stage6_evaluation_report.md": "949d06f60df7c5ae598c85e304e0a122738171f1d7827f68fb2961cbc36f922b",
+    "stage6_inputs_audit.md": "8db070d67ea65741f94d8d0b0f804e438c6135459cfdf3b16bac033e1bf7bdbf",
+    "stage6_summary.md": "dc07f572047c747043034049e0d312e6433a68029e29864812ccb268927abbcc",
+    "test_stage6.py": "8a5765dd7d3e089fc5042e953ae1e21829d3e473828efd81881aa060a4baa9af"
+  }
+}

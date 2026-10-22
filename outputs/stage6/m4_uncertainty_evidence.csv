@@ -1,0 +1,3 @@
+research_label,relationship,n,spearman,kendall_tau,direction
+Research output - not an eligibility determination,available BN leaves vs expected_vulnerability,6847,-0.045394191260596135,-0.0370672648573048,higher evidence associated with lower value
+Research output - not an eligibility determination,available BN leaves vs posterior_entropy,6847,-0.05256658692988261,-0.042923990835261557,higher evidence associated with lower value

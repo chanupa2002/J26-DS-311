@@ -25,6 +25,8 @@ app = FastAPI(title="SWSS Backend", version="0.1.0")
 component1_api_paths = {
     "/", "/health", "/households", "/summary", "/whatif", "/sensitivity",
     "/spec", "/model-info", "/openapi.yaml", "/whatif/template.csv",
+    "/geography", "/glossary", "/distribution", "/coverage",
+    "/assess/derive", "/assess/score",
 }
 
 

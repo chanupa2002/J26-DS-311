@@ -1,0 +1,6 @@
+research_label,method,pc_cons_spearman,pc_cons_n,label_auc_descriptive,label_n,label_positive_n,top_decile_proxy_capture
+Research output - not an eligibility determination,F1,-0.3070767539551921,6847,0.6437150789182473,6847,1425,0.17473684210526316
+Research output - not an eligibility determination,F0,-0.41469789565224624,6847,0.7058710775463186,6847,1425,0.19929824561403509
+Research output - not an eligibility determination,B1,-0.33395933635458336,6847,0.6630224491512811,6847,1425,0.19298245614035087
+Research output - not an eligibility determination,B2,-0.3845349943906494,4739,0.6987379748699323,4739,835,0.18323353293413175
+Research output - not an eligibility determination,B3,-0.3824429665474972,6847,0.6896377979252817,6847,1425,0.1936842105263158

@@ -54,6 +54,20 @@ private_data/
 !backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_cleaning_log.csv
 !backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/market_filter_log.csv
 
+# Stage 6 aggregate evaluation tables are review artifacts; household-level
+# outputs (including scores_all_methods.csv) remain ignored by the *.csv rule.
+!outputs/stage6/m1_method_agreement.csv
+!outputs/stage6/method_score_distributions.csv
+!outputs/stage6/m6_ties_resolution.csv
+!outputs/stage6/m2_perturbation_stability.csv
+!outputs/stage6/m3_missing_evidence_stress.csv
+!outputs/stage6/m4_uncertainty_evidence.csv
+!outputs/stage6/m4_evidence_bands.csv
+!outputs/stage6/m5_subgroups.csv
+!outputs/stage6/b3_threshold_sensitivity.csv
+!outputs/stage6/pca_loadings.csv
+!outputs/stage6/proxy_reference/proxy_agreement.csv
+
 # BRIGHT research data - keep local, never commit
 /Data/
 
