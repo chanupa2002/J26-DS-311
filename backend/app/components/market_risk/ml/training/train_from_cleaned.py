@@ -9,7 +9,8 @@ Data basis: SYNTHETIC panel (70 households, 9 categories). Never real-world evid
 
 Inputs come from environment variables; nothing is read from or written to the repo
 except the optional aggregate report (--report). The deployed models in ml/models/
-are only read (for the reproduction gate), never written.
+are never written. The reproduction gate compares with the pinned version 1.0
+reference in ml/training/gate_reference_v1.json, not with ml/models/ (see below).
 
     SUSTAIN_CLEANED        path to monitoring_visits_clean.csv
     SUSTAIN_COMBINED       path to combined.xlsx
@@ -17,6 +18,8 @@ are only read (for the reproduction gate), never written.
 
 From backend/:
     python -m app.components.market_risk.ml.training.train_from_cleaned [--gate-only] [--report PATH]
+    python -m app.components.market_risk.ml.training.train_from_cleaned --build-gate-reference DIR
+        (DIR = the version 1.0 model folder with 3M/ and 6M/; needs no data)
 """
 
 import argparse
@@ -44,13 +47,18 @@ SAVED_ALGORITHM = "RandomForest"
 MODEL_VERSION = "2.0-cleaned-candidate"
 SETTINGS_LABELS = {"grid": "grid search (as in the notebook)", "deployed": "deployed RF settings fixed (no grid search)"}
 SETTINGS_SUBDIR = {"grid": "", "deployed": "deployed_settings"}
-# Notebook section 29 E1 (448-row panel): mean walk-forward Macro-F1 of the current RF config and persistence.
-WALK_FORWARD_448_EXPECTED = {"3M": {"rf": 0.356, "persistence": 0.295}, "6M": {"rf": 0.431, "persistence": 0.179}}
+# Notebook section 29 E1 (448-row panel): mean walk-forward Macro-F1 of the RF config and persistence.
+NOTEBOOK_WALK_FORWARD_448 = {"3M": {"rf": 0.356, "persistence": 0.295}, "6M": {"rf": 0.431, "persistence": 0.179}}
 LABEL_METHOD_VERSION = "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
 
 HERE = Path(__file__).resolve()
 REPO_ROOT = HERE.parents[6]
 CURRENT_MODELS_DIR = HERE.parents[1] / "models"
+# The gate checks that this code reproduces the notebook's version 1.0 models on the 448 original rows.
+# Its expected values are PINNED here, because ml/models/ now holds version 2.0 (promoted 2026-10-21),
+# whose metadata and pipeline describe the 550-row panel and can never match a 448-row refit.
+# Built once from the original v1.0 files with --build-gate-reference; see test_gate_reference.py.
+GATE_REFERENCE_PATH = HERE.parent / "gate_reference_v1.json"
 DEFAULT_CANDIDATE_OUT = Path("~/Documents/sustain_data/models_candidate").expanduser()
 
 
@@ -222,22 +230,91 @@ def fit_and_evaluate(dd: pd.DataFrame, h_name: str) -> dict[str, Any]:
     }
 
 
-def _same_training_statistics(refit, h_name: str) -> bool:
-    """Imputer medians, scaler means/scales, indicators and one-hot levels equal the deployed pipeline's."""
+def pipeline_statistics(pipeline) -> dict[str, Any]:
+    """Training statistics of the fitted preprocessing (imputer medians, missing indicators,
+    scaler means/scales, one-hot levels), JSON-ready with NaN as None."""
+    pre = pipeline.named_steps["pre"]
+    num = pre.named_transformers_["num"]
+    onehot = pre.named_transformers_["cat"].named_steps["oh"]
+
+    def floats(values) -> list[float | None]:
+        return [None if np.isnan(v) else float(v) for v in np.asarray(values, dtype=float)]
+
+    return {
+        "imputer_medians": floats(num.named_steps["imp"].statistics_),
+        "missing_indicator_features": [int(i) for i in num.named_steps["imp"].indicator_.features_],
+        "scaler_mean": floats(num.named_steps["sc"].mean_),
+        "scaler_scale": floats(num.named_steps["sc"].scale_),
+        "onehot_categories": [[str(level) for level in levels] for levels in onehot.categories_],
+    }
+
+
+def same_statistics(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Same tolerances as before: medians np.allclose (equal_nan), scaler within 1e-9, rest exact."""
+    def array(values) -> np.ndarray:
+        return np.array([np.nan if v is None else v for v in values], dtype=float)
+
+    for key in ("imputer_medians", "scaler_mean", "scaler_scale"):
+        if len(a[key]) != len(b[key]):
+            return False
+    return bool(
+        np.allclose(array(a["imputer_medians"]), array(b["imputer_medians"]), equal_nan=True)
+        and a["missing_indicator_features"] == b["missing_indicator_features"]
+        and np.allclose(array(a["scaler_mean"]), array(b["scaler_mean"]), rtol=0, atol=1e-9)
+        and np.allclose(array(a["scaler_scale"]), array(b["scaler_scale"]), rtol=0, atol=1e-9)
+        and a["onehot_categories"] == b["onehot_categories"]
+    )
+
+
+def load_gate_reference(path: Path = GATE_REFERENCE_PATH) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def gate_check(reference: dict[str, Any], train_n: int, test_n: int, test_metrics: dict[str, float],
+               statistics: dict[str, Any], wf_rf: float, wf_persistence: float) -> dict[str, bool]:
+    """One horizon of the reproduction gate against the pinned version 1.0 reference."""
+    checks = {
+        "sizes": train_n == reference["train_n"] and test_n == reference["test_n"],
+        "statistics": same_statistics(statistics, reference["training_statistics"]),
+        "macro_f1": abs(test_metrics["Macro_F1"] - reference["test_metrics"]["Macro_F1"]) <= GATE_TOLERANCE,
+        "high_recall": abs(test_metrics["High_Recall"] - reference["test_metrics"]["High_Recall"]) <= GATE_TOLERANCE,
+        "walk_forward": abs(wf_rf - reference["walk_forward_448"]["rf"]) < 5e-4
+        and abs(wf_persistence - reference["walk_forward_448"]["persistence"]) < 5e-4,
+    }
+    checks["passed"] = all(checks.values())
+    return checks
+
+
+def build_gate_reference(v1_models_dir: Path) -> dict[str, Any]:
+    """Pin the version 1.0 reference from the original v1.0 model folder (no data needed)."""
     import joblib
 
-    deployed = joblib.load(CURRENT_MODELS_DIR / h_name / "model.joblib")
-    d_num = deployed.named_steps["pre"].named_transformers_["num"]
-    r_num = refit.named_steps["pre"].named_transformers_["num"]
-    d_cat = deployed.named_steps["pre"].named_transformers_["cat"].named_steps["oh"]
-    r_cat = refit.named_steps["pre"].named_transformers_["cat"].named_steps["oh"]
-    return bool(
-        np.allclose(d_num.named_steps["imp"].statistics_, r_num.named_steps["imp"].statistics_, equal_nan=True)
-        and list(d_num.named_steps["imp"].indicator_.features_) == list(r_num.named_steps["imp"].indicator_.features_)
-        and np.allclose(d_num.named_steps["sc"].mean_, r_num.named_steps["sc"].mean_, rtol=0, atol=1e-9)
-        and np.allclose(d_num.named_steps["sc"].scale_, r_num.named_steps["sc"].scale_, rtol=0, atol=1e-9)
-        and all(list(a) == list(b) for a, b in zip(d_cat.categories_, r_cat.categories_))
-    )
+    horizons = {}
+    for h_name in fx.HORIZONS:
+        # ml/models layout (3M/) or the Colab export layout (SUSTAIN_Model_3M/)
+        folder = next(f for f in (v1_models_dir / h_name, v1_models_dir / f"SUSTAIN_Model_{h_name}") if f.is_dir())
+        meta = json.loads((folder / "metadata.json").read_text(encoding="utf-8"))
+        horizons[h_name] = {
+            "created": meta["created"],
+            "data_basis": meta["data_basis"],
+            "model_sha256": _sha256(folder / "model.joblib"),
+            "best_params": meta["best_params"],
+            "train_n": meta["train_n"],
+            "test_n": meta["test_n"],
+            "test_metrics": {k: meta["test_metrics"][k] for k in ("Macro_F1", "High_Recall")},
+            "walk_forward_448": NOTEBOOK_WALK_FORWARD_448[h_name],
+            "training_statistics": pipeline_statistics(joblib.load(folder / "model.joblib")),
+        }
+    return {
+        "description": (
+            "Pinned expected values for the reproduction gate in train_from_cleaned.py: the notebook's version 1.0 "
+            "models (SYNTHETIC panel, 58 households, 448 rows, trained 2026-10-20 in Colab). ml/models/ holds version "
+            "2.0 since 2026-10-21, so the gate must not compare with it. Aggregates and model statistics only."
+        ),
+        "model_version": "1.0",
+        "built_by": "train_from_cleaned.py --build-gate-reference",
+        "horizons": horizons,
+    }
 
 
 def fit_fixed(dd: pd.DataFrame, h_name: str, params: dict) -> dict[str, Any]:
@@ -651,9 +728,10 @@ def write_report(report: dict[str, Any], path: Path) -> None:
         "",
         _md_table(pd.DataFrame(report["gate"]["rows"])),
         "",
-        f"**Gate: {'PASS' if report['gate']['passed'] else 'FAIL'}**. Required: the same split sizes; training statistics equal to "
-        "the deployed pipeline's (imputer medians, scaler means/scales, missing indicators, one-hot levels); test Macro-F1 and "
-        f"High recall of the deployed configuration within {GATE_TOLERANCE} of `ml/models/*/metadata.json`; and the notebook "
+        f"**Gate: {'PASS' if report['gate']['passed'] else 'FAIL'}**. Required, against the pinned **version 1.0** reference "
+        "(`ml/training/gate_reference_v1.json`; `ml/models/` holds version 2.0 since the 2026-10-21 promotion): the same split "
+        "sizes; training statistics equal to the v1.0 pipeline's (imputer medians, scaler means/scales, missing indicators, "
+        f"one-hot levels); test Macro-F1 and High recall of the v1.0 configuration within {GATE_TOLERANCE}; and the notebook "
         "section 29 walk-forward means reproduced.",
         "",
         "Grid search on this machine (reported, not gated):",
@@ -700,9 +778,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gate-only", action="store_true", help="run only the reproduction gate on the 448 original rows")
     parser.add_argument("--force", action="store_true", help="train the candidate even if the gate fails")
     parser.add_argument("--report", type=Path, help="write the aggregate Markdown report here")
+    parser.add_argument("--build-gate-reference", type=Path, metavar="DIR",
+                        help="write ml/training/gate_reference_v1.json from the version 1.0 model folder DIR (3M/ and 6M/, or SUSTAIN_Model_3M/ and SUSTAIN_Model_6M/) and exit")
     parser.add_argument("--candidate-settings", choices=["grid", "deployed", "both"], default="both",
                         help="grid = grid search as in the notebook; deployed = the deployed RF settings fixed; both (default)")
     args = parser.parse_args(argv)
+
+    if args.build_gate_reference:
+        reference = build_gate_reference(args.build_gate_reference.expanduser())
+        GATE_REFERENCE_PATH.write_text(json.dumps(reference, indent=1) + "\n", encoding="utf-8")
+        print(f"Wrote {GATE_REFERENCE_PATH.name} from {len(reference['horizons'])} version 1.0 models")
+        return 0
 
     cleaned_path = _env_path("SUSTAIN_CLEANED")
     combined_path = _env_path("SUSTAIN_COMBINED")
@@ -728,39 +814,36 @@ def main(argv: list[str] | None = None) -> int:
             checks[f"eligible_{h_name}_{name}_rows"] = f"{len(dd)} {_class_counts(dd)}"
 
     current_meta = {h: json.loads((CURRENT_MODELS_DIR / h / "metadata.json").read_text(encoding="utf-8")) for h in fx.HORIZONS}
+    gate_reference = load_gate_reference()["horizons"]
     report: dict[str, Any] = {"created": dt.datetime.now().isoformat(timespec="seconds"), "checks": checks}
 
-    # 1. reproduction gate
-    print("Reproduction gate on the 448 original rows ...")
+    # 1. reproduction gate (against the pinned version 1.0 reference, not ml/models/)
+    print("Reproduction gate on the 448 original rows (version 1.0 reference) ...")
     gate_rows, grid_rows, gate_ok = [], [], True
-    wf_448 = pd.concat([walk_forward_original(data_448[h], h, current_meta[h]["best_params"]) for h in fx.HORIZONS])
+    wf_448 = pd.concat([walk_forward_original(data_448[h], h, gate_reference[h]["best_params"]) for h in fx.HORIZONS])
     wf_448_summary = summarise(wf_448, ["Horizon", "Model"])
     for h_name in fx.HORIZONS:
-        meta = current_meta[h_name]
+        ref = gate_reference[h_name]
         train, test, _ = final_split(data_448[h_name], fx.HORIZONS[h_name])
-        refit = rf_pipeline(**meta["best_params"]).fit(train[fx.FEATURES], train.y)
+        refit = rf_pipeline(**ref["best_params"]).fit(train[fx.FEATURES], train.y)
         refit_metrics = metrics(test.y.values, refit.predict(test[fx.FEATURES]))
-        stats_ok = _same_training_statistics(refit, h_name)
-        expected_wf = WALK_FORWARD_448_EXPECTED[h_name]
         got_wf = wf_448_summary[(wf_448_summary.Horizon == h_name) & (wf_448_summary.Model == "Random Forest (current)")].iloc[0]
         persistence_wf = wf_448_summary[(wf_448_summary.Horizon == h_name) & (wf_448_summary.Model == "Persistence baseline")].iloc[0]
-        wf_ok = (abs(got_wf.Macro_F1_mean - expected_wf["rf"]) < 5e-4 and abs(persistence_wf.Macro_F1_mean - expected_wf["persistence"]) < 5e-4)
-        sizes_ok = len(train) == meta["train_n"] and len(test) == meta["test_n"]
-        f1_ok = abs(refit_metrics["Macro_F1"] - meta["test_metrics"]["Macro_F1"]) <= GATE_TOLERANCE
-        hr_ok = abs(refit_metrics["High_Recall"] - meta["test_metrics"]["High_Recall"]) <= GATE_TOLERANCE
-        ok = sizes_ok and stats_ok and f1_ok and hr_ok and wf_ok
-        gate_ok &= ok
-        gate_rows.append({"Horizon": h_name, "Train/test": f"{len(train)}/{len(test)} (expected {meta['train_n']}/{meta['test_n']})",
-                          "Training statistics = deployed pipeline": "yes" if stats_ok else "no",
-                          "Test Macro-F1, deployed config": f"{refit_metrics['Macro_F1']:.4f} (expected {meta['test_metrics']['Macro_F1']})",
-                          "Test High recall": f"{refit_metrics['High_Recall']:.4f} (expected {meta['test_metrics']['High_Recall']})",
+        result = gate_check(ref, len(train), len(test), refit_metrics, pipeline_statistics(refit),
+                            got_wf.Macro_F1_mean, persistence_wf.Macro_F1_mean)
+        gate_ok &= result["passed"]
+        expected_wf = ref["walk_forward_448"]
+        gate_rows.append({"Horizon": h_name, "Train/test": f"{len(train)}/{len(test)} (expected {ref['train_n']}/{ref['test_n']})",
+                          "Training statistics = v1.0 pipeline": "yes" if result["statistics"] else "no",
+                          "Test Macro-F1, v1.0 config": f"{refit_metrics['Macro_F1']:.4f} (expected {ref['test_metrics']['Macro_F1']})",
+                          "Test High recall": f"{refit_metrics['High_Recall']:.4f} (expected {ref['test_metrics']['High_Recall']})",
                           "Section 29 walk-forward RF / persistence": f"{got_wf.Macro_F1_mean:.3f} / {persistence_wf.Macro_F1_mean:.3f} "
                                                                        f"(expected {expected_wf['rf']} / {expected_wf['persistence']})",
-                          "Result": "PASS" if ok else "FAIL"})
+                          "Result": "PASS" if result["passed"] else "FAIL"})
         searched = fit_and_evaluate(data_448[h_name], h_name)
         grid_rows.append({"Horizon": h_name, "Grid-selected RF params here": json.dumps(searched["rf_params"]),
-                          "Notebook (Colab) params": json.dumps(meta["best_params"]),
-                          "Same": "yes" if searched["rf_params"] == meta["best_params"] else "no",
+                          "Notebook (Colab) params": json.dumps(ref["best_params"]),
+                          "Same": "yes" if searched["rf_params"] == ref["best_params"] else "no",
                           "Test Macro-F1 with params selected here": round(searched["rf_metrics"]["Macro_F1"], 4)})
     report["gate"] = {"passed": bool(gate_ok), "rows": gate_rows, "grid_selection": grid_rows,
                       "walk_forward_448": wf_448_summary.round(3).to_dict("records")}

@@ -5,6 +5,8 @@ Generated 2026-10-21T16:12:20 by `ml/training/train_from_cleaned.py`. Aggregates
 > **Data basis: SYNTHETIC panel (70 households, 9 categories). Not real-world evidence.** Candidate models are NOT_READY and are stored outside the repo. The deployed models in `ml/models/` were not changed.
 >
 > **Update 2026-10-21:** the deployed-settings candidate (section 3) was later promoted to `ml/models/`, for coverage, with the trade-off accepted. See section 5. Sections 1–4 are unchanged.
+>
+> **Gate fix 2026-10-22:** the reproduction gate (section 1) now compares with the pinned version 1.0 reference `ml/training/gate_reference_v1.json` (built from the original v1.0 model files) instead of `ml/models/`, which holds version 2.0 since the promotion and made the gate fail; rerun with `--gate-only`: PASS on both horizons.
 
 ## Input checks
 
