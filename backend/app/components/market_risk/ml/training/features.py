@@ -91,6 +91,18 @@ MACRO_FEATURES = [
     "F_Macro_Diesel_t", "F_Macro_Diesel_Change_1M_pct",
 ]
 CONTEXT_FEATURES = MARKET_FEATURES + MACRO_FEATURES
+# The 14 features computed from the same household's earlier visits (and the grant date).
+HISTORY_FEATURES = [
+    "F_Months_Since_Prev_Visit", "F_Prev_Risk_Ord", "F_Prev_No_Profit_Last_Month", "F_Prev_Market_Stress_Any",
+    "F_Prev_Not_Progressing_Well", "F_Prev_Business_Not_Running", "F_Risk_Change_vs_Prev", "F_Tenure_Months",
+    "F_N_Prior_Visits", "F_Risk_Mean_3M_Window", "F_NoProfit_Rate_3M_Window", "F_MarketStress_Rate_3M_Window",
+    "F_High_Count_6M_Window", "F_Months_Since_Grant",
+]
+# Columns history_features needs, one row per visit.
+HISTORY_INPUT_COLUMNS = [
+    "household_id", "Month_Ord", "Risk_Ord_t", "T_No_Profit_Last_Month", "T_Market_Stress_Any",
+    "T_Not_Progressing_Well", "T_Business_Not_Running", "visit_date", "grant_date",
+]
 
 
 def flag(values: pd.Series) -> pd.Series:
@@ -162,6 +174,52 @@ def join_market_macro(month: pd.Series, category_key: pd.Series, category_month:
     for column in MARKET_COLUMNS + MACRO_COLUMNS:
         joined[column] = pd.to_numeric(joined[column], errors="coerce")
     return joined[MARKET_COLUMNS + MACRO_COLUMNS]
+
+
+def history_features(d: pd.DataFrame) -> pd.DataFrame:
+    """The 14 HISTORY_FEATURES (notebook section 13): each visit uses only itself and the same
+    household's earlier visits. `d` has HISTORY_INPUT_COLUMNS and is sorted by household and
+    month (as in build_features). Shared by training and POST /api/risk/history-features."""
+    F = pd.DataFrame(index=d.index)
+    g = d.groupby("household_id", sort=False)
+    F["F_Months_Since_Prev_Visit"] = d["Month_Ord"] - g["Month_Ord"].shift(1)
+    previous = {
+        "F_Prev_Risk_Ord": "Risk_Ord_t",
+        "F_Prev_No_Profit_Last_Month": "T_No_Profit_Last_Month",
+        "F_Prev_Market_Stress_Any": "T_Market_Stress_Any",
+        "F_Prev_Not_Progressing_Well": "T_Not_Progressing_Well",
+        "F_Prev_Business_Not_Running": "T_Business_Not_Running",
+    }
+    for feature, column in previous.items():
+        F[feature] = g[column].shift(1)
+    F["F_Risk_Change_vs_Prev"] = d["Risk_Ord_t"] - F["F_Prev_Risk_Ord"]
+    F["F_Tenure_Months"] = d["Month_Ord"] - g["Month_Ord"].transform("cummin")
+    F["F_N_Prior_Visits"] = g.cumcount()
+
+    windows = ["F_Risk_Mean_3M_Window", "F_NoProfit_Rate_3M_Window", "F_MarketStress_Rate_3M_Window", "F_High_Count_6M_Window"]
+    for feature in windows:
+        F[feature] = np.nan
+
+    def nan_mean(values):
+        return float(np.nanmean(values)) if np.any(~np.isnan(values)) else np.nan
+
+    for _, gi in d.groupby("household_id", sort=False):
+        months = gi["Month_Ord"].to_numpy()
+        risk = gi["Risk_Ord_t"].to_numpy(dtype=float)
+        no_profit = gi["T_No_Profit_Last_Month"].to_numpy(dtype=float)
+        stress = gi["T_Market_Stress_Any"].to_numpy(dtype=float)
+        for i, idx in enumerate(gi.index):
+            w3 = (months <= months[i]) & (months >= months[i] - 2)
+            w6 = (months <= months[i]) & (months >= months[i] - 5)
+            F.at[idx, "F_Risk_Mean_3M_Window"] = nan_mean(risk[w3])
+            F.at[idx, "F_NoProfit_Rate_3M_Window"] = nan_mean(no_profit[w3])
+            F.at[idx, "F_MarketStress_Rate_3M_Window"] = nan_mean(stress[w3])
+            F.at[idx, "F_High_Count_6M_Window"] = float(np.sum(risk[w6] == 2))
+
+    grant = g["grant_date"].transform(lambda s: s.ffill())
+    F["F_Months_Since_Grant"] = ((d["visit_date"] - grant).dt.days / 30.44).where(lambda x: x >= 0)
+
+    return F[HISTORY_FEATURES]
 
 
 def market_macro_features(d: pd.DataFrame) -> pd.DataFrame:
@@ -289,43 +347,7 @@ def build_features(panel: pd.DataFrame) -> pd.DataFrame:
     F["F_Age"] = d["age"]
     F["F_Female_Participant"] = d["participant_gender"].map({"Female": 1, "Male": 0})
 
-    g = d.groupby("household_id", sort=False)
-    F["F_Months_Since_Prev_Visit"] = d["Month_Ord"] - g["Month_Ord"].shift(1)
-    previous = {
-        "F_Prev_Risk_Ord": "Risk_Ord_t",
-        "F_Prev_No_Profit_Last_Month": "T_No_Profit_Last_Month",
-        "F_Prev_Market_Stress_Any": "T_Market_Stress_Any",
-        "F_Prev_Not_Progressing_Well": "T_Not_Progressing_Well",
-        "F_Prev_Business_Not_Running": "T_Business_Not_Running",
-    }
-    for feature, column in previous.items():
-        F[feature] = g[column].shift(1)
-    F["F_Risk_Change_vs_Prev"] = F["F_Risk_Ord_t"] - F["F_Prev_Risk_Ord"]
-    F["F_Tenure_Months"] = d["Month_Ord"] - g["Month_Ord"].transform("cummin")
-    F["F_N_Prior_Visits"] = g.cumcount()
-
-    windows = ["F_Risk_Mean_3M_Window", "F_NoProfit_Rate_3M_Window", "F_MarketStress_Rate_3M_Window", "F_High_Count_6M_Window"]
-    for feature in windows:
-        F[feature] = np.nan
-
-    def nan_mean(values):
-        return float(np.nanmean(values)) if np.any(~np.isnan(values)) else np.nan
-
-    for _, gi in d.groupby("household_id", sort=False):
-        months = gi["Month_Ord"].to_numpy()
-        risk = gi["Risk_Ord_t"].to_numpy(dtype=float)
-        no_profit = gi["T_No_Profit_Last_Month"].to_numpy(dtype=float)
-        stress = gi["T_Market_Stress_Any"].to_numpy(dtype=float)
-        for i, idx in enumerate(gi.index):
-            w3 = (months <= months[i]) & (months >= months[i] - 2)
-            w6 = (months <= months[i]) & (months >= months[i] - 5)
-            F.at[idx, "F_Risk_Mean_3M_Window"] = nan_mean(risk[w3])
-            F.at[idx, "F_NoProfit_Rate_3M_Window"] = nan_mean(no_profit[w3])
-            F.at[idx, "F_MarketStress_Rate_3M_Window"] = nan_mean(stress[w3])
-            F.at[idx, "F_High_Count_6M_Window"] = float(np.sum(risk[w6] == 2))
-
-    grant = g["grant_date"].transform(lambda s: s.ffill())
-    F["F_Months_Since_Grant"] = ((d["visit_date"] - grant).dt.days / 30.44).where(lambda x: x >= 0)
+    F[HISTORY_FEATURES] = history_features(d)
 
     F[CONTEXT_FEATURES] = market_macro_features(d)
 

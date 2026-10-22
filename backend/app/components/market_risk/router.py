@@ -9,6 +9,8 @@ from app.components.market_risk.schemas import (
     ExplainRequest,
     ExplainResponse,
     HealthResponse,
+    HistoryFeaturesRequest,
+    HistoryFeaturesResponse,
     Horizon,
     IdentifyRequest,
     IdentifyResponse,
@@ -208,3 +210,26 @@ def market_context_lookup(
             status_code=503,
             detail="Market-context data is unavailable on the server. Contact the market_risk owner.",
         ) from None
+
+
+@router.post(
+    "/history-features",
+    response_model=HistoryFeaturesResponse,
+    summary="Compute the 14 history features from earlier visits",
+    description=(
+        "Field officers cannot know values such as `F_Risk_Mean_3M_Window`, so this "
+        "computes the 14 history features for `/api/risk/predict` from simple "
+        "answers, with the **same code as model training**. Send `current_visit` "
+        "(`visit_date` and `grant_date` as YYYY-MM-DD, plus `business_running`, "
+        "`profit_last_month`, `progressing_well`, `market_stress`, each 1, 0 or "
+        "null) and 0 to 12 `previous_visits` (`month` YYYY-MM and the same 4 "
+        "answers). No household IDs or names. Each visit's risk class comes from "
+        "SUSTAIN-HH-Risk-Rule v1.0 (as `/identify`). With no previous visits the "
+        "result equals the training values for a first visit.\n\n"
+        "422 for a bad date or month, duplicate months, a previous visit not "
+        "before the visit_date month, grant_date after visit_date, or more than "
+        "12 previous visits."
+    ),
+)
+def history_features(request: HistoryFeaturesRequest) -> HistoryFeaturesResponse:
+    return services.compute_history_features(request)

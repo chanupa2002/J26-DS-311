@@ -1,7 +1,8 @@
 """Request and response data shapes for Explainable Market-Risk Prediction, Recommendation and Decision Dashboard."""
+import datetime as dt
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Horizon = Literal["3M", "6M"]
 HorizonOption = Literal["3M", "6M", "both"]
@@ -313,3 +314,110 @@ class MarketContextResponse(BaseModel):
     source_note: str
     note: str | None = Field(default=None, description="Plain-English note when values are missing.")
     available_months: list[str]
+
+
+MONTH_PATTERN = r"^\d{4}-(0[1-9]|1[0-2])$"
+MAX_PREVIOUS_VISITS = 12
+
+
+class PreviousVisit(BaseModel):
+    """One earlier monitoring visit of the same household (month only). No IDs or names."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    month: str = Field(pattern=MONTH_PATTERN, description="Visit month, YYYY-MM.")
+    business_running: SignalValue = Field(description="1 if the business was running, 0 if not, null if not answered.")
+    profit_last_month: SignalValue = Field(description="1 if there was a profit last month, 0 if not, null if not answered.")
+    progressing_well: SignalValue = Field(description="1 if the business was progressing well, 0 if not, null if not answered.")
+    market_stress: SignalValue = Field(description="1 if any market stress (sales below expected, high input cost or inputs unavailable), 0 if none, null if not answered.")
+
+
+class CurrentVisit(BaseModel):
+    """The visit to predict from. Full dates, because F_Months_Since_Grant is computed in days as in training."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    visit_date: dt.date = Field(description="Date of this visit, YYYY-MM-DD; its month is the visit month.")
+    business_running: SignalValue = Field(description="1 if the business is running, 0 if not, null if not answered.")
+    profit_last_month: SignalValue = Field(description="1 if there was a profit last month, 0 if not, null if not answered.")
+    progressing_well: SignalValue = Field(description="1 if the business is progressing well, 0 if not, null if not answered.")
+    market_stress: SignalValue = Field(description="1 if any market stress, 0 if none, null if not answered.")
+    grant_date: dt.date | None = Field(description="Date the grant was received, YYYY-MM-DD, or null if not received / not known. Must not be after visit_date.")
+
+    @property
+    def month(self) -> str:
+        return self.visit_date.strftime("%Y-%m")
+
+
+class HistoryFeaturesRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "current_visit": {
+                        "visit_date": "2026-04-12", "business_running": 1, "profit_last_month": 0,
+                        "progressing_well": 1, "market_stress": 0, "grant_date": "2026-01-20",
+                    },
+                    "previous_visits": [
+                        {"month": "2026-02", "business_running": 1, "profit_last_month": 1, "progressing_well": 1, "market_stress": 0},
+                        {"month": "2026-03", "business_running": 1, "profit_last_month": 0, "progressing_well": 0, "market_stress": 1},
+                    ],
+                }
+            ]
+        },
+    )
+
+    current_visit: CurrentVisit
+    previous_visits: list[PreviousVisit] = Field(
+        default_factory=list, max_length=MAX_PREVIOUS_VISITS,
+        description=f"0 to {MAX_PREVIOUS_VISITS} earlier visits of the same household, any order, each in a different month before the current visit month.",
+    )
+
+    @model_validator(mode="after")
+    def _check_visits(self):
+        current = self.current_visit
+        if current.grant_date is not None and current.grant_date > current.visit_date:
+            raise ValueError("current_visit.grant_date must not be after current_visit.visit_date")
+        months = [visit.month for visit in self.previous_visits]
+        duplicates = sorted({m for m in months if months.count(m) > 1})
+        if duplicates:
+            raise ValueError(f"previous_visits has duplicate months: {', '.join(duplicates)}")
+        not_before = sorted(m for m in months if m >= current.month)
+        if not_before:
+            raise ValueError(
+                f"previous_visits must be before the current visit month {current.month}; got {', '.join(not_before)}"
+            )
+        return self
+
+
+class HistoryFeatures(BaseModel):
+    """The 14 history features, as in training. null = not defined (e.g. no previous visit)."""
+
+    F_Months_Since_Prev_Visit: float | None
+    F_Prev_Risk_Ord: float | None
+    F_Prev_No_Profit_Last_Month: float | None
+    F_Prev_Market_Stress_Any: float | None
+    F_Prev_Not_Progressing_Well: float | None
+    F_Prev_Business_Not_Running: float | None
+    F_Risk_Change_vs_Prev: float | None
+    F_Tenure_Months: float | None
+    F_N_Prior_Visits: float | None
+    F_Risk_Mean_3M_Window: float | None
+    F_NoProfit_Rate_3M_Window: float | None
+    F_MarketStress_Rate_3M_Window: float | None
+    F_High_Count_6M_Window: float | None
+    F_Months_Since_Grant: float | None
+
+
+class VisitRisk(BaseModel):
+    month: str
+    risk_class: CurrentRiskClass
+    is_current: bool
+
+
+class HistoryFeaturesResponse(BaseModel):
+    month: str = Field(description="Current visit month, from visit_date.")
+    features: HistoryFeatures
+    visits: list[VisitRisk] = Field(description="Every visit used, oldest first, with its risk class from SUSTAIN-HH-Risk-Rule v1.0.")
+    rule_version: str

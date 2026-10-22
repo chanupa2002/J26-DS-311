@@ -31,6 +31,15 @@ get_market_context(category, month) -> MarketContextResponse
     ValueError for a badly formatted month. A month outside the data returns
     every feature as null with a note; nothing is guessed.
 
+compute_history_features(request) -> HistoryFeaturesResponse
+    request is a HistoryFeaturesRequest (or a dict): current_visit {visit_date,
+    the 4 answers (1/0/null, positively worded), grant_date or null} and 0..12
+    previous_visits {month, the 4 answers}. Returns the 14 history F_* features,
+    computed with the training code (features.history_features); each visit's
+    risk class comes from identify_current_risk. Raises pydantic ValidationError
+    for bad dates/months, duplicate months, a previous visit not before the
+    current month, grant_date after visit_date, or more than 12 visits.
+
 explain_market_risk(request) -> ExplainResponse
     request is an ExplainRequest (or a dict): the PredictRequest fields plus
     top_k (1..20, default 5). For each horizon, SHAP contributions of the 53
@@ -54,13 +63,18 @@ from app.components.market_risk.schemas import (
     FeatureInfo,
     Horizon,
     HorizonExplanation,
+    HistoryFeatures,
+    HistoryFeaturesRequest,
+    HistoryFeaturesResponse,
     HorizonPrediction,
     IdentifyRequest,
     IdentifyResponse,
     MarketContextFeatures,
+    MONTH_PATTERN,
     MarketContextResponse,
     MarketRiskFeatures,
     ModelInfoResponse,
+    VisitRisk,
     ModelSummary,
     PredictRequest,
     PredictResponse,
@@ -82,7 +96,6 @@ EXPLAIN_NOTE = (
     "SHAP shows what drives the model, not real-world causes; "
     "models are NOT_READY (synthetic data)"
 )
-MONTH_PATTERN = r"^\d{4}-(0[1-9]|1[0-2])$"
 
 
 class UnknownCategoryError(ValueError):
@@ -422,4 +435,58 @@ def get_market_context(category: str, month: str) -> MarketContextResponse:
         category=level, category_key=key, month=month, in_data_range=True,
         features=MarketContextFeatures(**values), evidence_missing=evidence_missing,
         source_note=lookup["source_note"], note=note, available_months=months,
+    )
+
+
+def _not(value: int | None) -> int | None:
+    """Positively worded answer (1 = running / profit / progressing) -> rule signal (1 = problem)."""
+    return None if value is None else 1 - int(value)
+
+
+def compute_history_features(request: HistoryFeaturesRequest | dict) -> HistoryFeaturesResponse:
+    """The 14 history features from simple visit answers, with the training code."""
+    import numpy as np
+    import pandas as pd
+
+    from app.components.market_risk.ml.training import features as fx
+
+    if not isinstance(request, HistoryFeaturesRequest):
+        request = HistoryFeaturesRequest.model_validate(request)
+    current = request.current_visit
+    visits = sorted(request.previous_visits, key=lambda visit: visit.month) + [current]
+
+    rows = []
+    for visit in visits:
+        signals = {
+            "business_not_running": _not(visit.business_running),
+            "no_profit_last_month": _not(visit.profit_last_month),
+            "not_progressing_well": _not(visit.progressing_well),
+            "market_stress_any": visit.market_stress,
+        }
+        risk = identify_current_risk(signals)
+        rows.append({
+            "household_id": "household",
+            "Month_Ord": pd.Period(visit.month, freq="M").ordinal,
+            "Risk_Ord_t": np.nan if risk.risk_ord is None else float(risk.risk_ord),
+            "T_No_Profit_Last_Month": np.nan if signals["no_profit_last_month"] is None else float(signals["no_profit_last_month"]),
+            "T_Market_Stress_Any": np.nan if signals["market_stress_any"] is None else float(signals["market_stress_any"]),
+            "T_Not_Progressing_Well": np.nan if signals["not_progressing_well"] is None else float(signals["not_progressing_well"]),
+            "T_Business_Not_Running": np.nan if signals["business_not_running"] is None else float(signals["business_not_running"]),
+            # only the current visit's dates are used (months since grant at this visit)
+            "visit_date": pd.Timestamp(current.visit_date) if visit is current else pd.NaT,
+            "grant_date": pd.Timestamp(current.grant_date) if visit is current and current.grant_date else pd.NaT,
+            "_risk_class": risk.risk_class,
+        })
+    frame = pd.DataFrame(rows)
+    history = fx.history_features(frame[fx.HISTORY_INPUT_COLUMNS]).iloc[-1]
+    values = {name: (None if pd.isna(history[name]) else float(history[name])) for name in fx.HISTORY_FEATURES}
+
+    return HistoryFeaturesResponse(
+        month=current.month,
+        features=HistoryFeatures(**values),
+        visits=[
+            VisitRisk(month=visit.month, risk_class=row["_risk_class"], is_current=visit is current)
+            for visit, row in zip(visits, rows)
+        ],
+        rule_version=RULE_VERSION,
     )

@@ -1,6 +1,6 @@
 # market_risk: 3-month and 6-month household market-risk prediction
 
-Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context`
+Owner: @Chamosithmini · URL prefix: `/api/risk` · Public service functions: `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context`, `compute_history_features`
 
 > **Status: NOT_READY.** Both models were trained and tested on **synthetic data only**.
 > Every prediction includes `model_status` and `deployment_reason`, and they must be shown to users.
@@ -51,7 +51,7 @@ Single embargoed test month (from `metadata.json`; small test sets, so the confi
 |---|---|
 | `router.py` | FastAPI endpoints (`/api/risk/...`) |
 | `schemas.py` | Pydantic request/response models (53 explicit feature fields) |
-| `services.py` | Public functions `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context` |
+| `services.py` | Public functions `predict_market_risk`, `explain_market_risk`, `get_model_info`, `identify_current_risk`, `get_market_context`, `compute_history_features` |
 | `ml/loader.py` | Cached loading of models and metadata, plus the scikit-learn version check |
 | `ml/explainer.py` | Cached SHAP `TreeExplainer` per horizon; maps the 94 transformed columns back to the 53 features; additivity check |
 | `ml/sustain_predict.py` | Colab export; the API reuses its `validate_input` |
@@ -59,7 +59,8 @@ Single embargoed test month (from `metadata.json`; small test sets, so the confi
 | `ml/models/3M/`, `ml/models/6M/` | `model.joblib`, `metadata.json`, `feature_schema.json` |
 | `ml/model_info.json`, `ml/DATA_DESCRIPTION.md`, `ml/Methodology_Results_Summary.md` | Model card, data description (no real values), methodology |
 | `sample_data/predict_request_example.json` | One synthetic example request |
-| `tests/` | Loader, service, endpoint, explanation, identification and market-context tests (inputs built inline) |
+| `ml/training/check_history_features.py` | Repeatable check that `/history-features` reproduces the training history features on every keyed training row (aggregates only; fails on any mismatch) |
+| `tests/` | Loader, service, endpoint, explanation, identification, market-context and history-feature tests (inputs built inline) |
 
 ## Endpoints
 
@@ -283,6 +284,58 @@ python -m app.components.market_risk.ml.training.build_market_context --verify
 
 `--verify` compares the lookup with the training features on every keyed row and refuses to write the file if any value differs. Without `--verify`, only `SUSTAIN_COMBINED` is needed.
 
+### `POST /api/risk/history-features`
+
+Officers cannot know values such as `F_Risk_Mean_3M_Window`. This endpoint computes the **14 history features** from simple answers about the current visit and up to 12 earlier visits. It uses the **same code as model training** (`features.history_features`, which `build_features` also calls). Each visit's risk class comes from SUSTAIN-HH-Risk-Rule v1.0, as in `/identify`.
+
+- **Current visit:** `visit_date` (YYYY-MM-DD; its month is the visit month), `business_running`, `profit_last_month`, `progressing_well`, `market_stress` (each 1, 0 or null), and `grant_date` (YYYY-MM-DD or null). Full dates are needed because training computes `F_Months_Since_Grant` in days: (visit date − grant date) / 30.44.
+- **Previous visits:** 0 to 12 items, each with `month` (YYYY-MM) and the same 4 answers. They can be in any order. No household IDs or names; extra keys are rejected.
+- **No previous visits:** gives exactly the training values for a first visit (no previous-visit values, tenure 0, 0 prior visits).
+- **422:** a bad date or month; duplicate months; a previous visit not before the `visit_date` month; `grant_date` after `visit_date`; more than 12 previous visits; an answer other than 0, 1 or null.
+- **Check:** every keyed training row was rebuilt from that household's own earlier visits, sending only what this endpoint receives. **All 14 features equal the training features on 550 of 550 rows.** To rerun, from `backend/`:
+
+```bash
+SUSTAIN_CLEANED=~/Documents/sustain_data/monitoring_visits_clean.csv \
+SUSTAIN_COMBINED=~/Documents/sustain_data/combined.xlsx \
+python -m app.components.market_risk.ml.training.check_history_features
+```
+
+The check prints aggregates only and exits with code 1 on any mismatch.
+
+**Request** (the `/docs` example):
+
+```json
+{
+  "current_visit": {"visit_date": "2026-04-12", "business_running": 1, "profit_last_month": 0,
+                    "progressing_well": 1, "market_stress": 0, "grant_date": "2026-01-20"},
+  "previous_visits": [
+    {"month": "2026-02", "business_running": 1, "profit_last_month": 1, "progressing_well": 1, "market_stress": 0},
+    {"month": "2026-03", "business_running": 1, "profit_last_month": 0, "progressing_well": 0, "market_stress": 1}
+  ]
+}
+```
+
+**Response 200** (values rounded here):
+
+```json
+{
+  "month": "2026-04",
+  "features": {
+    "F_Months_Since_Prev_Visit": 1.0, "F_Prev_Risk_Ord": 2.0, "F_Prev_No_Profit_Last_Month": 1.0,
+    "F_Prev_Market_Stress_Any": 1.0, "F_Prev_Not_Progressing_Well": 1.0, "F_Prev_Business_Not_Running": 0.0,
+    "F_Risk_Change_vs_Prev": -1.0, "F_Tenure_Months": 2.0, "F_N_Prior_Visits": 2.0,
+    "F_Risk_Mean_3M_Window": 1.0, "F_NoProfit_Rate_3M_Window": 0.6667, "F_MarketStress_Rate_3M_Window": 0.3333,
+    "F_High_Count_6M_Window": 1.0, "F_Months_Since_Grant": 2.6938
+  },
+  "visits": [
+    {"month": "2026-02", "risk_class": "Low", "is_current": false},
+    {"month": "2026-03", "risk_class": "High", "is_current": false},
+    {"month": "2026-04", "risk_class": "Medium", "is_current": true}
+  ],
+  "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
+}
+```
+
 ## The 53 input features
 
 The authoritative list and order is `feature_names_in_order` in `ml/models/<horizon>/metadata.json`. It is the same for 3M and 6M. Call **`GET /api/risk/model-info`** for the names, types, descriptions and allowed category levels, or see `/docs`.
@@ -292,7 +345,7 @@ The authoritative list and order is `feature_names_in_order` in `ml/models/<hori
 | Household signals at t | 8 × `F_*_t` (business not running, no profit, not progressing, lowest revenue band, sales below expected, high input cost, inputs unavailable, any market stress), `F_Risk_Ord_t`, `F_Risk_Signal_Count_t`, `F_Risk_Unknown_t` |
 | Operating conditions at t | `F_Hours_Ord_t`, `F_Records_Ord_t`, `F_Grant_Status_Ord_t`, 8 Yes/No flags (borrowed, saved, cyclone, female head, asset lost, storage/transport, machinery, natural disaster) |
 | Participant | `F_Age`, `F_Female_Participant` |
-| Household history | `F_Months_Since_Prev_Visit`, 5 × `F_Prev_*`, `F_Risk_Change_vs_Prev`, `F_Tenure_Months`, `F_N_Prior_Visits`, 4 window features, `F_Months_Since_Grant` |
+| Household history | `F_Months_Since_Prev_Visit`, 5 × `F_Prev_*`, `F_Risk_Change_vs_Prev`, `F_Tenure_Months`, `F_N_Prior_Visits`, 4 window features, `F_Months_Since_Grant`; computed by `POST /api/risk/history-features` |
 | Market (category) | 8 × `F_Mkt_*`, filled from `GET /api/risk/market-context` |
 | Macro (national) | 5 × `F_Macro_*`, filled from `GET /api/risk/market-context` |
 | Categorical | `F_Category`, `F_District` |
@@ -323,6 +376,7 @@ The tests build their inputs from `metadata.json` and never read CSV files or `s
 
 ```python
 from app.components.market_risk.services import (
+    compute_history_features,
     get_market_context,
     get_model_info,
     identify_current_risk,
@@ -340,6 +394,14 @@ current.risk_class  # "Unassigned"
 
 context = get_market_context("TRADE", "2026-03")  # 13 market/macro features, null without evidence
 features_dict.update(context.features.model_dump())
+
+history = compute_history_features({
+    "current_visit": {"visit_date": "2026-04-12", "business_running": 1, "profit_last_month": 0,
+                      "progressing_well": 1, "market_stress": 0, "grant_date": None},
+    "previous_visits": [{"month": "2026-03", "business_running": 1, "profit_last_month": 1,
+                         "progressing_well": 1, "market_stress": 0}],
+})
+features_dict.update(history.features.model_dump())  # the 14 history features
 ```
 
 Do not import `market_risk.ml` directly (docs/CONTRACTS.md §4).
