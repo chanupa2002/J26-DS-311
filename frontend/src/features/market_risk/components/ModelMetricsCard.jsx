@@ -1,5 +1,3 @@
-import { ChevronDown } from "lucide-react"
-
 import {
   Card,
   CardContent,
@@ -7,11 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   Table,
   TableBody,
@@ -21,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { BASELINE_SIMILAR_MARGIN, METRICS, OVERVIEW_TEXT } from "../constants"
+import { BASELINE_SIMILAR_MARGIN, METRICS, MODEL_DETAILS_TEXT } from "../constants"
 import {
   comparedWithBaseline,
   formatDateTime,
@@ -67,7 +60,7 @@ function reliabilitySentences(model) {
       `Compared with guessing "same as last visit", it did ${comparison} (Macro-F1 ${formatMetric(metrics.Macro_F1, 2)} vs ${formatMetric(model.persistence_baseline_test_macro_f1, 2)}).`,
     )
   }
-  if (/no embargo/i.test(model.validation_methodology || "")) sentences.push(OVERVIEW_TEXT.notEmbargoed)
+  if (/no embargo/i.test(model.validation_methodology || "")) sentences.push(MODEL_DETAILS_TEXT.notEmbargoed)
   return sentences
 }
 
@@ -76,12 +69,8 @@ function TechnicalDetails({ model }) {
   const period = model.training_period || {}
 
   return (
-    <Collapsible className="rounded-lg border">
-      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-medium">
-        Technical details (for reviewers)
-        <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-5 border-t p-4">
+    <div className="space-y-5 border-t pt-4">
+      <p className="text-sm font-medium">Technical details</p>
         <Table>
           <TableHeader>
             <TableRow>
@@ -123,8 +112,7 @@ function TechnicalDetails({ model }) {
             <p className="text-sm">{model.validation_methodology}</p>
           </div>
         )}
-      </CollapsibleContent>
-    </Collapsible>
+    </div>
   )
 }
 

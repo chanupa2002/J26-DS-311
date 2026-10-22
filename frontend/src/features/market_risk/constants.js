@@ -154,6 +154,13 @@ export const HORIZON_OPTIONS = [
 
 export const CATEGORICAL_FEATURES = ["F_Category", "F_District"]
 
+// District not among the trained levels: sent as blank (null), and the prediction is marked
+// "Low confidence". Only the trained levels come from /model-info; no names are hardcoded.
+export const DISTRICT_OTHER = "__other_district__"
+export const DISTRICT_OTHER_LABEL = "Other / not listed"
+export const districtOtherNote = (count) =>
+  `The model was trained on ${count} districts only. For other districts the district is ignored and the prediction has lower confidence.`
+
 // Form sections for the 53 features. Any feature from /model-info that is not
 // listed here is shown in an extra "Other" section, so nothing can be lost.
 export const FEATURE_GROUPS = [
@@ -504,20 +511,12 @@ export const WHY_TEXT = {
 export const WHY_TOWARDS = 3
 export const WHY_AWAY = 2
 
-// --------------------------------------------------------- Overview (O1) ----
+// ------------------------------------------------- Model details (O1, O3) ----
 
-export const OVERVIEW_TEXT = {
-  intro: [
-    "This tool helps field officers see which livelihood households may be at risk of their business struggling, now and 3 or 6 months ahead.",
-    "It checks the current visit with a simple rule, predicts future risk with a model, and explains which answers drove each prediction.",
-  ],
-  steps: [
-    { title: "1. Risk Check", text: "Four questions about this visit give the current risk class.", path: "/risk/check", link: "Open Risk Check" },
-    { title: "2. Future Risk", text: "The household's answers and earlier visits give the risk 3 and 6 months ahead.", path: "/risk/future", link: "Open Future Risk" },
-    { title: "3. Why", text: "After a prediction, \"Why the model predicts this\" lists the answers that pushed it up or down.", path: "/risk/future", link: "See it on Future Risk" },
-  ],
-  reliabilityFooter:
-    "These figures come from testing on one month before real-world validation. Details are under Technical details.",
+export const MODEL_DETAILS_TEXT = {
+  title: "Model details (for reviewers)",
+  subtitle: "How reliable each model is, how it was tested, the version trade-off, limitations and the 53 inputs.",
+  reliabilityFooter: "These figures come from testing on one month before real-world validation.",
   notEmbargoed:
     "This test was easier than real use, because the test months overlap the training months, so real results are likely lower.",
 }

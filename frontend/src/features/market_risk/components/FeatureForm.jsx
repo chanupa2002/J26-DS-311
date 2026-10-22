@@ -29,7 +29,7 @@ import { countFilled, featureLabel } from "../utils"
 import { FeatureField } from "./FeatureField"
 import { ReadOnlyField } from "./ReadOnlyField"
 
-function FeatureSection({ group, values, setValue, descriptions, choices, invalid, defaultOpen, extraFields, readOnly }) {
+function FeatureSection({ group, values, setValue, descriptions, choices, invalid, defaultOpen, extraFields, readOnly, notes }) {
   // Counted: editable fields and auto-filled answers (countAsFilled); not calculated fields.
   const editable = group.features.filter((name) => !readOnly?.[name] || readOnly[name].countAsFilled)
   const filled = countFilled(Object.fromEntries(editable.map((name) => [name, values[name]])))
@@ -61,6 +61,7 @@ function FeatureSection({ group, values, setValue, descriptions, choices, invali
               onChange={(value) => setValue(name, value)}
               choice={choices[name]}
               invalid={invalid.includes(name)}
+              note={notes?.[name]}
             />
             )}
             {extraFields?.[name]}
@@ -83,6 +84,7 @@ export function FeatureForm({
   prefillNote,
   extraFields,
   readOnly,
+  notes,
   sections,
   advanced,
   waitingFor,
@@ -146,6 +148,7 @@ export function FeatureForm({
               defaultOpen={index === 0}
               extraFields={extraFields}
               readOnly={readOnly}
+              notes={notes}
             />
           ))}
           {sections}

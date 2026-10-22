@@ -16,7 +16,7 @@ import { featureLabel } from "../utils"
  * One feature input: a select when `choice` ({ options, blank }) is given, else a number field.
  * The label is the short plain label; the backend description and F_* name are in its tooltip.
  */
-export function FeatureField({ name, description, value, onChange, choice, invalid }) {
+export function FeatureField({ name, description, value, onChange, choice, invalid, note }) {
   const id = `risk-feature-${name}`
   const hintId = `${id}-name`
   // Keep an unexpected value (e.g. from router state) selectable instead of hiding it.
@@ -61,6 +61,7 @@ export function FeatureField({ name, description, value, onChange, choice, inval
           className={cn(invalid && "border-destructive")}
         />
       )}
+      {note && <p className="text-[11px] leading-snug text-muted-foreground">{note}</p>}
       {invalid && (
         <p id={hintId} className="text-[11px] text-destructive">
           Not a number

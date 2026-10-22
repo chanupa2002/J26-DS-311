@@ -23,7 +23,7 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 
 | Nav title (= top bar title) | Path | Page | Backend calls |
 |---|---|---|---|
-| Overview | `/risk/overview` | `OverviewPage` | `GET /api/risk/model-info` |
+| ~~Overview~~ (removed in O3; redirects to Risk Check) | `/risk/overview` | — | — |
 | Risk Check | `/risk/check` | `RiskCheckPage` | `POST /api/risk/identify` |
 | Future Risk | `/risk/future` | `FutureRiskPage` | `GET /api/risk/model-info` (dropdowns, labels), `POST /api/risk/predict`, `POST /api/risk/explain` |
 
@@ -242,6 +242,14 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
   - **Edit (removed in F7c):** there is no edit link. To change an answer, the officer changes Risk Check (tooltip: "…Change this answer in Risk Check."); "Don't use" turns the fields back into normal selects.
   - **Unchanged:** with no stored Risk Check, or after "Don't use", the fields are normal selects; the 4 market detail questions stay editable; the derived fields work as in F6.
   - **Counts:** the section count treats the auto-filled answers as filled (x / 7) | ✅ Done |
+| O3 | Overview page removed:
+  - **Routes:** nav has Risk Check and Future Risk only. `/risk/overview` and `/risk` redirect to `/risk/check`.
+  - **Model details:** the reliability information moved to a collapsed "Model details (for reviewers)" section at the bottom of Future Risk (`ModelDetailsSection`). Per model: the "How reliable is it?" sentences and the technical details shown directly (metrics with baseline, training panel, months, how it was tested) with the "Validation pending" badge. Then the data note, version trade-off, limitations and the 53-input table.
+  - **Deleted:** `OverviewPage`, `OverviewIntro`, `ReviewerDetails` and `LevelList` (no longer used). The validation notice and confidence badges are unchanged | ✅ Done |
+| F8 | District "Other / not listed":
+  - **Option:** added after the trained levels from `/model-info`; no names are hardcoded. It sends `F_District: null`.
+  - **Note:** when chosen, shows "The model was trained on N districts only. For other districts the district is ignored and the prediction has lower confidence.", with N from `/model-info`.
+  - **Badge:** the prediction cards show "Low confidence". The flag is taken when Predict is pressed, because the request cannot distinguish it from a blank district | ✅ Done |
   - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
   - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
   - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |

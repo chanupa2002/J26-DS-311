@@ -5,6 +5,7 @@ import { ExplanationPanel } from "../components/ExplanationPanel"
 import { FeatureForm } from "../components/FeatureForm"
 import { HistorySection } from "../components/HistorySection"
 import { MarketContextSection } from "../components/MarketContextSection"
+import { ModelDetailsSection } from "../components/ModelDetailsSection"
 import { PageState } from "../components/PageState"
 import { PredictionCard } from "../components/PredictionCard"
 import { PreviousVisitsSection } from "../components/PreviousVisitsSection"
@@ -15,6 +16,9 @@ import {
   CONTEXT_FEATURES,
   CURRENT_VISIT_ANSWERS,
   DERIVED_TEXT,
+  DISTRICT_OTHER,
+  DISTRICT_OTHER_LABEL,
+  districtOtherNote,
   FEATURE_GROUPS,
   FEATURE_OPTIONS,
   FUTURE_RISK_NOTICE_REASON,
@@ -98,6 +102,9 @@ export function FutureRiskPage() {
   const [grantDate, setGrantDate] = useState("")
   const [firstVisit, setFirstVisit] = useState(false)
   const [visits, setVisits] = useState([])
+  // Whether the last prediction was made with "Other / not listed" (the request itself only
+  // carries a blank district), so its badge does not change when the form changes afterwards.
+  const [predictedWithOtherDistrict, setPredictedWithOtherDistrict] = useState(false)
 
   // Visit date: a real date inside the months with market/macro data.
   const months = useMarketMonths(modelInfo.data?.categorical_levels?.F_Category?.[0])
@@ -221,7 +228,10 @@ export function FutureRiskPage() {
       CATEGORICAL_FEATURES.map((name) => [
         name,
         {
-          options: (levels[name] || []).map((level) => ({ value: level, label: level })),
+          options: [
+            ...(levels[name] || []).map((level) => ({ value: level, label: level })),
+            ...(name === "F_District" ? [{ value: DISTRICT_OTHER, label: DISTRICT_OTHER_LABEL }] : []),
+          ],
           blank: "Not specified",
         },
       ]),
@@ -239,8 +249,10 @@ export function FutureRiskPage() {
     ? marketContext.data.features
     : {}
   const historyValues = history.current ? history.query.data.features : {}
+  const districtOther = values.F_District === DISTRICT_OTHER
   const body = {
     ...typed,
+    ...(districtOther && { F_District: null }),
     ...derived,
     ...Object.fromEntries(CONTEXT_FEATURES.map((name) => [name, context[name] ?? null])),
     ...Object.fromEntries(HISTORY_FEATURES.map((name) => [name, historyValues[name] ?? null])),
@@ -289,6 +301,7 @@ export function FutureRiskPage() {
       setInvalid(invalidNow)
       return
     }
+    setPredictedWithOtherDistrict(districtOther)
     futureRisk.mutate(request)
   }
   const retry = () => futureRisk.mutate(futureRisk.variables || request)
@@ -316,6 +329,7 @@ export function FutureRiskPage() {
           }
         }
         readOnly={readOnly}
+        notes={districtOther ? { F_District: districtOtherNote((levels.F_District || []).length) } : {}}
         extraFields={{
           F_Category: (
             <DateField
@@ -392,7 +406,7 @@ export function FutureRiskPage() {
               <PredictionCard
                 key={prediction.horizon}
                 prediction={prediction}
-                weakSignal={weakSignal[prediction.horizon]}
+                weakSignal={weakSignal[prediction.horizon] || predictedWithOtherDistrict}
               />
             ))}
           </div>
@@ -404,6 +418,8 @@ export function FutureRiskPage() {
           />
         </div>
       )}
+
+      <ModelDetailsSection models={models} features={features} />
     </div>
   )
 }
