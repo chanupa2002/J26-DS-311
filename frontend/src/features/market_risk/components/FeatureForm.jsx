@@ -1,7 +1,6 @@
 import { ChevronDown } from "lucide-react"
 import { Fragment } from "react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -111,7 +110,7 @@ export function FeatureForm({
           </div>
           {prefilledFromRiskCheck && (
             <div>
-              <Badge variant="outline">Prefilled from Risk Check (7 fields)</Badge>
+              <p className="text-xs text-muted-foreground">Prefilled from Risk Check (7 fields).</p>
             </div>
           )}
         </CardHeader>

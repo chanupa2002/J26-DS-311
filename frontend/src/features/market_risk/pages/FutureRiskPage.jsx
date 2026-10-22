@@ -20,6 +20,7 @@ import {
   FUTURE_RISK_NOTICE_REASON,
   GRANT_DATE_HELP,
   HISTORY_FEATURES,
+  PROTOTYPE_REASON,
   RISK_CHECK_COUNT_FEATURES,
   RISK_CHECK_SIGNAL_FEATURES,
   VISIT_DATE_HELP,
@@ -180,6 +181,10 @@ export function FutureRiskPage() {
     ...Object.fromEntries(HISTORY_FEATURES.map((name) => [name, historyValues[name] ?? null])),
   }
   const request = { horizon, features: body }
+  // Weak-signal flag per horizon: the test split could not be embargoed (from /model-info).
+  const weakSignal = Object.fromEntries(
+    models.map((model) => [model.horizon, /no embargo/i.test(model.validation_methodology || "")]),
+  )
   const stale =
     futureRisk.isSuccess &&
     JSON.stringify(request) !== JSON.stringify(futureRisk.variables)
@@ -216,7 +221,7 @@ export function FutureRiskPage() {
 
   return (
     <div className="space-y-6">
-      <ValidationNotice models={models} reasons={[FUTURE_RISK_NOTICE_REASON]} />
+      <ValidationNotice reasons={[PROTOTYPE_REASON, FUTURE_RISK_NOTICE_REASON]} />
 
       <FeatureForm
         groups={groupsFor(featureNames)}
@@ -301,7 +306,11 @@ export function FutureRiskPage() {
           )}
           <div className="grid gap-6 lg:grid-cols-2">
             {result.prediction.predictions.map((prediction) => (
-              <PredictionCard key={prediction.horizon} prediction={prediction} />
+              <PredictionCard
+                key={prediction.horizon}
+                prediction={prediction}
+                weakSignal={weakSignal[prediction.horizon]}
+              />
             ))}
           </div>
           <WarningList warnings={result.prediction.warnings} />

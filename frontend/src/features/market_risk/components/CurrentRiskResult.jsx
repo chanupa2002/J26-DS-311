@@ -1,6 +1,5 @@
 import { ArrowRight, ClipboardList } from "lucide-react"
 
-import { WeakSignalTag } from "@/components/explain/WeakSignalTag"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -71,7 +70,6 @@ export function CurrentRiskResult({ result, stale = false, onUseInFutureRisk }) 
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium">Follow-up visit recommended</p>
-                <WeakSignalTag />
               </div>
               <p className="text-muted-foreground">
                 Some answers are blank and could change the class (

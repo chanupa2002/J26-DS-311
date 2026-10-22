@@ -1,6 +1,5 @@
 import { ChevronDown, Info } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,7 +45,7 @@ export function MarketContextSection({ context, ready, descriptions, onRetry }) 
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {filled && <Badge variant="outline">Auto-filled</Badge>}
+          {filled && <span className="text-xs text-muted-foreground">Auto-filled</span>}
           <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </div>
       </CollapsibleTrigger>

@@ -4,6 +4,7 @@ import { OverviewIntro } from "../components/OverviewIntro"
 import { PageState } from "../components/PageState"
 import { ReviewerDetails } from "../components/ReviewerDetails"
 import { ValidationNotice } from "../components/ValidationNotice"
+import { OVERVIEW_TEXT, PROTOTYPE_REASON } from "../constants"
 import { useModelInfo } from "../hooks/useModelInfo"
 
 export function OverviewPage() {
@@ -25,7 +26,7 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <ValidationNotice models={models} />
+      <ValidationNotice reasons={[PROTOTYPE_REASON]} />
 
       <OverviewIntro />
 
@@ -34,6 +35,7 @@ export function OverviewPage() {
           <ModelMetricsCard key={model.horizon} model={model} />
         ))}
       </div>
+      <p className="-mt-3 text-xs text-muted-foreground">{OVERVIEW_TEXT.reliabilityFooter}</p>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <LevelList

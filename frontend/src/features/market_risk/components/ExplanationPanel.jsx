@@ -1,4 +1,3 @@
-import { WeakSignalTag } from "@/components/explain/WeakSignalTag"
 import {
   Card,
   CardContent,
@@ -27,7 +26,6 @@ function HorizonExplanation({ explanation }) {
             {formatPercent(explanation.high_risk_probability)}
           </span>
         </span>
-        {blankFactor && <WeakSignalTag />}
       </div>
       <WhyCard explanation={explanation} />
       <ShapChart factors={explanation.high_risk_factors} />

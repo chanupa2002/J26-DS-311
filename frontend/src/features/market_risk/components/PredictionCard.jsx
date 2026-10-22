@@ -1,3 +1,5 @@
+import { ConfidenceBadge } from "@/components/explain/ConfidenceBadge"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -5,21 +7,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
+import { LOW_CONFIDENCE_PROBABILITY, PROTOTYPE_REASON } from "../constants"
 import { ProbabilityBars } from "./ProbabilityBars"
 import { RiskBadge } from "./RiskBadge"
 
-export function PredictionCard({ prediction }) {
+/** "Low confidence" (weak-signal flag or top probability < 0.5), else "Prototype". */
+function PredictionBadge({ prediction, weakSignal }) {
+  const top = Math.max(...Object.values(prediction.probabilities || {}).map(Number))
+  if (weakSignal || !(top >= LOW_CONFIDENCE_PROBABILITY)) return <ConfidenceBadge level="low" />
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="outline">Prototype</Badge>
+      </TooltipTrigger>
+      <TooltipContent>{PROTOTYPE_REASON}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+export function PredictionCard({ prediction, weakSignal = false }) {
   const months = prediction.horizon === "6M" ? 6 : 3
 
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="space-y-1.5">
-          <CardTitle>{prediction.horizon} prediction</CardTitle>
-          <CardDescription>
-            Risk class {months} months ahead · {prediction.model_name}
-          </CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1.5">
+            <CardTitle>{prediction.horizon} prediction</CardTitle>
+            <CardDescription>Risk class {months} months ahead</CardDescription>
+          </div>
+          <PredictionBadge prediction={prediction} weakSignal={weakSignal} />
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">Predicted class</span>

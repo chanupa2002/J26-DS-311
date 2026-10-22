@@ -1,6 +1,5 @@
 import { ChevronDown, Info } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import {
   Collapsible,
   CollapsibleContent,
@@ -36,7 +35,7 @@ export function HistorySection({ status, history, waiting }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {data && <Badge variant="outline">Auto-calculated</Badge>}
+          {data && <span className="text-xs text-muted-foreground">Auto-calculated</span>}
           <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
         </div>
       </CollapsibleTrigger>

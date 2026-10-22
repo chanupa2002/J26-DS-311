@@ -8,6 +8,11 @@ export const UNAVAILABLE_MESSAGE_PREFIXES = [
 
 export const RISK_CLASSES = ["Low", "Medium", "High"]
 
+// Our own short status text; the backend deployment_reason is never shown verbatim.
+export const PROTOTYPE_REASON = "Prototype model: not yet validated on real household outcomes."
+// Prediction cards show "Low confidence" below this top probability (or with the weak-signal flag).
+export const LOW_CONFIDENCE_PROBABILITY = 0.5
+
 // Badge colours per class (Low green, Medium amber, High red, Unassigned grey).
 export const RISK_BADGE_CLASS = {
   Low: "border-transparent bg-emerald-600 text-white dark:bg-emerald-500/80",
@@ -102,7 +107,7 @@ export const METRICS = [
 
 // Shown only inside "Technical details (for reviewers)".
 export const ABOUT_DATA = [
-  "The models were trained and tested on a simulated panel of 70 households in 9 livelihood categories (Jan–Sep 2026). The panel mirrors the structure of the programme's monthly monitoring data.",
+  "The models were trained and tested on a prototype panel of 70 households in 9 livelihood categories (Jan–Sep 2026), built to mirror the programme's monthly monitoring data. It is not made of real household records.",
   "Real monitoring records cannot be used yet, because they have no stable household ID: the same household cannot be followed from one visit to the next, so no real 3- or 6-month outcome can be measured.",
   "All results are for demonstration. The models must be validated on real data, with a stable household ID and expert review of the risk rule, before they are used for any decision.",
 ]
@@ -123,7 +128,7 @@ export const TRADE_OFF = {
 // Shortened from the backend README "Limitations". The first entries are always shown.
 export const LIMITATIONS = [
   "Both models are prototypes awaiting validation (model_status NOT_READY). Do not use the predictions for real decisions.",
-  "Trained and tested on a simulated panel only (70 households, 9 categories, Jan–Sep 2026). The source says these rows must not be used as evidence.",
+  "Trained and tested on a prototype panel only (70 households, 9 categories, Jan–Sep 2026), not on real household records. Its results are not evidence about real households.",
   "Version 2.0 catches fewer High cases than version 1.0: walk-forward High recall fell from 0.397 to 0.307 (3M) and from 0.876 to 0.771 (6M).",
   "Real households have no persistent ID, so no real 3- or 6-month outcome exists to train or test on.",
   "Single-month test results are uncertain: the 3M confidence interval is wide, and the 6M test split could not be embargoed (optimistic).",

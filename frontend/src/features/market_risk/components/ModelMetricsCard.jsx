@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { ABOUT_DATA, BASELINE_SIMILAR_MARGIN, METRICS, OVERVIEW_TEXT } from "../constants"
+import { BASELINE_SIMILAR_MARGIN, METRICS, OVERVIEW_TEXT } from "../constants"
 import {
   comparedWithBaseline,
   formatDateTime,
@@ -74,7 +74,6 @@ function reliabilitySentences(model) {
 function TechnicalDetails({ model }) {
   const metrics = model.test_metrics || {}
   const period = model.training_period || {}
-  const simulated = /synthetic/i.test(model.data_basis || "")
 
   return (
     <Collapsible className="rounded-lg border">
@@ -108,8 +107,7 @@ function TechnicalDetails({ model }) {
 
         <dl className="grid gap-3 sm:grid-cols-2">
           <Detail label="Training data">
-            {trainingDataLabel(model.data_basis)}
-            {simulated && " (simulated panel)"}
+            Prototype training panel: {trainingDataLabel(model.data_basis)}
           </Detail>
           <Detail label="Created">{formatDateTime(model.created)}</Detail>
           <Detail label="Prediction months">{period.prediction_months || "—"}</Detail>
@@ -117,7 +115,6 @@ function TechnicalDetails({ model }) {
           <Detail label="Model">
             {model.model_name} · {model.algorithm}
           </Detail>
-          <Detail label="Status">{model.model_status}</Detail>
         </dl>
 
         {model.validation_methodology && (
@@ -126,15 +123,6 @@ function TechnicalDetails({ model }) {
             <p className="text-sm">{model.validation_methodology}</p>
           </div>
         )}
-
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">About the data</p>
-          {ABOUT_DATA.map((paragraph) => (
-            <p key={paragraph} className="text-sm">
-              {paragraph}
-            </p>
-          ))}
-        </div>
       </CollapsibleContent>
     </Collapsible>
   )
@@ -164,7 +152,6 @@ export function ModelMetricsCard({ model }) {
           ) : (
             <p className="text-sm text-muted-foreground">No test results reported.</p>
           )}
-          <p className="text-xs text-muted-foreground">{OVERVIEW_TEXT.reliabilityFooter}</p>
         </div>
         <TechnicalDetails model={model} />
       </CardContent>
