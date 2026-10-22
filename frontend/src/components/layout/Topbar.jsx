@@ -29,7 +29,7 @@ export function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b bg-background px-4 sm:px-6">
       <SidebarTrigger mobile className="md:hidden" />
       <SidebarTrigger className="hidden md:inline-flex" />
       <h2 className="min-w-0 flex-1 truncate font-semibold">{pageTitle}</h2>
