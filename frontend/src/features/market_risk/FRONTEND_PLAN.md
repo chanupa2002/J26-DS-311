@@ -250,6 +250,11 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
   - **Option:** added after the trained levels from `/model-info`; no names are hardcoded. It sends `F_District: null`.
   - **Note:** when chosen, shows "The model was trained on N districts only. For other districts the district is ignored and the prediction has lower confidence.", with N from `/model-info`.
   - **Badge:** the prediction cards show "Low confidence". The flag is taken when Predict is pressed, because the request cannot distinguish it from a blank district | ✅ Done |
+| E2 | Officer-friendly explanation, from the existing `/explain` response:
+  - **Factor list:** the main chart is replaced by "What raised or lowered the High-risk chance" (`FactorList`). Each row has the plain label and value, a short red/green bar, "Raises risk" / "Lowers risk", the effect in whole points of P(High) ("<1 point" below 0.5) and Strong / Moderate / Slight (≥60% / ≥25% of the largest factor). There is no axis; the top 5 are shown, with "Show all".
+  - **Start line:** "The model starts from the average High-risk chance (X%) and these factors move it to Y%." It is shown only when the prediction is High, because `base_value` belongs to the predicted class.
+  - **Reviewers:** the Recharts SHAP chart is unchanged, inside a collapsed "Technical detail (SHAP values)".
+  - **Kept:** the Why card, the 3M/6M tabs and the badges. The panel is titled "Why this prediction" with the note "These are the model's reasons, not proven real-world causes." | ✅ Done |
   - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
   - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
   - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |

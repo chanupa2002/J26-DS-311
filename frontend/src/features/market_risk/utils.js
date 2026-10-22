@@ -348,3 +348,19 @@ export function riskFeaturesFromIdentify(result, riskOrd) {
     F_Risk_Unknown_t: result.unknown_count,
   }
 }
+
+// ------------------------------------------------------------ Factor list ----
+
+/** A SHAP contribution to P(High) in whole percentage points: "+3 points", "<1 point". */
+export function pointsText(contribution) {
+  const points = Math.abs(Number(contribution)) * 100
+  if (!Number.isFinite(points)) return "—"
+  if (points < 0.5) return "<1 point"
+  const rounded = Math.round(points)
+  return `${contribution > 0 ? "+" : "−"}${rounded} ${rounded === 1 ? "point" : "points"}`
+}
+
+/** Strength word for |share| of the largest factor (share in 0..1). */
+export function strengthWord(share, levels) {
+  return levels.find((level) => share >= level.min)?.label || levels[levels.length - 1].label
+}

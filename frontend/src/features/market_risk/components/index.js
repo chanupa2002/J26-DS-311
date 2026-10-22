@@ -1,6 +1,7 @@
 export { CurrentRiskResult } from "./CurrentRiskResult"
 export { DateField } from "./DateField"
 export { ExplanationPanel } from "./ExplanationPanel"
+export { FactorList } from "./FactorList"
 export { FeatureField } from "./FeatureField"
 export { FeatureForm } from "./FeatureForm"
 export { FeatureList } from "./FeatureList"

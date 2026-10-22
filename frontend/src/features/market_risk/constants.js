@@ -552,3 +552,24 @@ export const PREFILL_TEXT = {
   fieldSuffix: "(from Risk Check)",
   fieldNote: "Auto-filled",
 }
+
+// ------------------------------------------------------ Factor list (E2) ----
+
+export const FACTOR_TEXT = {
+  title: "What raised or lowered the High-risk chance",
+  raises: "Raises risk",
+  lowers: "Lowers risk",
+  showAll: (n) => `Show all ${n}`,
+  showFewer: "Show fewer",
+  start: (base, final) =>
+    `The model starts from the average High-risk chance (${base}) and these factors move it to ${final}.`,
+  technical: "Technical detail (SHAP values)",
+  technicalHelp: "For reviewers: the raw SHAP contributions to P(High).",
+}
+export const FACTORS_SHOWN = 5
+// Strength relative to the largest factor: >= 60% Strong, >= 25% Moderate, else Slight.
+export const FACTOR_STRENGTH = [
+  { min: 0.6, label: "Strong" },
+  { min: 0.25, label: "Moderate" },
+  { min: 0, label: "Slight" },
+]
