@@ -17,9 +17,13 @@ Its approved training data is documented in DATA_DESCRIPTION.md; no real data be
 - Reasons come from the Logistic Regression itself: input value x learned
   weight, grouped by the original input feature.
 - They show what the model weighted for a recommendation, not proven causes.
-- Confidence is low when the top score is below 0.30 or the gap between the
-  first two scores is below 0.05. These rules can be tuned with
+- Model 1 confidence is low only when the request district is not in the fitted
+  model's district categories; district matching is case-insensitive.
+- A top score below 0.30 or a gap below 0.05 adds a close-score review note but
+  does not lower Model 1 confidence. Tune these thresholds with
   `LOW_CONFIDENCE_TOP_SCORE` and `LOW_CONFIDENCE_GAP` in `predict.py`.
+- `/swot` and `/assess` also use Model 2, where estimated viability still makes
+  the combined response confidence low.
 
 ## Experiments and extra files
 

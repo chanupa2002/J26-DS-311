@@ -4,6 +4,7 @@
 
 - `/livelihood/beneficiaries` lists beneficiary summaries and opens assessments.
 - `/livelihood/assess` and `/livelihood/assess/:beneficiaryId` run and save draft assessments.
+- The Assess page warns before assessment when Model 1 has not been trained on the beneficiary's district.
 - `/livelihood/recommend` runs Model 1 recommendations without saving.
 - `/livelihood/swot` runs recommendations, SWOT, and viability without saving.
 - `/livelihood/history` shows saved assessments for a beneficiary.
