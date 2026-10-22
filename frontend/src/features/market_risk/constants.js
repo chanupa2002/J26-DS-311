@@ -100,15 +100,12 @@ export const METRICS = [
   ["Accuracy", "Accuracy"],
 ]
 
-export const ABOUT_DATA = {
-  summary:
-    "Trained on a synthetic panel (70 households, 9 categories). For demonstration only, until validated on real data.",
-  paragraphs: [
-    "The models were trained and tested on a synthetic panel of 70 households in 9 livelihood categories (Jan–Sep 2026). The panel mirrors the structure of the programme's monthly monitoring data.",
-    "Real monitoring records cannot be used yet, because they have no stable household ID: the same household cannot be followed from one visit to the next, so no real 3- or 6-month outcome can be measured.",
-    "All results on these pages are for demonstration. The models must be validated on real data, with a stable household ID and expert review of the risk rule, before they are used for any decision.",
-  ],
-}
+// Shown only inside "Technical details (for reviewers)".
+export const ABOUT_DATA = [
+  "The models were trained and tested on a simulated panel of 70 households in 9 livelihood categories (Jan–Sep 2026). The panel mirrors the structure of the programme's monthly monitoring data.",
+  "Real monitoring records cannot be used yet, because they have no stable household ID: the same household cannot be followed from one visit to the next, so no real 3- or 6-month outcome can be measured.",
+  "All results are for demonstration. The models must be validated on real data, with a stable household ID and expert review of the risk rule, before they are used for any decision.",
+]
 
 // Walk-forward means over all test rows (backend RETRAIN_REPORT.md section 5).
 export const TRADE_OFF = {
@@ -126,7 +123,7 @@ export const TRADE_OFF = {
 // Shortened from the backend README "Limitations". The first entries are always shown.
 export const LIMITATIONS = [
   "Both models are prototypes awaiting validation (model_status NOT_READY). Do not use the predictions for real decisions.",
-  "Trained and tested on synthetic data only (70 households, 9 categories, Jan–Sep 2026). The source says these rows must not be used as evidence.",
+  "Trained and tested on a simulated panel only (70 households, 9 categories, Jan–Sep 2026). The source says these rows must not be used as evidence.",
   "Version 2.0 catches fewer High cases than version 1.0: walk-forward High recall fell from 0.397 to 0.307 (3M) and from 0.876 to 0.771 (6M).",
   "Real households have no persistent ID, so no real 3- or 6-month outcome exists to train or test on.",
   "Single-month test results are uncertain: the 3M confidence interval is wide, and the 6M test split could not be embargoed (optimistic).",
@@ -141,7 +138,8 @@ export const LIMITATIONS_SHOWN = 3
 
 // ------------------------------------------------------------ Future Risk ----
 
-export const TOP_K = 5
+// Enough factors for the Why card to name some in both directions.
+export const TOP_K = 8
 
 export const HORIZON_OPTIONS = [
   { value: "both", label: "Both (3M and 6M)" },
@@ -243,24 +241,23 @@ export const GRANT_DATE_HELP = "Optional. The date the grant was received; not a
 
 // History (14 features): never typed in. They come from POST /api/risk/history-features
 // (step H2), calculated from the current answers and the previous visits, and are shown
-// read-only in the "Advanced · History" section with these plain labels.
-export const HISTORY_LABELS = {
-  F_Months_Since_Prev_Visit: "Months since the previous visit",
-  F_Prev_Risk_Ord: "Risk class at the previous visit",
-  F_Prev_No_Profit_Last_Month: "No profit at the previous visit",
-  F_Prev_Market_Stress_Any: "Market stress at the previous visit",
-  F_Prev_Not_Progressing_Well: "Not progressing well at the previous visit",
-  F_Prev_Business_Not_Running: "Business not running at the previous visit",
-  F_Risk_Change_vs_Prev: "Change in risk class since the previous visit",
-  F_Tenure_Months: "Months since the first recorded visit",
-  F_N_Prior_Visits: "Number of earlier visits",
-  F_Risk_Mean_3M_Window: "Average risk class, last 3 months (0 = Low, 2 = High)",
-  F_NoProfit_Rate_3M_Window: "Share of visits with no profit, last 3 months",
-  F_MarketStress_Rate_3M_Window: "Share of visits with market stress, last 3 months",
-  F_High_Count_6M_Window: "Visits with High risk, last 6 months",
-  F_Months_Since_Grant: "Months since the grant was received",
-}
-export const HISTORY_FEATURES = Object.keys(HISTORY_LABELS)
+// read-only in the "Advanced · History" section.
+export const HISTORY_FEATURES = [
+  "F_Months_Since_Prev_Visit",
+  "F_Prev_Risk_Ord",
+  "F_Prev_No_Profit_Last_Month",
+  "F_Prev_Market_Stress_Any",
+  "F_Prev_Not_Progressing_Well",
+  "F_Prev_Business_Not_Running",
+  "F_Risk_Change_vs_Prev",
+  "F_Tenure_Months",
+  "F_N_Prior_Visits",
+  "F_Risk_Mean_3M_Window",
+  "F_NoProfit_Rate_3M_Window",
+  "F_MarketStress_Rate_3M_Window",
+  "F_High_Count_6M_Window",
+  "F_Months_Since_Grant",
+]
 
 export const MAX_PREVIOUS_VISITS = 12
 // How far back the previous-visit month list goes.
@@ -327,7 +324,7 @@ export const PROBABILITY_BAR_CLASS = {
 export const SHAP_COLORS = { towardsHigh: "#dc2626", awayFromHigh: "#16a34a" }
 
 export const FUTURE_RISK_NOTICE_REASON =
-  "Predictions come from prototype models trained on a synthetic panel. They show what the model would say, not what will happen to a real household."
+  "Predictions come from prototype models that have not yet been validated on real household outcomes. They show what the model would say, not what will happen to a real household."
 
 // Coded features shown as selects. Values are the exact numbers the model was
 // trained with (sent as numbers); the blank option is sent as null.
@@ -410,3 +407,119 @@ export const FEATURE_OPTIONS = {
 }
 
 export const SHAP_NOTE = "SHAP shows what drives the model, not real-world causes."
+
+// ------------------------------------------------------------- Labels (E1) ----
+
+// Short plain labels for all 53 features (max ~35 characters), used everywhere in the UI.
+// The F_* name is only shown in tooltips.
+export const FEATURE_LABELS = {
+  F_Business_Not_Running_t: "Business not running",
+  F_No_Profit_Last_Month_t: "No profit last month",
+  F_Not_Progressing_Well_t: "Not progressing well",
+  F_Revenue_Lowest_Band_t: "Revenue in the lowest band",
+  F_Sales_Below_Expected_t: "Sales below expected",
+  F_High_Input_Cost_t: "High input costs",
+  F_Inputs_Unavailable_t: "Inputs unavailable",
+  F_Market_Stress_Any_t: "Any market problem reported",
+  F_Risk_Ord_t: "Current risk class",
+  F_Risk_Signal_Count_t: "Number of risk signals",
+  F_Risk_Unknown_t: "Number of unanswered signals",
+  F_Hours_Ord_t: "Hours worked per day",
+  F_Records_Ord_t: "Business record keeping",
+  F_Grant_Status_Ord_t: "Grant status",
+  F_Borrowed_t: "Borrowed money",
+  F_Saved_t: "Able to save money last month",
+  F_Cyclone_Affected_t: "Affected by the cyclone",
+  F_Female_Head: "Female-headed household",
+  F_Asset_Lost_t: "Lost business assets",
+  F_Storage_Transport_Issue_t: "Storage or transport problems",
+  F_Machinery_Issue_t: "Machinery or equipment problems",
+  F_Natural_Disaster_t: "Hit by a natural disaster",
+  F_Age: "Participant age",
+  F_Female_Participant: "Participant gender",
+  F_Months_Since_Prev_Visit: "Months since previous visit",
+  F_Prev_Risk_Ord: "Risk class at previous visit",
+  F_Prev_No_Profit_Last_Month: "No profit at previous visit",
+  F_Prev_Market_Stress_Any: "Market problem at previous visit",
+  F_Prev_Not_Progressing_Well: "Not progressing at previous visit",
+  F_Prev_Business_Not_Running: "Not running at previous visit",
+  F_Risk_Change_vs_Prev: "Risk change since previous visit",
+  F_Tenure_Months: "Months since first visit",
+  F_N_Prior_Visits: "Number of earlier visits",
+  F_Risk_Mean_3M_Window: "Average risk, last 3 months",
+  F_NoProfit_Rate_3M_Window: "No-profit share, last 3 months",
+  F_MarketStress_Rate_3M_Window: "Market-problem share, 3 months",
+  F_High_Count_6M_Window: "High-risk visits, last 6 months",
+  F_Months_Since_Grant: "Months since grant received",
+  F_Mkt_Pressure_t: "Category price pressure",
+  F_Mkt_Volatility_t: "Category price volatility",
+  F_Mkt_Pressure_Change_1M: "Price pressure change (1 month)",
+  F_Mkt_Volatility_Change_1M: "Price volatility change (1 month)",
+  F_Mkt_Pressure_Tier_Ord_t: "Price pressure level",
+  F_Mkt_Volatility_Tier_Ord_t: "Price volatility level",
+  F_Mkt_Pressure_Tier_Ord_t_minus_1: "Price pressure level last month",
+  F_Mkt_Evidence_Missing: "No market price data",
+  F_Macro_CCPI_YoY_t: "National inflation (CCPI)",
+  F_Macro_CCPI_YoY_Change_1M: "Inflation change (1 month)",
+  F_Macro_Food_Index_Change_1M_pct: "Food price change (1 month)",
+  F_Macro_Diesel_t: "Diesel price",
+  F_Macro_Diesel_Change_1M_pct: "Diesel price change (1 month)",
+  F_Category: "Livelihood category",
+  F_District: "District",
+}
+
+// How numeric values are shown in words (features not listed: rounded number).
+export const FEATURE_UNITS = {
+  F_Age: { suffix: " years", digits: 0 },
+  F_Months_Since_Prev_Visit: { suffix: " months", digits: 0 },
+  F_Tenure_Months: { suffix: " months", digits: 0 },
+  F_Months_Since_Grant: { suffix: " months", digits: 1 },
+  F_N_Prior_Visits: { digits: 0 },
+  F_High_Count_6M_Window: { digits: 0 },
+  F_Risk_Signal_Count_t: { suffix: " of 3", digits: 0 },
+  F_Risk_Unknown_t: { suffix: " of 3", digits: 0 },
+  F_Risk_Change_vs_Prev: { signed: true, digits: 0 },
+  // mean risk class 0..2: shown with its meaning, e.g. "0 (Low)", "1.5 (between Medium and High)"
+  F_Risk_Mean_3M_Window: { riskScale: true, digits: 2 },
+  F_NoProfit_Rate_3M_Window: { percentOf1: true },
+  F_MarketStress_Rate_3M_Window: { percentOf1: true },
+  F_Macro_CCPI_YoY_t: { suffix: "%", digits: 1 },
+  F_Macro_CCPI_YoY_Change_1M: { suffix: " points", signed: true, digits: 1 },
+  F_Macro_Food_Index_Change_1M_pct: { suffix: "%", signed: true, digits: 1 },
+  F_Macro_Diesel_Change_1M_pct: { suffix: "%", signed: true, digits: 1 },
+  F_Macro_Diesel_t: { prefix: "LKR ", digits: 1 },
+}
+
+export const BLANK_VALUE_TEXT = "not answered (model used the typical value)"
+
+export const WHY_TEXT = {
+  title: "Why the model predicts this",
+  towards: "pushes towards High",
+  away: "pushes away from High",
+  noAway: "None of the main factors pulled away from High.",
+  noTowards: "None of the main factors pushed towards High.",
+  note: "These are the model's reasons, not proven real-world causes.",
+}
+// How many factors the Why card names in each direction.
+export const WHY_TOWARDS = 3
+export const WHY_AWAY = 2
+
+// --------------------------------------------------------- Overview (O1) ----
+
+export const OVERVIEW_TEXT = {
+  intro: [
+    "This tool helps field officers see which livelihood households may be at risk of their business struggling, now and 3 or 6 months ahead.",
+    "It checks the current visit with a simple rule, predicts future risk with a model, and explains which answers drove each prediction.",
+  ],
+  steps: [
+    { title: "1. Risk Check", text: "Four questions about this visit give the current risk class.", path: "/risk/check", link: "Open Risk Check" },
+    { title: "2. Future Risk", text: "The household's answers and earlier visits give the risk 3 and 6 months ahead.", path: "/risk/future", link: "Open Future Risk" },
+    { title: "3. Why", text: "After a prediction, \"Why the model predicts this\" lists the answers that pushed it up or down.", path: "/risk/future", link: "See it on Future Risk" },
+  ],
+  reliabilityFooter:
+    "These figures come from testing on one month before real-world validation. Details are under Technical details.",
+  notEmbargoed:
+    "This test was easier than real use, because the test months overlap the training months, so real results are likely lower.",
+}
+// Macro-F1 difference vs the "same as last visit" baseline that counts as similar.
+export const BASELINE_SIMILAR_MARGIN = 0.03

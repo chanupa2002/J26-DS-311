@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select"
 
 import { HORIZON_OPTIONS } from "../constants"
-import { countFilled } from "../utils"
+import { countFilled, featureLabel } from "../utils"
 import { FeatureField } from "./FeatureField"
 
 function FeatureSection({ group, values, setValue, descriptions, choices, invalid, defaultOpen, extraFields }) {
@@ -138,7 +138,7 @@ export function FeatureForm({
           {invalid.length > 0 && (
             <p role="alert" className="mr-auto text-sm text-destructive">
               {invalid.length} field{invalid.length > 1 ? "s are" : " is"} not a
-              number: {invalid.join(", ")}
+              number: {invalid.map(featureLabel).join(", ")}
             </p>
           )}
           <div className="flex items-center gap-2">

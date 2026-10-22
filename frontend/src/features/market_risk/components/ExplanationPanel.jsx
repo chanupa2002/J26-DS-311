@@ -10,11 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { SHAP_NOTE } from "../constants"
 import { formatPercent } from "../utils"
+import { FeatureName } from "./FeatureName"
 import { PageState } from "./PageState"
 import { ShapChart } from "./ShapChart"
+import { WhyCard } from "./WhyCard"
 
 function HorizonExplanation({ explanation }) {
-  const blankFactor = explanation.high_risk_factors.some((factor) => factor.value === null)
+  const blankFactors = explanation.high_risk_factors.filter((factor) => factor.value === null)
+  const blankFactor = blankFactors.length > 0
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -26,11 +29,18 @@ function HorizonExplanation({ explanation }) {
         </span>
         {blankFactor && <WeakSignalTag />}
       </div>
+      <WhyCard explanation={explanation} />
       <ShapChart factors={explanation.high_risk_factors} />
       {blankFactor && (
         <p className="text-xs text-muted-foreground">
-          Some top factors were blank inputs. The model filled them with the
-          training median, so a blank answer is not neutral.
+          Not answered, so the model used the typical value:{" "}
+          {blankFactors.map((factor, i) => (
+            <span key={factor.feature}>
+              {i > 0 && ", "}
+              <FeatureName name={factor.feature} />
+            </span>
+          ))}
+          . A blank answer is not neutral.
         </p>
       )}
     </div>

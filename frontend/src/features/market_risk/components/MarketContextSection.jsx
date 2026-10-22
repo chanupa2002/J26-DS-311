@@ -8,15 +8,13 @@ import {
 } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
 
-import { CONTEXT_GROUPS, FEATURE_OPTIONS, MARKET_CONTEXT_TEXT } from "../constants"
+import { CONTEXT_GROUPS, MARKET_CONTEXT_TEXT } from "../constants"
+import { featureValueText } from "../utils"
+import { FeatureName } from "./FeatureName"
 import { PageState } from "./PageState"
 
 function displayValue(name, value) {
-  if (value === null || value === undefined) return "blank"
-  if (name === "F_Mkt_Evidence_Missing") return value ? "Yes (no market evidence)" : "No"
-  const option = FEATURE_OPTIONS[name]?.options.find((item) => Number(item.value) === Number(value))
-  if (option) return option.label
-  return String(Number(Number(value).toFixed(4)))
+  return featureValueText(name, value)
 }
 
 function Message({ children }) {
@@ -72,11 +70,12 @@ export function MarketContextSection({ context, ready, descriptions, onRetry }) 
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.features.map((name) => (
                 <div key={name} className="space-y-0.5">
-                  <dt className="text-sm leading-snug">{descriptions[name] || name}</dt>
+                  <dt className="text-sm leading-snug">
+                    <FeatureName name={name} description={descriptions[name]} />
+                  </dt>
                   <dd className="text-sm font-medium tabular-nums">
                     {filled ? displayValue(name, values[name]) : "—"}
                   </dd>
-                  <dd className="font-mono text-[11px] text-muted-foreground">{name}</dd>
                 </div>
               ))}
             </dl>

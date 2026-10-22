@@ -22,6 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import { FeatureName } from "./FeatureName"
+
 export function FeatureList({ features = [] }) {
   const [open, setOpen] = useState(false)
 
@@ -47,7 +49,7 @@ export function FeatureList({ features = [] }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Input</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Description</TableHead>
                 </TableRow>
@@ -55,8 +57,8 @@ export function FeatureList({ features = [] }) {
               <TableBody>
                 {features.map((feature) => (
                   <TableRow key={feature.name}>
-                    <TableCell className="font-mono text-xs">
-                      {feature.name}
+                    <TableCell>
+                      <FeatureName name={feature.name} />
                     </TableCell>
                     <TableCell>{feature.type}</TableCell>
                     <TableCell className="whitespace-normal text-muted-foreground">

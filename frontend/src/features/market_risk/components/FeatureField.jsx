@@ -10,10 +10,11 @@ import {
 import { cn } from "@/lib/utils"
 
 import { BLANK } from "../constants"
+import { featureLabel } from "../utils"
 
 /**
  * One feature input: a select when `choice` ({ options, blank }) is given, else a number field.
- * The label is the backend description; the F_* name is shown underneath.
+ * The label is the short plain label; the backend description and F_* name are in its tooltip.
  */
 export function FeatureField({ name, description, value, onChange, choice, invalid }) {
   const id = `risk-feature-${name}`
@@ -26,15 +27,15 @@ export function FeatureField({ name, description, value, onChange, choice, inval
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="leading-snug">
-        {description || name}
+      <Label htmlFor={id} className="leading-snug" title={description ? `${description} (${name})` : name}>
+        {featureLabel(name)}
       </Label>
       {choice ? (
         <Select
           value={value === "" ? BLANK : value}
           onValueChange={(next) => onChange(next === BLANK ? "" : next)}
         >
-          <SelectTrigger id={id} aria-describedby={hintId}>
+          <SelectTrigger id={id}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -55,15 +56,16 @@ export function FeatureField({ name, description, value, onChange, choice, inval
           placeholder="blank"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          aria-describedby={hintId}
+          aria-describedby={invalid ? hintId : undefined}
           aria-invalid={invalid || undefined}
           className={cn(invalid && "border-destructive")}
         />
       )}
-      <p id={hintId} className="font-mono text-[11px] text-muted-foreground">
-        {name}
-        {invalid && <span className="ml-2 text-destructive">not a number</span>}
-      </p>
+      {invalid && (
+        <p id={hintId} className="text-[11px] text-destructive">
+          Not a number
+        </p>
+      )}
     </div>
   )
 }

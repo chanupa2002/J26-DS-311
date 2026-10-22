@@ -1,10 +1,8 @@
-import { AboutDataCard } from "../components/AboutDataCard"
-import { FeatureList } from "../components/FeatureList"
 import { LevelList } from "../components/LevelList"
-import { LimitationsList } from "../components/LimitationsList"
 import { ModelMetricsCard } from "../components/ModelMetricsCard"
+import { OverviewIntro } from "../components/OverviewIntro"
 import { PageState } from "../components/PageState"
-import { TradeOffTable } from "../components/TradeOffTable"
+import { ReviewerDetails } from "../components/ReviewerDetails"
 import { ValidationNotice } from "../components/ValidationNotice"
 import { useModelInfo } from "../hooks/useModelInfo"
 
@@ -29,7 +27,7 @@ export function OverviewPage() {
     <div className="space-y-6">
       <ValidationNotice models={models} />
 
-      <AboutDataCard />
+      <OverviewIntro />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {models.map((model) => (
@@ -37,24 +35,20 @@ export function OverviewPage() {
         ))}
       </div>
 
-      <TradeOffTable />
-
       <div className="grid gap-6 lg:grid-cols-2">
         <LevelList
           title="Livelihood categories"
-          description="Category levels the models were trained on (F_Category)."
+          description="The livelihood categories the models know."
           levels={levels.F_Category}
         />
         <LevelList
           title="Districts"
-          description="District levels the models were trained on (F_District)."
+          description="The districts the models know."
           levels={levels.F_District}
         />
       </div>
 
-      <LimitationsList />
-
-      <FeatureList features={features} />
+      <ReviewerDetails features={features} />
     </div>
   )
 }

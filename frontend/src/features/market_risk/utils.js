@@ -1,4 +1,11 @@
-import { BLANK, PREVIOUS_VISIT_ANSWERS, UNAVAILABLE_MESSAGE_PREFIXES } from "./constants"
+import {
+  BLANK,
+  FEATURE_LABELS,
+  FEATURE_OPTIONS,
+  FEATURE_UNITS,
+  PREVIOUS_VISIT_ANSWERS,
+  UNAVAILABLE_MESSAGE_PREFIXES,
+} from "./constants"
 
 /** Select values ("1" / "0" / "blank") -> /identify body (1 / 0 / null). */
 export function toSignals(formValues) {
@@ -46,7 +53,7 @@ export function statusLabel(status) {
   return status === "READY" ? "Ready" : "Validation pending"
 }
 
-/** "SYNTHETIC panel (70 households, 9 categories)" -> "70 households, 9 categories" */
+/** data_basis "... panel (70 households, 9 categories)" -> "70 households, 9 categories" */
 export function trainingDataLabel(dataBasis) {
   if (!dataBasis) return "—"
   const inBrackets = String(dataBasis).match(/\(([^)]+)\)/)
@@ -242,4 +249,77 @@ export function newPreviousVisit() {
     month: "",
     ...Object.fromEntries(PREVIOUS_VISIT_ANSWERS.map(({ key }) => [key, BLANK])),
   }
+}
+
+// ----------------------------------------------------------------- Labels ----
+
+/** Short plain label for a feature (falls back to the name). */
+export function featureLabel(name) {
+  return FEATURE_LABELS[name] || name
+}
+
+/** A feature value in words: Yes/No, Low/Medium/High, units; `blank` for null. */
+export function featureValueText(name, value, blank = "blank") {
+  if (value === null || value === undefined || value === "") return blank
+  if (typeof value === "string" && !Number.isFinite(Number(value))) return value
+  const number = Number(value)
+  const option = FEATURE_OPTIONS[name]?.options.find((item) => Number(item.value) === number)
+  if (option) return option.label
+  const unit = FEATURE_UNITS[name] || {}
+  if (unit.percentOf1) return `${Math.round(number * 100)}%`
+  const rounded = Number(number.toFixed(unit.digits ?? 2))
+  if (unit.riskScale) {
+    const classes = ["Low", "Medium", "High"]
+    const lower = Math.floor(rounded)
+    const word = Number.isInteger(rounded)
+      ? classes[rounded]
+      : `between ${classes[lower]} and ${classes[lower + 1]}`
+    return word ? `${rounded} (${word})` : String(rounded)
+  }
+  const sign = unit.signed && rounded > 0 ? "+" : ""
+  return `${unit.prefix || ""}${sign}${rounded}${unit.suffix || ""}`
+}
+
+/** Split a label into at most `maxLines` lines of about `width` characters (whole words). */
+export function wrapLabel(text, width = 20, maxLines = 2) {
+  const lines = []
+  for (const word of String(text).split(" ")) {
+    const last = lines[lines.length - 1]
+    if (last !== undefined && `${last} ${word}`.length <= width) lines[lines.length - 1] = `${last} ${word}`
+    else lines.push(word)
+  }
+  if (lines.length <= maxLines) return lines
+  return [...lines.slice(0, maxLines - 1), lines.slice(maxLines - 1).join(" ")]
+}
+
+/** Text -> parts, where every F_* name becomes { feature } (to show its label). */
+export function splitFeatureNames(text) {
+  return String(text)
+    .split(/(F_[A-Za-z0-9_]+)/)
+    .filter(Boolean)
+    .map((part) => (/^F_[A-Za-z0-9_]+$/.test(part) ? { feature: part } : part))
+}
+
+// --------------------------------------------------------------- Overview ----
+
+/** A share 0..1 as "N in M": 1 in 2 / 1 or 2 in 3 / 1 or 3 in 4 when close, else "N in 10". */
+export function shareInWords(share) {
+  const value = Number(share)
+  if (!Number.isFinite(value)) return null
+  for (const denominator of [2, 3, 4]) {
+    const numerator = Math.round(value * denominator)
+    if (numerator > 0 && numerator < denominator && Math.abs(value - numerator / denominator) <= 0.02) {
+      return `${numerator} in ${denominator}`
+    }
+  }
+  return `${Math.round(value * 10)} in 10`
+}
+
+/** Model Macro-F1 vs the "same as last visit" baseline: "better" / "about the same" / "worse". */
+export function comparedWithBaseline(model, baseline, margin) {
+  if (!Number.isFinite(Number(model)) || !Number.isFinite(Number(baseline))) return null
+  const difference = Number(model) - Number(baseline)
+  if (difference > margin) return "better"
+  if (difference < -margin) return "worse"
+  return "about the same"
 }

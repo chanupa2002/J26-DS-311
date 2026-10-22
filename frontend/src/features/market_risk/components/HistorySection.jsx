@@ -8,19 +8,14 @@ import {
 } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
 
-import { FEATURE_OPTIONS, HISTORY_FEATURES, HISTORY_LABELS, HISTORY_TEXT } from "../constants"
-import { formatPercent, formatSigned, monthLabel } from "../utils"
+import { HISTORY_FEATURES, HISTORY_TEXT } from "../constants"
+import { featureValueText, monthLabel } from "../utils"
+import { FeatureName } from "./FeatureName"
 import { RiskBadge } from "./RiskBadge"
 
-const RATES = ["F_NoProfit_Rate_3M_Window", "F_MarketStress_Rate_3M_Window"]
-
 function displayValue(name, value) {
-  if (value === null || value === undefined) return "blank"
-  const option = FEATURE_OPTIONS[name]?.options.find((item) => Number(item.value) === Number(value))
-  if (option) return option.label
-  if (RATES.includes(name)) return formatPercent(value, 0)
-  if (name === "F_Risk_Change_vs_Prev") return value === 0 ? "No change" : formatSigned(value, 0)
-  return String(Number(Number(value).toFixed(2)))
+  if (name === "F_Risk_Change_vs_Prev" && value === 0) return "No change"
+  return featureValueText(name, value)
 }
 
 /**
@@ -68,11 +63,12 @@ export function HistorySection({ status, history, waiting }) {
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
           {HISTORY_FEATURES.map((name) => (
             <div key={name} className="space-y-0.5">
-              <dt className="text-sm leading-snug">{HISTORY_LABELS[name]}</dt>
+              <dt className="text-sm leading-snug">
+                <FeatureName name={name} />
+              </dt>
               <dd className="text-sm font-medium tabular-nums">
                 {data ? displayValue(name, data.features[name]) : "—"}
               </dd>
-              <dd className="font-mono text-[11px] text-muted-foreground">{name}</dd>
             </div>
           ))}
         </dl>
