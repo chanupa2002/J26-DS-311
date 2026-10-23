@@ -84,13 +84,13 @@ class CategoryMatchBlock(VerificationBlock):
             evidence["manual_review_required"] = True
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", None, "model abstained as OTHER; officer manual review required", raw_measure=confidence, threshold=settings.get("unclear_confidence"), evidence=evidence, severity="review")])
         relevant_threshold = float(settings.get("relevant_probability", 0.55))
-        # A matching prediction with sufficient confidence is positive evidence.
-        # Evaluate it before the generic ambiguity branch so a valid livelihood
-        # match is not turned into a review flag merely because another class is
-        # close behind it.
-        if predicted == registered and confidence >= relevant_threshold and not low_confidence:
+        # The selected livelihood and the model's top prediction agree. Treat
+        # that as a match regardless of confidence; confidence is retained in
+        # the evidence for transparency but must not create a category flag.
+        if predicted == registered:
             evidence["accepted_matching_prediction"] = True
-            return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 1, "photo matches the registered livelihood category with sufficient confidence", raw_measure=registered_probability, threshold=relevant_threshold, evidence=evidence)])
+            evidence["confidence_override"] = "matching_registered_category"
+            return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 1, "photo prediction matches the registered livelihood category", raw_measure=registered_probability, threshold=relevant_threshold, evidence=evidence)])
         if low_confidence or overlapping:
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", None, "category evidence is unclear after calibration", raw_measure=confidence, threshold=settings.get("unclear_confidence"), evidence=evidence, severity="review")])
         unrelated = set(settings.get("unrelated_categories", []))

@@ -147,8 +147,8 @@ def test_category_relevant_not_relevant_unclear_and_missing() -> None:
     assert relevant.checks[0].value == 1
     not_relevant = asyncio.run(CategoryMatchBlock(FakeCategoryEmbedder({"AGRICULTURE": 0.02, "TRADE": 0.96, "OTHER": 0.02}), category_config()).run(context))
     assert not_relevant.checks[0].value == 0
-    unclear = asyncio.run(CategoryMatchBlock(FakeCategoryEmbedder({"AGRICULTURE": 0.34, "TRADE": 0.33, "OTHER": 0.33}), category_config()).run(context))
-    assert unclear.checks[0].value is None
+    matching_low_confidence = asyncio.run(CategoryMatchBlock(FakeCategoryEmbedder({"AGRICULTURE": 0.34, "TRADE": 0.33, "OTHER": 0.33}), category_config()).run(context))
+    assert matching_low_confidence.checks[0].value == 1
     missing_context = __import__("app.components.evidence_trust.ml.image_verification.image_loader", fromlist=["load_context"]).load_context(ImageInput(raw, "h", "m"))
     missing = asyncio.run(CategoryMatchBlock(FakeCategoryEmbedder({"AGRICULTURE": 1.0}), category_config()).run(missing_context))
     assert missing.checks[0].value is None
