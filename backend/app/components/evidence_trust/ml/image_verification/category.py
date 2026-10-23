@@ -83,13 +83,19 @@ class CategoryMatchBlock(VerificationBlock):
         if predicted == other:
             evidence["manual_review_required"] = True
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", None, "model abstained as OTHER; officer manual review required", raw_measure=confidence, threshold=settings.get("unclear_confidence"), evidence=evidence, severity="review")])
+        relevant_threshold = float(settings.get("relevant_probability", 0.55))
+        # A matching prediction with sufficient confidence is positive evidence.
+        # Evaluate it before the generic ambiguity branch so a valid livelihood
+        # match is not turned into a review flag merely because another class is
+        # close behind it.
+        if predicted == registered and confidence >= relevant_threshold and not low_confidence:
+            evidence["accepted_matching_prediction"] = True
+            return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 1, "photo matches the registered livelihood category with sufficient confidence", raw_measure=registered_probability, threshold=relevant_threshold, evidence=evidence)])
         if low_confidence or overlapping:
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", None, "category evidence is unclear after calibration", raw_measure=confidence, threshold=settings.get("unclear_confidence"), evidence=evidence, severity="review")])
         unrelated = set(settings.get("unrelated_categories", []))
         if predicted in unrelated and confidence >= float(settings.get("not_relevant_confidence", 0.70)):
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 0, f"photo appears to show {predicted}, not the registered livelihood", raw_measure=registered_probability, threshold=settings.get("relevant_probability"), evidence=evidence, severity="review")])
-        if predicted == registered and registered_probability >= float(settings.get("relevant_probability", 0.55)):
-            return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 1, "photo matches the registered livelihood category", raw_measure=registered_probability, threshold=settings.get("relevant_probability"), evidence=evidence)])
         if predicted != registered and confidence >= float(settings.get("not_relevant_confidence", 0.70)):
             return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", 0, f"photo appears to show {predicted}, not the registered livelihood", raw_measure=registered_probability, threshold=settings.get("not_relevant_confidence"), evidence=evidence, severity="review")])
         return BlockResult(self.name, [CheckResult("CATEGORY_MATCH", None, "registered category probability is not decisive", raw_measure=registered_probability, threshold=settings.get("relevant_probability"), evidence=evidence, severity="review")])

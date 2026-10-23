@@ -62,7 +62,7 @@ export function MonitoringPage() {
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Financial and livelihood inputs</CardTitle><CardDescription>These fields map to the financial-risk model's Visit contract.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Total grant amount (first record only)" hint="Enter this for a new household. Leave blank for later records; the saved amount will be reused."><Input type="number" min="0" step="0.01" value={form.grant_amount_lkr} onChange={update("grant_amount_lkr")} /></Field>
+        <Field label="Total grant amount (LKR)"><Input type="number" min="0" step="0.01" value={form.grant_amount_lkr} onChange={update("grant_amount_lkr")} /></Field>
         <Field label="Monthly expenditure (LKR)"><Input required type="number" min="0" step="0.01" value={form.monthly_expenditure_lkr} onChange={update("monthly_expenditure_lkr")} /></Field>
         <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">Grant spent and grant remaining are calculated by the backend from the household grant amount and cumulative monthly expenditure.</div>
         <Field label="Grant use status"><SelectField value={form.grant_use_status} onChange={update("grant_use_status")}><option>Received, fully used, bills settled</option><option>Received, fully used, bills not settled</option><option>Received, not fully used</option><option>Not received</option></SelectField></Field>
