@@ -13,20 +13,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { LOW_CONFIDENCE_PROBABILITY, PROTOTYPE_REASON } from "../constants"
+import { LOW_CONFIDENCE_PROBABILITY, VALIDATION_REASON } from "../constants"
 import { ProbabilityBars } from "./ProbabilityBars"
 import { RiskBadge } from "./RiskBadge"
 
-/** "Low confidence" (weak-signal flag or top probability < 0.5), else "Prototype". */
+/** "Low confidence" (weak-signal flag or top probability < 0.5), else "Validation pending". */
 function PredictionBadge({ prediction, weakSignal }) {
   const top = Math.max(...Object.values(prediction.probabilities || {}).map(Number))
   if (weakSignal || !(top >= LOW_CONFIDENCE_PROBABILITY)) return <ConfidenceBadge level="low" />
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="outline">Prototype</Badge>
+        <Badge variant="outline">Validation pending</Badge>
       </TooltipTrigger>
-      <TooltipContent>{PROTOTYPE_REASON}</TooltipContent>
+      <TooltipContent>{VALIDATION_REASON}</TooltipContent>
     </Tooltip>
   )
 }

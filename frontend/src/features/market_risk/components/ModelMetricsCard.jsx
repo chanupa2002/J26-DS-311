@@ -96,7 +96,7 @@ function TechnicalDetails({ model }) {
 
         <dl className="grid gap-3 sm:grid-cols-2">
           <Detail label="Training data">
-            Prototype training panel: {trainingDataLabel(model.data_basis)}
+            Training panel: {trainingDataLabel(model.data_basis)}
           </Detail>
           <Detail label="Created">{formatDateTime(model.created)}</Detail>
           <Detail label="Prediction months">{period.prediction_months || "—"}</Detail>

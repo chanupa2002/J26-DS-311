@@ -9,7 +9,7 @@ export const UNAVAILABLE_MESSAGE_PREFIXES = [
 export const RISK_CLASSES = ["Low", "Medium", "High"]
 
 // Our own short status text; the backend deployment_reason is never shown verbatim.
-export const PROTOTYPE_REASON = "Prototype model: not yet validated on real household outcomes."
+export const VALIDATION_REASON = "Not yet validated on real household outcomes."
 // Prediction cards show "Low confidence" below this top probability (or with the weak-signal flag).
 export const LOW_CONFIDENCE_PROBABILITY = 0.5
 
@@ -87,9 +87,10 @@ export const IDENTIFY_EXAMPLES = [
   },
 ]
 
-export const RULE_NOTICE = {
-  title: "Provisional rule · validation pending",
-  reasons: [
+// How the Risk Check rule works; shown in "Model details (for reviewers)".
+export const RISK_RULE_NOTES = {
+  title: "Risk Check rule",
+  notes: [
     "The class comes from SUSTAIN-HH-Risk-Rule v1.0, a rule-based check with no ML model. The rule is provisional and has not yet been validated by experts.",
     "High: the business is not running, or 2 or more of the 3 signals are Yes. Medium: exactly one signal. Low: business running and all signals No.",
     "A blank answer is not treated as No. If blanks could change the class, the result is Unassigned and a follow-up visit is recommended.",
@@ -107,7 +108,7 @@ export const METRICS = [
 
 // Shown only inside "Technical details (for reviewers)".
 export const ABOUT_DATA = [
-  "The models were trained and tested on a prototype panel of 70 households in 9 livelihood categories (Jan–Sep 2026), built to mirror the programme's monthly monitoring data. It is not made of real household records.",
+  "The models were trained and tested on a training panel of 70 households in 9 livelihood categories (Jan–Sep 2026), built to mirror the programme's monthly monitoring data. It is not made of real household records.",
   "Real monitoring records cannot be used yet, because they have no stable household ID: the same household cannot be followed from one visit to the next, so no real 3- or 6-month outcome can be measured.",
   "All results are for demonstration. The models must be validated on real data, with a stable household ID and expert review of the risk rule, before they are used for any decision.",
 ]
@@ -127,8 +128,8 @@ export const TRADE_OFF = {
 
 // Shortened from the backend README "Limitations". The first entries are always shown.
 export const LIMITATIONS = [
-  "Both models are prototypes awaiting validation (model_status NOT_READY). Do not use the predictions for real decisions.",
-  "Trained and tested on a prototype panel only (70 households, 9 categories, Jan–Sep 2026), not on real household records. Its results are not evidence about real households.",
+  "Both models are still awaiting validation (model_status NOT_READY). Do not use the predictions for real decisions.",
+  "Trained and tested on a training panel only (70 households, 9 categories, Jan–Sep 2026), not on real household records. Its results are not evidence about real households.",
   "Version 2.0 catches fewer High cases than version 1.0: walk-forward High recall fell from 0.397 to 0.307 (3M) and from 0.876 to 0.771 (6M).",
   "Real households have no persistent ID, so no real 3- or 6-month outcome exists to train or test on.",
   "Single-month test results are uncertain: the 3M confidence interval is wide, and the 6M test split could not be embargoed (optimistic).",
@@ -330,8 +331,9 @@ export const PROBABILITY_BAR_CLASS = {
 
 export const SHAP_COLORS = { towardsHigh: "#dc2626", awayFromHigh: "#16a34a" }
 
-export const FUTURE_RISK_NOTICE_REASON =
-  "Predictions come from prototype models that have not yet been validated on real household outcomes. They show what the model would say, not what will happen to a real household."
+// Shown in "Model details (for reviewers)" with VALIDATION_REASON.
+export const PREDICTION_MEANING =
+  "Predictions show what the current model would say, not what will happen to a real household."
 
 // Coded features shown as selects. Values are the exact numbers the model was
 // trained with (sent as numbers); the blank option is sent as null.

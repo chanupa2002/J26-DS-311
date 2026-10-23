@@ -9,7 +9,6 @@ import { ModelDetailsSection } from "../components/ModelDetailsSection"
 import { PageState } from "../components/PageState"
 import { PredictionCard } from "../components/PredictionCard"
 import { PreviousVisitsSection } from "../components/PreviousVisitsSection"
-import { ValidationNotice } from "../components/ValidationNotice"
 import { WarningList } from "../components/WarningList"
 import {
   CATEGORICAL_FEATURES,
@@ -21,12 +20,10 @@ import {
   districtOtherNote,
   FEATURE_GROUPS,
   FEATURE_OPTIONS,
-  FUTURE_RISK_NOTICE_REASON,
   GRANT_DATE_HELP,
   HISTORY_FEATURES,
   MARKET_PROBLEM_PARTS,
   PREFILL_TEXT,
-  PROTOTYPE_REASON,
   PREFILLED_ANSWER_FEATURES,
   RISK_CHECK_SIGNAL_FEATURES,
   RISK_ORD,
@@ -310,8 +307,6 @@ export function FutureRiskPage() {
 
   return (
     <div className="space-y-6">
-      <ValidationNotice reasons={[PROTOTYPE_REASON, FUTURE_RISK_NOTICE_REASON]} />
-
       <FeatureForm
         groups={groupsFor(featureNames)}
         values={values}

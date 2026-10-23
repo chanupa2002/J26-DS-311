@@ -2,7 +2,7 @@
 
 Status: **decisions made (§6). Steps F2 (foundation + Overview), F3 (Risk Check), F4 (Future Risk), F5 (market/macro auto-fill) and H2 (history from previous visits) built.** Owner: @Chamosithmini. Work only inside `frontend/src/features/market_risk/`.
 
-Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: prototype training panel (70 households, 9 categories), **NOT_READY**.
+Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `schemas.py`). The models are version 2.0: training panel (70 households, 9 categories), **NOT_READY**.
 
 ## 0. Facts found while reading (these shape the design)
 
@@ -31,8 +31,8 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 `routes.jsx`: 3 route objects `{ path, element, handle: { title } }` with the same paths and titles.
 
 ### 1.1 Overview (`/risk/overview`)
-1. **Validation notice** (always at the top, compact, amber, not a red banner): "Prototype model · validation pending", with a collapsible "Why" listing our own short reasons (O2: no badges, no verbatim `deployment_reason`).
-   **About the data** card (collapsible; the summary line stays visible): trained on a prototype panel that mirrors the monitoring data, because real records lack a stable household ID; demonstration only, must be validated on real data before use.
+1. **Validation notice** (always at the top, compact, amber, not a red banner): "Model validation pending", with a collapsible "Why" listing our own short reasons (O2: no badges, no verbatim `deployment_reason`).
+   **About the data** card (collapsible; the summary line stays visible): trained on a training panel that mirrors the monitoring data, because real records lack a stable household ID; demonstration only, must be validated on real data before use.
 2. **Models:** one `Card` per horizon (3M, 6M) with:
    - `model_name`, `algorithm`, `data_basis`, `training_period`, `created`;
    - test metrics (Macro-F1, High recall, High precision, accuracy) in a `Table`;
@@ -106,9 +106,9 @@ Backend: `/api/risk` (see `backend/app/components/market_risk/README.md` and `sc
 | `hooks/useFutureRisk.js` | One mutation that runs predict + explain with `Promise.allSettled`. It returns `{ prediction, explanation, explainError }`, so the prediction still shows if only explain fails |
 | `hooks/index.js` | Re-exports |
 | `components/PageState.jsx` | Loading (Skeletons), error (`Card` + Retry), empty. Same pattern as livelihood, own copy |
-| `components/ValidationNotice.jsx` | Compact neutral (amber) notice "Prototype model · validation pending", with a collapsible "Why" listing the given `reasons` (O2: our own texts only). **Used on all 3 pages instead of a red banner** (on Risk Check with the rule's reasons) |
+| `components/ValidationNotice.jsx` | Compact neutral (amber) notice "Model validation pending", with a collapsible "Why" listing the given `reasons` (O2: our own texts only). **Used on all 3 pages instead of a red banner** (on Risk Check with the rule's reasons) |
 | `components/StatusBadge.jsx` | Shows "Validation pending" (or "Ready"); the raw `model_status` is in a tooltip |
-| `components/AboutDataCard.jsx` | Overview: collapsible "About the data". The one-line summary (prototype panel, demonstration only) was always visible (removed in O1) |
+| `components/AboutDataCard.jsx` | Overview: collapsible "About the data". The one-line summary (training panel, demonstration only) was always visible (removed in O1) |
 | `components/RiskBadge.jsx` | Class → coloured `Badge` (Low green, Medium amber, High red, Unassigned grey); `size="lg"` |
 | `components/ModelMetricsCard.jsx` | One horizon on Overview (metrics `Table`, baseline, tooltip) |
 | `components/TradeOffTable.jsx` | Static 1.0 vs 2.0 walk-forward table |
@@ -218,12 +218,12 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
 | O1 | Officer-friendly Overview:
   - **Intro:** "What this tool does" (2 sentences) plus 3 step cards linking to Risk Check, Future Risk and the Why card (`OverviewIntro`).
   - **Model cards:** one "Validation pending" badge and a "How reliable is it?" list built from the metadata: recall and precision as "N in M", comparison with the "same as last visit" baseline (±0.03 Macro-F1 counts as about the same), and the no-embargo caveat as a sentence instead of the Weak-signal badge. The sentences say "In testing", with a footer that the figures are from one test month before real-world validation.
-  - **Technical details:** the metrics table, training data ("Prototype training panel: …", O2), months, created date, how it was tested and the About-the-data text are in a collapsed "Technical details (for reviewers)" section per card. A page-level "Technical details" holds the trade-off table, limitations and inputs table.
+  - **Technical details:** the metrics table, training data ("Training panel: …", O2/O4), months, created date, how it was tested and the About-the-data text are in a collapsed "Technical details (for reviewers)" section per card. A page-level "Technical details" holds the trade-off table, limitations and inputs table.
   - **Wording:** the About-data card was removed, and the data-basis wording no longer appears in the main view (O2: nowhere in the frontend). The Future Risk notice reason is reworded ("not yet validated on real household outcomes") | ✅ Done |
 | O2 | Simpler wording, like Livelihood Planning:
-  - **Wording:** the data-basis words are removed from the whole feature folder. Texts now say "prototype panel … not real household records", and the Training data row reads "Prototype training panel: 70 households, 9 categories".
-  - **Notice:** the backend `deployment_reason` is no longer shown verbatim. `ValidationNotice` lists our own reasons (`PROTOTYPE_REASON`: "Prototype model: not yet validated on real household outcomes.").
-  - **Badges:** prediction cards show `ConfidenceBadge` "Low confidence" when the horizon has the weak-signal flag (no embargo) or the top probability is below 0.5, else an outline "Prototype" badge. Overview model cards keep one "Validation pending". The weak-signal tags, status badges in the notice and the Auto-filled / Auto-calculated / Prefilled badges became plain text.
+  - **Wording:** the data-basis words are removed from the whole feature folder. Texts now say "training panel … not real household records", and the Training data row reads "Training panel: 70 households, 9 categories" (O4).
+  - **Notice:** the backend `deployment_reason` is no longer shown verbatim. `ValidationNotice` lists our own reasons (`VALIDATION_REASON`: "Not yet validated on real household outcomes.", O4).
+  - **Badges:** prediction cards show `ConfidenceBadge` "Low confidence" when the horizon has the weak-signal flag (no embargo) or the top probability is below 0.5, else an outline "Validation pending" badge (O4). Overview model cards keep one "Validation pending". The weak-signal tags, status badges in the notice and the Auto-filled / Auto-calculated / Prefilled badges became plain text.
   - **Overview:** shorter; the reliability footer is shown once and the About-the-data text once, in the page-level Technical details | ✅ Done |
 | F6 | Current risk fields auto-calculated on Future Risk:
   - **Read-only fields:** "Any market problem reported", "Current risk class", "Number of risk signals" and "Number of unanswered signals" are read-only (`ReadOnlyField`: "Auto-calculated", with a tooltip for the rule).
@@ -255,6 +255,13 @@ Field-level 422 highlighting needs the `loc`, which `api()` drops (Q1).
   - **Start line:** "The model starts from the average High-risk chance (X%) and these factors move it to Y%." It is shown only when the prediction is High, because `base_value` belongs to the predicted class.
   - **Reviewers:** the Recharts SHAP chart is unchanged, inside a collapsed "Technical detail (SHAP values)".
   - **Kept:** the Why card, the 3M/6M tabs and the badges. The panel is titled "Why this prediction" with the note "These are the model's reasons, not proven real-world causes." | ✅ Done |
+| O4 | The word that described the model's stage was removed everywhere in the folder:
+  - **Notice:** the title is "Model validation pending" and the reason "Not yet validated on real household outcomes." (`VALIDATION_REASON`).
+  - **Badges:** the prediction-card outline badge reads "Validation pending"; the "Low confidence" rules are unchanged.
+  - **Data texts:** the Training data row reads "Training panel: 70 households, 9 categories", and the reviewer text still says the panel is not real household records | ✅ Done |
+| O5 | Notice banners removed from Risk Check and Future Risk; `ValidationNotice.jsx` deleted:
+  - **Moved:** their "Why" texts moved into "Model details (for reviewers)": a Status block (`VALIDATION_REASON`, `PREDICTION_MEANING`) and the "Risk Check rule" notes (`RISK_RULE_NOTES`, formerly `RULE_NOTICE`).
+  - **Kept:** the Low confidence / Validation pending badges, the rule line under the Risk Check result, the Why note and the Model details section | ✅ Done |
   - **Form:** sections Current signals (11), Business (10), Participant (3), History (14), Market (8), Macro (5), Category & District (2). The page uses the order from `/model-info`; any unlisted feature goes into "Other". Invalid numbers are flagged on the client and not sent.
   - **Warnings:** `/predict` returns one `warnings` list for the request, not one per horizon, so it is shown once under the prediction cards ("Input notes").
   - **Explain:** the backend `note` is shown verbatim. A failed `/explain` shows an error inside the SHAP card only, and Retry reruns both calls. | ✅ Done |

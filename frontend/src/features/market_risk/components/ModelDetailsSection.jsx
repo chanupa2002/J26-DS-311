@@ -6,7 +6,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-import { ABOUT_DATA, MODEL_DETAILS_TEXT } from "../constants"
+import { ABOUT_DATA, MODEL_DETAILS_TEXT, PREDICTION_MEANING, RISK_RULE_NOTES, VALIDATION_REASON } from "../constants"
 import { FeatureList } from "./FeatureList"
 import { LimitationsList } from "./LimitationsList"
 import { ModelMetricsCard } from "./ModelMetricsCard"
@@ -28,6 +28,11 @@ export function ModelDetailsSection({ models = [], features = [] }) {
         <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-6 border-t p-4">
+        <div className="space-y-1 text-sm">
+          <p className="font-medium">Status</p>
+          <p>{VALIDATION_REASON}</p>
+          <p>{PREDICTION_MEANING}</p>
+        </div>
         <div className="grid gap-6 lg:grid-cols-2">
           {models.map((model) => (
             <ModelMetricsCard key={model.horizon} model={model} />
@@ -39,6 +44,14 @@ export function ModelDetailsSection({ models = [], features = [] }) {
           {ABOUT_DATA.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
+        </div>
+        <div className="space-y-2 text-sm">
+          <p className="font-medium">{RISK_RULE_NOTES.title}</p>
+          <ul className="list-disc space-y-1 pl-5">
+            {RISK_RULE_NOTES.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
         </div>
         <TradeOffTable />
         <LimitationsList />

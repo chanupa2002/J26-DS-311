@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { CurrentRiskResult } from "../components/CurrentRiskResult"
 import { PageState } from "../components/PageState"
 import { SignalForm } from "../components/SignalForm"
-import { ValidationNotice } from "../components/ValidationNotice"
-import { EMPTY_SIGNAL_FORM, RULE_NOTICE, SIGNALS } from "../constants"
+import { EMPTY_SIGNAL_FORM, SIGNALS } from "../constants"
 import { useIdentify } from "../hooks/useIdentify"
 import { clearLastRiskCheck, saveLastRiskCheck } from "../hooks/useLastRiskCheck"
 import { toSignals } from "../utils"
@@ -37,11 +36,6 @@ export function RiskCheckPage() {
 
   return (
     <div className="space-y-6">
-      <ValidationNotice
-        title={RULE_NOTICE.title}
-        reasons={RULE_NOTICE.reasons}
-      />
-
       <SignalForm
         values={values}
         onChange={setValues}
