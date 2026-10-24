@@ -2,16 +2,15 @@
 from fastapi import APIRouter, HTTPException
 
 from app.components.livelihood_planning import services
-from app.components.livelihood_planning.model_1_recommend.predict import (
-    recommend_with_context,
-)
 from app.components.livelihood_planning.schemas import (
+    AssessmentRequest,
     AssessmentResponse,
     BeneficiarySummary,
     HealthResponse,
     LivelihoodRequest,
     PlanResponse,
     RecommendResponse,
+    SwotRequest,
     SwotResponse,
 )
 from app.core.database import get_supabase
@@ -44,6 +43,17 @@ def _database_unavailable(exception: Exception) -> HTTPException:
     )
 
 
+def _request_features(
+    request: LivelihoodRequest | SwotRequest,
+) -> tuple[dict, str | None]:
+    values = request.model_dump(exclude_none=True)
+    return values, values.pop("livelihood", None)
+
+
+def _invalid_livelihood(exception: Exception) -> HTTPException:
+    return HTTPException(status_code=422, detail=str(exception))
+
+
 @router.get("/health", response_model=HealthResponse)
 def health():
     return services.get_status()
@@ -51,8 +61,8 @@ def health():
 
 @router.post("/recommend", response_model=RecommendResponse)
 def recommend(request: LivelihoodRequest) -> dict:
-    features = request.model_dump(exclude_none=True)
-    result = recommend_with_context(features)
+    features, _ = _request_features(request)
+    result = services.build_recommendation_response(features)
     return {
         **result,
         "placeholder": False,
@@ -60,9 +70,14 @@ def recommend(request: LivelihoodRequest) -> dict:
 
 
 @router.post("/swot", response_model=SwotResponse)
-def swot(request: LivelihoodRequest) -> dict:
-    features = request.model_dump(exclude_none=True)
-    return services.build_swot_response(features)
+def swot(request: SwotRequest) -> dict:
+    features, requested_livelihood = _request_features(request)
+    try:
+        if requested_livelihood is None:
+            return services.build_swot_response(features)
+        return services.build_swot_response(features, requested_livelihood)
+    except services.InvalidLivelihoodSelection as exception:
+        raise _invalid_livelihood(exception) from exception
 
 
 @router.get("/beneficiaries", response_model=list[BeneficiarySummary])
@@ -82,7 +97,9 @@ def beneficiaries() -> list[dict]:
 @router.post(
     "/assess/{beneficiary_id}", response_model=AssessmentResponse
 )
-def assess_beneficiary(beneficiary_id: str) -> dict:
+def assess_beneficiary(
+    beneficiary_id: str, request: AssessmentRequest | None = None
+) -> dict:
     try:
         client = get_supabase()
         response = (
@@ -104,7 +121,16 @@ def assess_beneficiary(beneficiary_id: str) -> dict:
         for field in BENEFICIARY_FEATURE_FIELDS
         if beneficiary.get(field) is not None
     }
-    swot_response = services.build_swot_response(features)
+    requested_livelihood = request.livelihood if request else None
+    try:
+        if requested_livelihood is None:
+            swot_response = services.build_swot_response(features)
+        else:
+            swot_response = services.build_swot_response(
+                features, requested_livelihood
+            )
+    except services.InvalidLivelihoodSelection as exception:
+        raise _invalid_livelihood(exception) from exception
     recommendations = swot_response["recommendations"]
     payload = {
         "beneficiary_id": beneficiary["id"],
@@ -117,6 +143,7 @@ def assess_beneficiary(beneficiary_id: str) -> dict:
         "viability": swot_response["viability"],
         "notes": swot_response["notes"],
         "confidence": swot_response["confidence"],
+        "decision_trail": swot_response["decision_trail"],
         "status": "draft",
     }
     try:
@@ -134,7 +161,11 @@ def assess_beneficiary(beneficiary_id: str) -> dict:
             status_code=503,
             detail=DATABASE_UNAVAILABLE_MESSAGE,
         )
-    return saved_rows[0]
+    return {
+        **saved_rows[0],
+        "selected_livelihood": swot_response["selected_livelihood"],
+        "viability_preview": swot_response["viability_preview"],
+    }
 
 
 @router.get(
@@ -158,5 +189,5 @@ def assessment_history(beneficiary_id: str) -> list[dict]:
 
 @router.post("/plan", response_model=PlanResponse)
 def plan(request: LivelihoodRequest) -> dict:
-    features = request.model_dump(exclude_none=True)
+    features, _ = _request_features(request)
     return services.recommend_livelihood(features)

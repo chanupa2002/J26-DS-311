@@ -22,7 +22,15 @@ export function SwotPage() {
           onRetry={() => swot.mutate(swot.variables)}
         />
       )}
-      {swot.data && <AssessmentResult result={swot.data} />}
+      {swot.data && (
+        <AssessmentResult
+          key={swot.submittedAt}
+          result={swot.data}
+          profile={swot.variables}
+          selectable
+          trailDefaultOpen
+        />
+      )}
     </div>
   )
 }

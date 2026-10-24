@@ -8,8 +8,8 @@ SWOT and viability summary, and saves beneficiary assessments as drafts.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/livelihood/health` | Component health check |
-| POST | `/api/livelihood/recommend` | Return Model 1 top-three recommendations |
-| POST | `/api/livelihood/swot` | Return recommendations, SWOT, viability, confidence, and notes |
+| POST | `/api/livelihood/recommend` | Return Model 1 top-three recommendations and their decision trail |
+| POST | `/api/livelihood/swot` | Return recommendations, SWOT, viability, confidence, notes, and decision trail |
 | POST | `/api/livelihood/plan` | Return the current placeholder plan |
 | GET | `/api/livelihood/beneficiaries` | List beneficiary profiles for assessment |
 | POST | `/api/livelihood/assess/{beneficiary_id}` | Build and save a draft assessment |
@@ -24,8 +24,9 @@ Nullable database values are returned as `null`.
 1. Model 1 predicts the top livelihood categories from household and area inputs.
 2. Model 2 retrieves grounded facts and viability data for the top category.
 3. `/assess/{beneficiary_id}` saves the inputs, recommendations, SWOT,
-   viability, notes, and confidence to `livelihood_assessments` with status
-   `draft`. The beneficiary name is never stored in `input_snapshot`.
+   viability, notes, confidence, and decision trail to
+   `livelihood_assessments` with status `draft`. The beneficiary name is never
+   stored in `input_snapshot`.
 
 ## Setup
 

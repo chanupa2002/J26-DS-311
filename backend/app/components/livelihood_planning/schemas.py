@@ -1,6 +1,6 @@
 """Request and response data shapes for Livelihood Recommendation and Family Development Planning."""
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,14 @@ class LivelihoodRequest(BaseModel):
     track: str | None = None
 
 
+class SwotRequest(LivelihoodRequest):
+    livelihood: str | None = None
+
+
+class AssessmentRequest(BaseModel):
+    livelihood: str | None = None
+
+
 class RecommendationItem(BaseModel):
     livelihood: str
     score: float
@@ -65,19 +73,59 @@ class ViabilityResult(BaseModel):
     estimated: bool
 
 
-class RecommendResponse(BaseModel):
+class ViabilityPreview(BaseModel):
+    livelihood: str
+    score: float
+    low: float
+    high: float
+    estimated: bool
+
+
+class DecisionTrailStep(BaseModel):
+    id: str
+    title: str
+    summary: str
+    flag: Literal["ok", "note", "warning"]
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class DecisionTrailSection(BaseModel):
+    steps: list[DecisionTrailStep] = Field(default_factory=list)
+
+
+class RecommendationDecisionTrail(BaseModel):
+    version: Literal[1] = 1
+    recommendation: DecisionTrailSection
+
+
+class DecisionTrail(RecommendationDecisionTrail):
+    swot: DecisionTrailSection
+
+
+class BaseRecommendationResponse(BaseModel):
     recommendations: list[RecommendationItem]
     placeholder: bool
     confidence: Literal["low", "normal"] = "normal"
     notes: list[str] = Field(default_factory=list)
 
 
+class RecommendResponse(BaseRecommendationResponse):
+    decision_trail: RecommendationDecisionTrail | None = None
+    viability_preview: list[ViabilityPreview | None] = Field(
+        default_factory=list
+    )
+
+
 class SwotResponse(RecommendResponse):
     swot: SwotResult
     viability: ViabilityResult | None = None
+    selected_livelihood: str
+    decision_trail: DecisionTrail | None = None
 
 
-class PlanResponse(SwotResponse):
+class PlanResponse(BaseRecommendationResponse):
+    swot: SwotResult
+    viability: ViabilityResult | None = None
     plan: dict[str, object]
 
 
@@ -105,3 +153,8 @@ class AssessmentResponse(BaseModel):
     confidence: Literal["low", "normal"]
     status: str
     created_at: datetime | None = None
+    decision_trail: DecisionTrail | None = None
+    selected_livelihood: str | None = None
+    viability_preview: list[ViabilityPreview | None] = Field(
+        default_factory=list
+    )

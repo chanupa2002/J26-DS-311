@@ -17,6 +17,7 @@ from app.components.livelihood_planning.model_2_swot.gemini_client import (
 )
 from app.components.livelihood_planning.model_2_swot.grounding import (
     grounded_or_original,
+    numbers_are_grounded,
 )
 
 MAX_WORDS = 25
@@ -232,6 +233,9 @@ def rewrite_factors(factors: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for factor, source_statement, rewrite in zip(
         factors, statements, rewrites, strict=True
     ):
+        number_check_passed = bool(rewrite.strip()) and numbers_are_grounded(
+            rewrite, source_statement
+        )
         text = grounded_or_original(rewrite, source_statement)
         if text != source_statement and len(text.split()) > MAX_WORDS:
             logger.warning(
@@ -246,6 +250,8 @@ def rewrite_factors(factors: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "text": text,
                 "evidence": source_statement,
                 "strength": signal_strength(source_statement),
+                "_decision_was_reworded": text != source_statement,
+                "_decision_number_check_passed": number_check_passed,
             }
         )
     return result

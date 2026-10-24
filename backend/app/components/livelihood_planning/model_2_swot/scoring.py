@@ -161,3 +161,74 @@ def get_viability(livelihood: str, district: str | None) -> dict[str, Any]:
             client, livelihood, cleaned_district
         )
     return result
+
+
+def get_viability_previews(
+    livelihoods: list[str], district: str | None
+) -> list[dict[str, Any] | None]:
+    """Read preview scores and their district-evidence status."""
+    if not livelihoods:
+        return []
+    try:
+        client = get_supabase()
+        rows = (
+            client.table("livelihood_scores")
+            .select(VIABILITY_COLUMNS)
+            .in_("livelihood", livelihoods)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        return [None for _ in livelihoods]
+
+    cleaned_district = str(district).strip() if district else None
+    previews: list[dict[str, Any] | None] = []
+    for livelihood in livelihoods:
+        livelihood_rows = [
+            row
+            for row in rows
+            if str(row.get("livelihood") or "").strip().casefold()
+            == livelihood.casefold()
+        ]
+        exact_row = next(
+            (
+                row
+                for row in livelihood_rows
+                if cleaned_district
+                and str(row.get("district") or "").strip().casefold()
+                == cleaned_district.casefold()
+            ),
+            None,
+        )
+        if exact_row is not None:
+            viability = (
+                _viability_from_row(exact_row, estimated=False)
+                if exact_row.get("viability") is not None
+                else None
+            )
+        else:
+            usable_rows = [
+                row
+                for row in livelihood_rows
+                if row.get("viability") is not None
+            ]
+            viability = _mean_viability(usable_rows) if usable_rows else None
+
+        if viability is None:
+            previews.append(None)
+            continue
+        if cleaned_district:
+            viability["estimated"] = _viability_fact_is_estimated(
+                client, livelihood, cleaned_district
+            )
+        previews.append(
+            {
+                "livelihood": livelihood,
+                "score": viability["score"],
+                "low": viability["low"],
+                "high": viability["high"],
+                "estimated": viability["estimated"],
+            }
+        )
+    return previews

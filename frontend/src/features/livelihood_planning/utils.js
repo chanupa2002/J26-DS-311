@@ -1,5 +1,25 @@
 export const MODEL1_TRAINED_DISTRICTS = ["Badulla", "Monaragala"]
 
+const UNAVAILABLE_TEXT = new Set([
+  "not available",
+  "viability not available",
+  "n/a",
+  "none",
+])
+
+export function hasDisplayValue(value) {
+  if (value === null || value === undefined) return false
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    return normalized !== "" && !UNAVAILABLE_TEXT.has(normalized)
+  }
+  if (Array.isArray(value)) return value.some(hasDisplayValue)
+  if (typeof value === "object") {
+    return Object.values(value).some(hasDisplayValue)
+  }
+  return true
+}
+
 export function isUntrainedDistrict(district) {
   const normalizedDistrict = String(district ?? "")
     .trim()
