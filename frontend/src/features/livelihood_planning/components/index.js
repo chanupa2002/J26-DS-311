@@ -1,5 +1,6 @@
 export { AssessmentResult } from "./AssessmentResult"
 export { BeneficiarySelect } from "./BeneficiarySelect"
+export { DecisionTrail } from "./DecisionTrail"
 export { PageState } from "./PageState"
 export { ProfileForm } from "./ProfileForm"
 export { ProfileSummary } from "./ProfileSummary"

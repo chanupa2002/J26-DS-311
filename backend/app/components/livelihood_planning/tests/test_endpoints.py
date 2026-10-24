@@ -7,6 +7,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.components.livelihood_planning import router as router_module
+from app.components.livelihood_planning.decision_trail import (
+    format_livelihood_name,
+)
 from app.components.livelihood_planning.model_2_swot import (
     factors as model_2_factors,
     scoring as model_2_scoring,
@@ -34,18 +37,76 @@ VIABILITY = {
     "resilience": 75.0,
     "estimated": False,
 }
+RECOMMENDATIONS = [
+    {"livelihood": "TRADE", "score": 0.7, "reasons": []},
+    {
+        "livelihood": "LIVESTOCK & ANIMAL HUSBANDRY",
+        "score": 0.2,
+        "reasons": [],
+    },
+    {
+        "livelihood": "AGRICULTURE & PLANTATION CROPS",
+        "score": 0.1,
+        "reasons": [],
+    },
+]
+VIABILITY_PREVIEW = [
+    {
+        "livelihood": "TRADE",
+        "score": 70.0,
+        "low": 65.0,
+        "high": 75.0,
+        "estimated": False,
+    },
+    {
+        "livelihood": "LIVESTOCK & ANIMAL HUSBANDRY",
+        "score": 62.0,
+        "low": 56.0,
+        "high": 68.0,
+        "estimated": False,
+    },
+    None,
+]
+RECOMMENDATION_TRAIL = {
+    "steps": [
+        {
+            "id": "recommendation-inputs",
+            "title": "What we looked at",
+            "summary": "Household details and area values for Badulla were used.",
+            "flag": "ok",
+            "details": {},
+        }
+    ]
+}
+SWOT_TRAIL = {
+    "steps": [
+        {
+            "id": "swot-request",
+            "title": "What we asked",
+            "summary": "Model 2 reviewed Trade for Badulla.",
+            "flag": "ok",
+            "details": {},
+        }
+    ]
+}
+DECISION_TRAIL = {
+    "version": 1,
+    "recommendation": RECOMMENDATION_TRAIL,
+    "swot": SWOT_TRAIL,
+}
 
 
 def _swot_response():
     return {
-        "recommendations": [
-            {"livelihood": "TRADE", "score": 0.7, "reasons": []}
-        ],
+        "recommendations": RECOMMENDATIONS,
         "swot": EMPTY_SWOT,
         "viability": VIABILITY,
         "confidence": "normal",
         "notes": ["Model note"],
         "placeholder": False,
+        "selected_livelihood": "TRADE",
+        "viability_preview": VIABILITY_PREVIEW,
+        "decision_trail": DECISION_TRAIL,
     }
 
 
@@ -58,6 +119,7 @@ class FakeQuery:
         self.limit_count = None
         self.ordering = None
         self.insert_payload = None
+        self.in_filters = []
 
     def select(self, columns):
         self.selected = columns
@@ -65,6 +127,10 @@ class FakeQuery:
 
     def eq(self, column, value):
         self.filters.append((column, value))
+        return self
+
+    def in_(self, column, values):
+        self.in_filters.append((column, values))
         return self
 
     def limit(self, count):
@@ -95,6 +161,11 @@ class FakeQuery:
             row
             for row in rows
             if all(str(row.get(column)) == str(value) for column, value in self.filters)
+        ]
+        rows = [
+            row
+            for row in rows
+            if all(row.get(column) in values for column, values in self.in_filters)
         ]
         if self.ordering:
             column, descending = self.ordering
@@ -154,7 +225,12 @@ def test_health_endpoint():
     assert response.json()["status"] == "ok"
 
 
-def test_recommend_endpoint():
+def test_recommend_endpoint(monkeypatch):
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: [None for _ in livelihoods],
+    )
     response = client.post("/api/livelihood/recommend", json={})
 
     assert response.status_code == 200
@@ -162,7 +238,12 @@ def test_recommend_endpoint():
     assert response.json()["placeholder"] is False
 
 
-def test_recommend_keeps_old_keys_and_adds_explanation_fields():
+def test_recommend_keeps_old_keys_and_adds_explanation_fields(monkeypatch):
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: [None for _ in livelihoods],
+    )
     response = client.post(
         "/api/livelihood/recommend",
         json={
@@ -181,6 +262,32 @@ def test_recommend_keeps_old_keys_and_adds_explanation_fields():
     assert {"recommendations", "placeholder"}.issubset(body)
     assert body["confidence"] in {"low", "normal"}
     assert isinstance(body["notes"], list)
+    assert body["viability_preview"] == [None, None, None]
+    assert body["decision_trail"]["version"] == 1
+    recommendation_steps = body["decision_trail"]["recommendation"]["steps"]
+    assert [step["id"] for step in recommendation_steps] == [
+        "recommendation-inputs",
+        "recommendation-scoring",
+        "recommendation-top3",
+        "recommendation-confidence",
+    ]
+    assert all(len(step["summary"].split()) <= 25 for step in recommendation_steps)
+    scoring = recommendation_steps[1]["details"]
+    assert len(scoring["scores"]) == 9
+    assert sum(item["percentage"] for item in scoring["scores"]) == pytest.approx(
+        100.0, abs=0.01
+    )
+    top_three = recommendation_steps[2]["details"]["recommendations"]
+    assert [item["livelihood"] for item in top_three] == [
+        format_livelihood_name(item["livelihood"])
+        for item in body["recommendations"]
+    ]
+    assert recommendation_steps[1]["summary"].startswith(
+        "9 livelihood options were compared;"
+    )
+    assert [item["percentage"] for item in top_three] == pytest.approx(
+        [item["score"] * 100 for item in body["recommendations"]], abs=0.01
+    )
     assert all(isinstance(note, str) for note in body["notes"])
     for recommendation in body["recommendations"]:
         assert {"livelihood", "score"}.issubset(recommendation)
@@ -216,6 +323,7 @@ def test_swot_endpoint(monkeypatch):
 
 
 def test_build_swot_response_preserves_existing_behavior(monkeypatch):
+    seen = {}
     monkeypatch.setattr(
         router_module.services,
         "recommend_with_context",
@@ -223,17 +331,30 @@ def test_build_swot_response_preserves_existing_behavior(monkeypatch):
             "recommendations": _swot_response()["recommendations"],
             "confidence": "normal",
             "notes": ["Shared note", "Model 1 note"],
+            "decision_trail": {
+                "version": 1,
+                "recommendation": RECOMMENDATION_TRAIL,
+            },
         },
     )
     monkeypatch.setattr(
         router_module.services,
         "build_swot_report",
-        lambda livelihood, features: {
+        lambda livelihood, features: seen.update(
+            {"livelihood": livelihood, "features": features}
+        )
+        or {
             "swot": EMPTY_SWOT,
             "viability": VIABILITY,
             "confidence": "low",
             "notes": ["Shared note", "Model 2 note"],
+            "decision_trail": SWOT_TRAIL,
         },
+    )
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: VIABILITY_PREVIEW,
     )
 
     result = router_module.services.build_swot_response(
@@ -247,7 +368,118 @@ def test_build_swot_response_preserves_existing_behavior(monkeypatch):
         "confidence": "low",
         "notes": ["Shared note", "Model 1 note", "Model 2 note"],
         "placeholder": False,
+        "selected_livelihood": "TRADE",
+        "viability_preview": VIABILITY_PREVIEW,
+        "decision_trail": DECISION_TRAIL,
     }
+    assert seen == {
+        "livelihood": "TRADE",
+        "features": {"district": "Badulla"},
+    }
+
+
+def test_selected_top_three_livelihood_builds_its_swot_and_trail(monkeypatch):
+    selected_trail = {
+        "steps": [
+            {
+                "id": "swot-request",
+                "title": "What we asked",
+                "summary": "Model 2 reviewed Livestock for Badulla.",
+                "flag": "ok",
+                "details": {},
+            }
+        ]
+    }
+    selected_swot = {
+        **EMPTY_SWOT,
+        "strengths": [
+            {
+                "text": "Livestock has local demand.",
+                "source": "Survey",
+                "evidence": "Livestock has local demand.",
+                "strength": "clear",
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        router_module.services,
+        "recommend_with_context",
+        lambda features: {
+            "recommendations": RECOMMENDATIONS,
+            "confidence": "normal",
+            "notes": [],
+            "decision_trail": {
+                "version": 1,
+                "recommendation": RECOMMENDATION_TRAIL,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: VIABILITY_PREVIEW,
+    )
+    monkeypatch.setattr(
+        router_module.services,
+        "build_swot_report",
+        lambda livelihood, features: {
+            "swot": selected_swot,
+            "viability": VIABILITY,
+            "confidence": "normal",
+            "notes": [],
+            "decision_trail": selected_trail,
+        },
+    )
+
+    response = client.post(
+        "/api/livelihood/swot",
+        json={
+            "district": "Badulla",
+            "livelihood": "livestock and animal husbandry",
+        },
+    )
+    result = response.json()
+
+    assert response.status_code == 200
+    assert result["selected_livelihood"] == (
+        "LIVESTOCK & ANIMAL HUSBANDRY"
+    )
+    assert result["swot"] == selected_swot
+    assert result["decision_trail"]["recommendation"] == RECOMMENDATION_TRAIL
+    assert result["decision_trail"]["swot"] == selected_trail
+
+
+def test_livelihood_outside_top_three_returns_clear_422(monkeypatch):
+    monkeypatch.setattr(
+        router_module.services,
+        "recommend_with_context",
+        lambda features: {
+            "recommendations": RECOMMENDATIONS,
+            "confidence": "normal",
+            "notes": [],
+            "decision_trail": {
+                "version": 1,
+                "recommendation": RECOMMENDATION_TRAIL,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: VIABILITY_PREVIEW,
+    )
+
+    response = client.post(
+        "/api/livelihood/swot",
+        json={"district": "Badulla", "livelihood": "OTHER"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "Livelihood must be one of the Model 1 top 3: "
+        "TRADE, LIVESTOCK & ANIMAL HUSBANDRY, "
+        "AGRICULTURE & PLANTATION CROPS."
+    )
 
 
 def test_swot_unknown_district_survives_model_2_supabase_failure(
@@ -260,6 +492,10 @@ def test_swot_unknown_district_survives_model_2_supabase_failure(
             "recommendations": _swot_response()["recommendations"],
             "confidence": "normal",
             "notes": [],
+            "decision_trail": {
+                "version": 1,
+                "recommendation": RECOMMENDATION_TRAIL,
+            },
         },
     )
     monkeypatch.setattr(
@@ -433,8 +669,107 @@ def test_assess_beneficiary_saves_draft_without_name(monkeypatch):
     assert database.last_insert["viability"] == VIABILITY
     assert database.last_insert["notes"] == ["Model note"]
     assert database.last_insert["confidence"] == "normal"
+    assert database.last_insert["decision_trail"] == DECISION_TRAIL
     assert database.last_insert["status"] == "draft"
+    assert "selected_livelihood" not in database.last_insert
+    assert "viability_preview" not in database.last_insert
     assert response.json()["status"] == "draft"
+    assert response.json()["selected_livelihood"] == "TRADE"
+    assert response.json()["viability_preview"] == VIABILITY_PREVIEW
+    assert response.json()["decision_trail"] == DECISION_TRAIL
+
+    history = client.get("/api/livelihood/assessments/beneficiary-1")
+    assert history.status_code == 200
+    assert history.json()[0]["decision_trail"] == DECISION_TRAIL
+
+
+def test_assess_accepts_optional_selected_livelihood(monkeypatch):
+    database = FakeSupabase(
+        {
+            "beneficiaries": [
+                {
+                    "id": "beneficiary-1",
+                    "full_name": "Private Name",
+                    "district": "Badulla",
+                    "ds_division": "Passara",
+                    "age": 38,
+                    "gender": "Female",
+                    "female_headed": True,
+                    "disability": False,
+                    "aswesuma_category": "Poor",
+                    "is_demo": True,
+                }
+            ]
+        }
+    )
+    seen = {}
+
+    def fake_build_swot_response(features, requested_livelihood):
+        seen["features"] = features
+        seen["livelihood"] = requested_livelihood
+        return {
+            **_swot_response(),
+            "selected_livelihood": "LIVESTOCK & ANIMAL HUSBANDRY",
+        }
+
+    monkeypatch.setattr(router_module, "get_supabase", lambda: database)
+    monkeypatch.setattr(
+        router_module.services,
+        "build_swot_response",
+        fake_build_swot_response,
+    )
+
+    response = client.post(
+        "/api/livelihood/assess/beneficiary-1",
+        json={"livelihood": "livestock and animal husbandry"},
+    )
+
+    assert response.status_code == 200
+    assert seen["livelihood"] == "livestock and animal husbandry"
+    assert seen["features"]["district"] == "Badulla"
+    assert response.json()["selected_livelihood"] == (
+        "LIVESTOCK & ANIMAL HUSBANDRY"
+    )
+    assert database.last_insert["chosen_livelihood"] == "TRADE"
+
+
+def test_assess_rejects_livelihood_outside_top_three(monkeypatch):
+    database = FakeSupabase(
+        {
+            "beneficiaries": [
+                {
+                    "id": "beneficiary-1",
+                    "full_name": "Private Name",
+                    "district": "Badulla",
+                }
+            ]
+        }
+    )
+
+    def reject_selection(features, requested_livelihood):
+        raise router_module.services.InvalidLivelihoodSelection(
+            "Livelihood must be one of the Model 1 top 3: "
+            "TRADE, LIVESTOCK & ANIMAL HUSBANDRY, "
+            "AGRICULTURE & PLANTATION CROPS."
+        )
+
+    monkeypatch.setattr(router_module, "get_supabase", lambda: database)
+    monkeypatch.setattr(
+        router_module.services,
+        "build_swot_response",
+        reject_selection,
+    )
+
+    response = client.post(
+        "/api/livelihood/assess/beneficiary-1",
+        json={"livelihood": "OTHER"},
+    )
+
+    assert response.status_code == 422
+    assert "TRADE" in response.json()["detail"]
+    assert "LIVESTOCK & ANIMAL HUSBANDRY" in response.json()["detail"]
+    assert "AGRICULTURE & PLANTATION CROPS" in response.json()["detail"]
+    assert database.last_insert is None
 
 
 def test_assess_missing_beneficiary_returns_404(monkeypatch):
@@ -511,6 +846,10 @@ def test_assess_uses_original_fact_when_gemini_fails(monkeypatch):
             "recommendations": _swot_response()["recommendations"],
             "confidence": "normal",
             "notes": [],
+            "decision_trail": {
+                "version": 1,
+                "recommendation": RECOMMENDATION_TRAIL,
+            },
         },
     )
     monkeypatch.setattr(
@@ -540,6 +879,11 @@ def test_assess_uses_original_fact_when_gemini_fails(monkeypatch):
         "_generate_rewrites",
         lambda statements: (_ for _ in ()).throw(ConnectionError("offline")),
     )
+    monkeypatch.setattr(
+        router_module.services,
+        "get_viability_previews",
+        lambda livelihoods, district: [None for _ in livelihoods],
+    )
 
     response = client.post("/api/livelihood/assess/beneficiary-1")
 
@@ -548,6 +892,29 @@ def test_assess_uses_original_fact_when_gemini_fails(monkeypatch):
     assert saved_strength["text"] == source
     assert saved_strength["evidence"] == source
     assert database.last_insert["status"] == "draft"
+    wording_step = next(
+        step
+        for step in response.json()["decision_trail"]["swot"]["steps"]
+        if step["id"] == "swot-wording"
+    )
+    assert wording_step["details"]["original_count"] == 1
+    assert wording_step["details"]["points"][0]["wording"] == "original"
+    assert wording_step["summary"] == (
+        "1 sentence was checked against its source fact. "
+        "0 sentences were reworded; 1 sentence kept the original wording."
+    )
+    facts_step = next(
+        step
+        for step in response.json()["decision_trail"]["swot"]["steps"]
+        if step["id"] == "swot-facts"
+    )
+    assert facts_step["summary"] == "1 of 1 fact is from this district."
+    confidence_step = next(
+        step
+        for step in response.json()["decision_trail"]["swot"]["steps"]
+        if step["id"] == "swot-confidence"
+    )
+    assert "supporting record count" not in confidence_step["summary"]
 
 
 def test_assessment_history_is_newest_first(monkeypatch):
@@ -567,6 +934,7 @@ def test_assessment_history_is_newest_first(monkeypatch):
 
     assert response.status_code == 200
     assert [item["id"] for item in response.json()] == ["newer", "older"]
+    assert all(item["decision_trail"] is None for item in response.json())
 
 
 def test_plan_endpoint(monkeypatch):
@@ -580,3 +948,4 @@ def test_plan_endpoint(monkeypatch):
     assert response.json()["plan"]["placeholder"] is True
     assert response.json()["plan"]["validation"] == {"ok": True, "issues": []}
     assert response.json()["placeholder"] is True
+    assert "decision_trail" not in response.json()

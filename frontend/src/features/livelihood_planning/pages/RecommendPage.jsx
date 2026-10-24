@@ -21,7 +21,15 @@ export function RecommendPage() {
           onRetry={() => recommendation.mutate(recommendation.variables)}
         />
       )}
-      {recommendation.data && <AssessmentResult result={recommendation.data} />}
+      {recommendation.data && (
+        <AssessmentResult
+          key={recommendation.submittedAt}
+          result={recommendation.data}
+          profile={recommendation.variables}
+          selectable
+          trailDefaultOpen
+        />
+      )}
     </div>
   )
 }

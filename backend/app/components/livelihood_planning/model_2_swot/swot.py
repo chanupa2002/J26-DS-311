@@ -1,5 +1,8 @@
 """Build grounded SWOT output and its stored viability summary."""
 
+from typing import Any
+
+from app.components.livelihood_planning.decision_trail import build_swot_trail
 from app.components.livelihood_planning.model_2_swot.factors import (
     get_livelihood_factors,
 )
@@ -26,8 +29,9 @@ ESTIMATED_VIABILITY_NOTE = (
 )
 
 
-def build_swot(livelihood: str, features: dict) -> dict:
-    """Return SWOT groups with the stable text/source public shape."""
+def _build_swot_pipeline(
+    livelihood: str, features: dict
+) -> tuple[dict, dict[str, list[dict[str, Any]]]]:
     district = features.get("district")
     factors = get_livelihood_factors(livelihood, district)
     scored_factors = score_factors(factors, features)
@@ -52,6 +56,16 @@ def build_swot(livelihood: str, features: dict) -> dict:
                 }
             )
 
+    return result, {
+        "factors": factors,
+        "selected_factors": scored_factors,
+        "written_factors": written_factors,
+    }
+
+
+def build_swot(livelihood: str, features: dict) -> dict:
+    """Return SWOT groups with the stable text/source public shape."""
+    result, _ = _build_swot_pipeline(livelihood, features)
     return result
 
 
@@ -84,7 +98,7 @@ def build_swot_report(livelihood: str, features: dict) -> dict:
     if stored_confidence < 0.5:
         notes.append("Stored viability confidence is below 0.5.")
 
-    swot_result = build_swot(livelihood, features)
+    swot_result, pipeline = _build_swot_pipeline(livelihood, features)
     for category, singular in SWOT_SINGULAR.items():
         if not swot_result[category]:
             notes.append(
@@ -95,9 +109,21 @@ def build_swot_report(livelihood: str, features: dict) -> dict:
     is_low_confidence = (
         district_missing or district_unknown or estimated
     )
+    confidence = "low" if is_low_confidence else "normal"
     return {
         "swot": swot_result,
         "viability": viability,
-        "confidence": "low" if is_low_confidence else "normal",
+        "confidence": confidence,
         "notes": notes,
+        "decision_trail": build_swot_trail(
+            livelihood=livelihood,
+            district=district,
+            factors=pipeline["factors"],
+            selected_factors=pipeline["selected_factors"],
+            written_factors=pipeline["written_factors"],
+            viability_record=viability_record,
+            confidence=confidence,
+            district_missing=district_missing,
+            district_unknown=district_unknown,
+        ),
     }

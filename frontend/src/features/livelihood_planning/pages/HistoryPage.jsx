@@ -104,7 +104,11 @@ export function HistoryPage() {
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="border-t p-5">
-                  <AssessmentResult result={assessment} saved />
+                  <AssessmentResult
+                    result={assessment}
+                    saved
+                    showMissingTrail
+                  />
                 </CollapsibleContent>
               </Card>
             </Collapsible>

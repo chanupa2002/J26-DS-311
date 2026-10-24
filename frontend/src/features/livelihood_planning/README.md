@@ -10,6 +10,10 @@
 - `/livelihood/history` shows saved assessments for a beneficiary.
 - Plan remains disabled and has no route.
 
+Recommendation, SWOT, assessment, and saved-history results show a collapsible
+decision trail. Recommend, SWOT, and Assess open it by default; History keeps it
+collapsed. Older saved rows without a trail show a clear message.
+
 ## Endpoints used
 
 - `GET /api/livelihood/beneficiaries`

@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from app.components.livelihood_planning.decision_trail import (
+    build_recommendation_trail,
+)
 from app.components.livelihood_planning.model_1_recommend.loader import (
     AREA_COLUMNS,
     load_model,
@@ -119,6 +122,21 @@ def _known_districts(preprocessor: Any) -> list[str]:
     )
 
 
+def _district_values_after_imputation(
+    preprocessor: Any, frame: Any, cleaned_values: dict[str, object]
+) -> dict[str, object]:
+    """Return the raw district values actually passed beyond imputation."""
+    try:
+        numeric_pipeline = preprocessor.named_transformers_["num"]
+        numeric_features = list(numeric_pipeline.feature_names_in_)
+        imputer = numeric_pipeline.named_steps["imputer"]
+        imputed = imputer.transform(frame[numeric_features])[0]
+        values = dict(zip(numeric_features, imputed, strict=True))
+    except (AttributeError, KeyError, TypeError, ValueError):
+        values = cleaned_values
+    return {column: values.get(column) for column in AREA_COLUMNS}
+
+
 def _recommendation_reasons(
     class_index: int,
     classifier: Any,
@@ -170,11 +188,9 @@ def recommend_with_context(features: dict, k: int = 3) -> dict:
     feature_names = list(info["features"])
 
     district = _clean_text(features.get("district"))
-    area_values = (
-        area_index.get(district.lower(), {})
-        if isinstance(district, str)
-        else {}
-    )
+    area_key = district.lower() if isinstance(district, str) else None
+    area_found = area_key in area_index if area_key is not None else False
+    area_values = area_index.get(area_key, {}) if area_key is not None else {}
 
     age = features.get("age")
     if isinstance(age, bool):
@@ -212,6 +228,14 @@ def recommend_with_context(features: dict, k: int = 3) -> dict:
     transformed_names = [
         str(name) for name in preprocessor.get_feature_names_out()
     ]
+    standardized_area_values = {
+        column: float(transformed_row[transformed_names.index(f"num__{column}")])
+        for column in AREA_COLUMNS
+        if f"num__{column}" in transformed_names
+    }
+    district_values = _district_values_after_imputation(
+        preprocessor, frame, cleaned_values
+    )
 
     limit = max(0, min(k, len(classes)))
     top_indices = np.argsort(-probabilities, kind="stable")[:limit]
@@ -239,7 +263,9 @@ def recommend_with_context(features: dict, k: int = 3) -> dict:
         if len(sorted_probabilities) > 1
         else 1.0
     )
-    if top_score < LOW_CONFIDENCE_TOP_SCORE or top_gap < LOW_CONFIDENCE_GAP:
+    low_top_score = top_score < LOW_CONFIDENCE_TOP_SCORE
+    close_gap = top_gap < LOW_CONFIDENCE_GAP
+    if low_top_score or close_gap:
         notes.append("The top suggestions are close in score; review them carefully.")
 
     known_districts = _known_districts(preprocessor)
@@ -255,10 +281,30 @@ def recommend_with_context(features: dict, k: int = 3) -> dict:
             "suggestions; review carefully."
         )
 
+    confidence = "normal" if district_is_trained else "low"
+    recommendation_trail = build_recommendation_trail(
+        cleaned_values=cleaned_values,
+        district_values=district_values,
+        area_found=area_found,
+        classes=[str(value) for value in classes],
+        probabilities=[float(value) for value in probabilities],
+        recommendations=recommendations,
+        confidence=confidence,
+        district_is_trained=district_is_trained,
+        known_districts=known_districts,
+        close_gap=close_gap,
+        low_top_score=low_top_score,
+        standardized_area_values=standardized_area_values,
+    )
+
     return {
         "recommendations": recommendations,
-        "confidence": "normal" if district_is_trained else "low",
+        "confidence": confidence,
         "notes": notes,
+        "decision_trail": {
+            "version": 1,
+            "recommendation": recommendation_trail,
+        },
     }
 
 

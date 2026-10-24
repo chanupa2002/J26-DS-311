@@ -84,7 +84,16 @@ export function AssessPage() {
           onRetry={() => assessment.mutate(beneficiaryId)}
         />
       )}
-      {assessment.data && <AssessmentResult result={assessment.data} saved />}
+      {assessment.data && (
+        <AssessmentResult
+          key={assessment.submittedAt}
+          result={assessment.data}
+          profile={assessment.data.input_snapshot}
+          saved
+          selectable
+          trailDefaultOpen
+        />
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import pytest
 import sklearn
 
 from app.components.livelihood_planning.model_1_recommend import loader, predict
+from app.components.livelihood_planning.decision_trail import _plain_reason
 from app.components.livelihood_planning.model_1_recommend.predict import (
     recommend_top_k,
     recommend_with_context,
@@ -73,6 +74,14 @@ def test_untrained_district_has_low_coverage_confidence(monkeypatch):
     assert len(result["recommendations"]) == 3
     assert result["confidence"] == "low"
     assert COVERAGE_NOTE.format(district="Unknown District") in result["notes"]
+    steps = result["decision_trail"]["recommendation"]["steps"]
+    input_step = next(step for step in steps if step["id"] == "recommendation-inputs")
+    confidence_step = next(
+        step for step in steps if step["id"] == "recommendation-confidence"
+    )
+    assert input_step["flag"] == "warning"
+    assert input_step["details"]["used_typical_district_values"] is True
+    assert confidence_step["flag"] == "warning"
 
 
 def test_missing_district_uses_generic_coverage_note(monkeypatch):
@@ -117,6 +126,71 @@ def test_reasons_are_short_string_lists_without_unknown():
         assert len(recommendation["reasons"]) <= 3
         assert all(isinstance(reason, str) for reason in recommendation["reasons"])
         assert all("Unknown" not in reason for reason in recommendation["reasons"])
+
+
+@pytest.mark.parametrize(
+    ("reason", "values", "expected"),
+    [
+        (
+            "Area food insecurity is low",
+            {"food_insecurity_score": -0.5},
+            "Food worry in this district is slightly below the usual level; ",
+        ),
+        (
+            "Area food insecurity is high",
+            {"food_insecurity_score": 1.1},
+            "Food worry in this district is above the usual level; ",
+        ),
+        (
+            "Area debt level is low",
+            {"debt_pct": -1.2},
+            "Debt in this district is below the usual level; ",
+        ),
+        (
+            "Area land ownership is high",
+            {"land_pct": 0.8},
+            "Land ownership in this district is slightly above the usual level; ",
+        ),
+    ],
+)
+def test_trail_area_reasons_use_plain_relative_wording(reason, values, expected):
+    text = _plain_reason(reason, "LIVESTOCK & ANIMAL HUSBANDRY", values)
+
+    assert text == (
+        f"{expected}this raised the score for Livestock & Animal Husbandry."
+    )
+
+
+def test_real_sample_trail_formats_names_without_changing_model_classes():
+    result = recommend_with_context(
+        {
+            "district": "Badulla",
+            "ds_division": "Passara",
+            "age": 38,
+            "gender": "Female",
+            "female_headed": True,
+            "disability": False,
+            "aswesuma_category": "Poor",
+        }
+    )
+
+    assert result["recommendations"][0]["livelihood"] == (
+        "LIVESTOCK & ANIMAL HUSBANDRY"
+    )
+    steps = result["decision_trail"]["recommendation"]["steps"]
+    scoring = next(step for step in steps if step["id"] == "recommendation-scoring")
+    top_three = next(step for step in steps if step["id"] == "recommendation-top3")
+    assert scoring["details"]["scores"][0]["livelihood"] == (
+        "Livestock & Animal Husbandry"
+    )
+    assert top_three["details"]["recommendations"][0]["livelihood"] == (
+        "Livestock & Animal Husbandry"
+    )
+    assert (
+        "Food worry in this district is slightly below the usual level; "
+        "this raised the score for Livestock & Animal Husbandry."
+        in top_three["details"]["recommendations"][0]["reasons"]
+    )
 
 
 def test_model_artifacts_are_loaded_only_once(monkeypatch):
