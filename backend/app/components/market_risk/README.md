@@ -336,6 +336,32 @@ The check prints aggregates only and exits with code 1 on any mismatch.
 }
 ```
 
+## v2 API (`/api/risk/v2`)
+
+v2 scores one monitoring visit from its answers. The backend computes every feature with code ported from `artifacts_v2/SUSTAIN_FE_and_Model_Training.ipynb` (`v2/pipeline.py`). The v1 endpoints above are unchanged.
+
+| Method | Path | Returns |
+|---|---|---|
+| POST | `/api/risk/v2/risk/visit` | Current risk and reasons, 3M/6M P(High), class and alert, top 5 SHAP factors, market level |
+| GET | `/api/risk/v2/risk/households?month=YYYY-MM` | Dashboard list of simulated households |
+| GET | `/api/risk/v2/risk/household/{household_key}` | Latest visit of a simulated household and its timeline |
+| GET | `/api/risk/v2/market/districts?month=YYYY-MM` | Market pressure for 25 districts × 9 categories |
+| GET | `/api/risk/v2/model/evidence` | Results against persistence, thresholds and limitations |
+
+Request and response examples are in `CONTRACTS_UPDATE.md`.
+
+**Artifacts.** `artifacts_v2/` is git-ignored and must be copied to each machine. Set `MARKET_RISK_ARTIFACTS_DIR` to use another folder. After refreshing it, run this from `backend/` to rebuild `macro_anomalies_monthly.csv` and `model_evidence.json`:
+
+```bash
+python -m app.components.market_risk.v2.build_artifacts
+```
+
+**503 responses.** All v2 endpoints return 503 if a required file is missing or a model was saved with a different scikit-learn version. This is checked at start-up, and v1 keeps working. Months outside the market data (now 2026-01 to 2026-09) also return 503.
+
+**Real visits (NDA).** They are scored one at a time through `POST /risk/visit`, without history, and marked `indicative - no history`. They are never stored, listed or logged.
+
+**Reliability.** The 6M models did not beat assuming risk stays the same, so 6M results carry a `reliability_note` and no alert. See `/model/evidence`.
+
 ## The 53 input features
 
 The authoritative list and order is `feature_names_in_order` in `ml/models/<horizon>/metadata.json`. It is the same for 3M and 6M. Call **`GET /api/risk/model-info`** for the names, types, descriptions and allowed category levels, or see `/docs`.
@@ -370,7 +396,7 @@ python -m pytest app/components/market_risk -v   # this component only
 python -m pytest -q                              # whole backend
 ```
 
-The tests build their inputs from `metadata.json` and never read CSV files or `sample_data/`.
+The v1 tests build their inputs from `metadata.json` and never read CSV files or `sample_data/`. The v2 parity and endpoint tests read `artifacts_v2/`, report counts only, and are skipped when those files are missing.
 
 ## Calling from another component
 

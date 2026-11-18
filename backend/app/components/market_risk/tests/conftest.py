@@ -37,3 +37,22 @@ def reset_loader():
     yield
     loader.clear_cache()
     explainer.clear_cache()
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """NDA: parity tests read real visits, so their failure reports hold no tracebacks.
+
+    A normal traceback can print function arguments, including data frames, and pytest
+    adds compared values to assertion text. Only the exception type and the first line
+    of a written assertion message (counts only) are kept.
+    """
+    outcome = yield
+    report = outcome.get_result()
+    if "test_v2_parity" in item.nodeid and report.failed and call.excinfo is not None:
+        detail = "details hidden (NDA)"
+        if call.excinfo.errisinstance(AssertionError):
+            first_line = str(call.excinfo.value).split("\n", 1)[0]
+            if first_line and not first_line.startswith("assert "):
+                detail = first_line
+        report.longrepr = f"{call.excinfo.typename}: {detail}"

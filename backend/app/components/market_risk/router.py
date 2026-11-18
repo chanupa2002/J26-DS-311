@@ -19,6 +19,7 @@ from app.components.market_risk.schemas import (
     PredictRequest,
     PredictResponse,
 )
+from app.components.market_risk.v2.router import router as v2_router
 
 router = APIRouter(prefix="/api/risk", tags=["Market Risk"])
 logger = logging.getLogger(__name__)
@@ -233,3 +234,6 @@ def market_context_lookup(
 )
 def history_features(request: HistoryFeaturesRequest) -> HistoryFeaturesResponse:
     return services.compute_history_features(request)
+
+
+router.include_router(v2_router)  # /api/risk/v2/...
