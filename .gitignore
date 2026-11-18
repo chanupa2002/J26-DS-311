@@ -53,3 +53,4 @@ private_data/
 !backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_data_dictionary.csv
 !backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/monitoring_cleaning_log.csv
 !backend/app/components/livelihood_planning/data_prep/r_cleaning/reference/market_filter_log.csv
+backend/app/components/market_risk/artifacts_v2/
