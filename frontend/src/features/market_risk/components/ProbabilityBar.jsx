@@ -6,8 +6,9 @@ import { inTen, percent } from "./v2format"
 /**
  * Chance of High risk as a bar with "about 3 in 10" next to it; the exact % is in the tooltip.
  * The dashed marker is the alert level from the API (no typed cut-off).
+ * `source` names where the chance comes from in the tooltip (the ML model by default).
  */
-export function ProbabilityBar({ value, threshold, compact = false, className }) {
+export function ProbabilityBar({ value, threshold, compact = false, className, source = "Model's chance of High risk" }) {
   const width = Math.max(0, Math.min(1, Number(value) || 0)) * 100
   const hasThreshold = threshold !== null && threshold !== undefined && Number.isFinite(Number(threshold))
   const words = inTen(value)
@@ -34,7 +35,7 @@ export function ProbabilityBar({ value, threshold, compact = false, className })
         </div>
       </TooltipTrigger>
       <TooltipContent className="text-xs">
-        <p>Model&apos;s chance of High risk: {percent(value, 1)}</p>
+        <p>{source}: {percent(value, 1)}</p>
         {hasThreshold && <p>Alert level (dashed marker): {percent(threshold, 1)}</p>}
       </TooltipContent>
     </Tooltip>

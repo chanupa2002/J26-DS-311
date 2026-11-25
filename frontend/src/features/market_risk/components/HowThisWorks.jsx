@@ -24,8 +24,16 @@ export function HowThisWorks({ visit }) {
               {" "}
               {visit.current_risk?.signal_count} warning {visit.current_risk?.signal_count === 1 ? "signal was" : "signals were"} found this month.
             </li>
+            {visit.predictions?.["1M"] && (
+              <li>
+                <span className="text-foreground">Next month</span> is not a machine-learning prediction. It counts how
+                often households in the same risk class were High at their next monthly visit
+                {visit.predictions["1M"].n_transitions ? ` (${visit.predictions["1M"].n_transitions} month-to-month changes of simulated households)` : ""}.
+                It never raises an alert.
+              </li>
+            )}
             <li>
-              <span className="text-foreground">Expected risk</span> comes from random-forest models trained on earlier
+              <span className="text-foreground">Expected risk in 3 months</span> comes from random-forest models trained on earlier
               visits. Chances are shown as &quot;about N in 10&quot; (Gigerenzer &amp; Hoffrage, 1995); the exact percentage is
               in the tooltip.
               {m3?.alert_threshold !== null && m3?.alert_threshold !== undefined &&

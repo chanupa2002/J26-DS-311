@@ -98,3 +98,16 @@ export function sortByAttention(rows) {
     (a, b) => attentionRank(a) - attentionRank(b) || b.p_high_3m - a.p_high_3m || a.household_key.localeCompare(b.household_key),
   )
 }
+
+/**
+ * Spread of the chance of High across starting classes in one row of p_high_after:
+ * "from about 1 in 10 to about 7 in 10", or "about 3 in 10 for every start" when they round the same.
+ */
+export function spreadText(row) {
+  if (!row) return "—"
+  const values = RISK_AXIS.map((name) => row[name]).filter((value) => Number.isFinite(value))
+  if (!values.length) return "—"
+  const low = inTen(Math.min(...values))
+  const high = inTen(Math.max(...values))
+  return low === high ? `${low} for every start` : `from ${low} to ${high}`
+}

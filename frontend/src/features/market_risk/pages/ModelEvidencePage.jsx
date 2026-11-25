@@ -1,7 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-import { decimal, EvidenceTable, ShapGroupShare, SimulatedBadge, V2PageState } from "../components"
+import {
+  ChanceAfterChart,
+  decimal,
+  EvidenceTable,
+  ShapGroupShare,
+  SimulatedBadge,
+  spreadText,
+  TransitionTable,
+  V2PageState,
+} from "../components"
 import { useV2Evidence } from "../hooks"
 
 function RegisterTable({ rows }) {
@@ -40,6 +49,8 @@ export function ModelEvidencePage() {
   const data = evidence.data
   const register = data.threshold_register ?? []
   const alertRows = register.filter((row) => String(row.used_for).startsWith("high_alert"))
+  const transitions = data.transitions
+  const after = transitions?.p_high_after ?? []
 
   return (
     <div className="space-y-4">
@@ -53,6 +64,7 @@ export function ModelEvidencePage() {
           <CardTitle className="text-base">In plain words</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          {transitions?.text && <p>{transitions.text}</p>}
           <p>
             The 3-month model is only slightly better than simply assuming that risk stays the same as this month.
           </p>
@@ -66,6 +78,40 @@ export function ModelEvidencePage() {
           </p>
         </CardContent>
       </Card>
+
+      {transitions && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">How risk changes from one month to the next</CardTitle>
+              <CardDescription>
+                Out of 10 households in each risk class this month, how many were in each class at the next visit. Based on{" "}
+                {transitions.n_transitions} month-to-month changes of simulated households. Not a prediction model.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 sm:px-6 sm:pb-6">
+              <TransitionTable transitions={transitions} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Chance of High risk after 1–6 months</CardTitle>
+              <CardDescription>One line for each risk class this month, using the month-to-month table.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ChanceAfterChart rows={after} />
+              {after.length > 1 && (
+                <p className="text-sm">
+                  After 1 month the chance of High is {spreadText(after[0])}, depending on this month&apos;s risk. After{" "}
+                  {after[after.length - 1].months} months it is {spreadText(after[after.length - 1])}: the lines come
+                  together, so this month&apos;s risk tells us little about month {after[after.length - 1].months}. That is
+                  why 6-month forecasts are rough and never raise an alert.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

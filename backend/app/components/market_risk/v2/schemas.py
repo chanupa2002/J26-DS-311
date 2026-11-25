@@ -125,11 +125,31 @@ class CurrentRisk(BaseModel):
 
 
 class HorizonOutlook(BaseModel):
+    """3M or 6M: machine-learning prediction."""
+
+    model_config = ConfigDict(extra="forbid")
+
     p_high: float
     predicted_class: RiskClass
     alert: bool | None = Field(description="P(High) >= alert_threshold; null when no threshold is set.")
     alert_threshold: float | None
     reliability_note: str | None = None
+
+
+class NextMonthOutlook(BaseModel):
+    """1M: summary of past monthly transitions between risk classes, not machine learning.
+    The chances are null when the current risk class is Unassigned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    p_low: float | None
+    p_medium: float | None
+    p_high: float | None
+    predicted_class: RiskClass | None = Field(description="Most likely class next month.")
+    method: Literal["past monthly transitions"]
+    n_transitions: int = Field(description="Number of one-month steps the summary is based on.")
+    alert: None = Field(default=None, description="Always null: no alert is issued for 1 month.")
+    note: str
 
 
 class ShapFactor(BaseModel):
@@ -157,7 +177,9 @@ class VisitResponse(V2Envelope):
     grant_status: int | None = Field(description="0-3 as sent or stored; null when not answered.")
     grant_status_label: str | None = Field(description="Codebook label of grant_status.")
     current_risk: CurrentRisk
-    predictions: dict[str, HorizonOutlook]
+    predictions: dict[str, NextMonthOutlook | HorizonOutlook] = Field(
+        description='"1M" = past monthly transitions; "3M" and "6M" = machine-learning models.'
+    )
     shap_base_value: float
     shap_top_factors: list[ShapFactor]
     market: MarketInfo
@@ -174,6 +196,8 @@ class HouseholdSummary(BaseModel):
     grant_status_label: str | None
     current_risk: CurrentRiskClass
     reasons: list[str]
+    next_month_class: RiskClass | None = Field(description="Most likely class next month (past monthly transitions).")
+    next_month_p_high: float | None = Field(description="Past monthly transitions; null if Unassigned.")
     predicted_3m: RiskClass
     p_high_3m: float
     alert_3m: bool | None
@@ -190,6 +214,8 @@ class TimelinePoint(BaseModel):
     monitoring_period: str
     current_risk: CurrentRiskClass
     reasons: list[str]
+    next_month_class: RiskClass | None = Field(description="Most likely class next month (past monthly transitions).")
+    next_month_p_high: float | None = Field(description="Past monthly transitions; null if Unassigned.")
     predicted_3m: RiskClass
     p_high_3m: float
     alert_3m: bool | None
@@ -228,6 +254,25 @@ class PersistenceComparison(BaseModel):
     model_better: bool
 
 
+class ChanceOfHighAfter(BaseModel):
+    months: int
+    Low: float
+    Medium: float
+    High: float
+
+
+class TransitionSummary(BaseModel):
+    is_synthetic: bool
+    method: str
+    classes: list[RiskClass]
+    smoothing: int
+    n_transitions: int
+    counts: list[list[int]] = Field(description="Rows = this month, columns = next month.")
+    matrix: list[list[float]] = Field(description="Smoothed chances; each row sums to 1.")
+    p_high_after: list[ChanceOfHighAfter] = Field(description="Chance of High after 1-6 months by starting class.")
+    text: str
+
+
 class EvidenceResponse(V2Envelope):
     models: dict[str, Any]
     alert_thresholds: dict[str, float | None]
@@ -235,4 +280,5 @@ class EvidenceResponse(V2Envelope):
     results: dict[str, list[dict[str, Any]]]
     shap_group_share: list[dict[str, Any]]
     threshold_register: list[dict[str, Any]]
+    transitions: TransitionSummary
     limitations: list[str]

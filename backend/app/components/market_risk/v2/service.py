@@ -153,14 +153,15 @@ def _visit_payload(bundle: artifacts.Bundle, features: pd.DataFrame, predictions
         **_grant_status(row.grant_status),
         "current_risk": _current_risk(row),
         "predictions": {
-            horizon: {
+            "1M": bundle.transitions.next_month(row.risk_class_t),
+            **{horizon: {
                 "p_high": float(predicted[f"P_High_{horizon}"]),
                 "predicted_class": predicted[f"predicted_{horizon}"],
                 "alert": _alert(predicted[f"high_alert_{horizon}"]),
                 "alert_threshold": bundle.meta["high_alert_threshold"][horizon],
                 "reliability_note": reliability[horizon],
             }
-            for horizon in pipeline.HORIZONS
+            for horizon in pipeline.HORIZONS},
         },
         "shap_base_value": base,
         "shap_top_factors": factors,
@@ -233,6 +234,7 @@ def list_households(month: str | None) -> dict[str, Any]:
             **_grant_status(row.grant_status),
             "current_risk": row.risk_class_t,
             "reasons": pipeline.reasons(row),
+            **bundle.transitions.row_summary(row.risk_class_t),
             "predicted_3m": row.predicted_3M,
             "p_high_3m": float(row.P_High_3M),
             "alert_3m": _alert(row.high_alert_3M),
@@ -258,6 +260,7 @@ def household_detail(household_key: str) -> dict[str, Any]:
             "monitoring_period": row.monitoring_period,
             "current_risk": row.risk_class_t,
             "reasons": pipeline.reasons(row),
+            **bundle.transitions.row_summary(row.risk_class_t),
             "predicted_3m": predicted.predicted_3M,
             "p_high_3m": float(predicted.P_High_3M),
             "alert_3m": _alert(predicted.high_alert_3M),
@@ -328,5 +331,6 @@ def model_evidence() -> dict[str, Any]:
         },
         "shap_group_share": sheets["SHAP_Groups_3M"],
         "threshold_register": sheets["Threshold_Register"],
+        "transitions": bundle.transitions.evidence(),
         "limitations": limitations,
     }

@@ -72,6 +72,9 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
     "rule_version": "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
   },
   "predictions": {
+    "1M": {"p_low": 0.068, "p_medium": 0.236, "p_high": 0.696, "predicted_class": "High",
+           "method": "past monthly transitions", "n_transitions": 423, "alert": null,
+           "note": "Summary of past visits: how often households in this class were High the next month. Not a machine-learning prediction."},
     "3M": {"p_high": 0.268, "predicted_class": "Medium", "alert": false, "alert_threshold": 0.47521950949935643, "reliability_note": null},
     "6M": {"p_high": 0.292, "predicted_class": "Low", "alert": null, "alert_threshold": null,
            "reliability_note": "Indicative only: in testing this 6M model did not beat assuming risk stays the same."}
@@ -89,6 +92,8 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
 
 `grant_status` echoes the sent or stored code (0-3 or `null`). `grant_status_label` is its codebook label: 0 "Not received", 1 "Not fully used", 2 "Used, bills not settled", 3 "Fully used" (`null` when not answered). It is the same mapping the SHAP factor values use. Show the label; do not map codes in the frontend.
 
+`predictions["1M"]` is **not** a machine-learning prediction. It is the row of the monthly transition matrix for the current risk class (see `/model/evidence` → `transitions`). `predicted_class` is the most likely class next month, and `alert` is always `null`. When `current_risk.risk_class` is `"Unassigned"`, `p_low`, `p_medium`, `p_high` and `predicted_class` are `null` and `note` is "Current risk unknown – complete the visit form." `"3M"` and `"6M"` are unchanged.
+
 `group` is one of Business, Household shock, History, Market or Current risk. A positive `contribution` pushes the 3-month P(High) up. `alert: null` means no alert threshold exists, so show "no alert available", not "no alert".
 
 ## GET /risk/households?month=2026-06
@@ -103,13 +108,13 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
     {"household_key": "SIM-HH-001", "monitoring_period": "2026-06", "district": "Ampara",
      "category": "AGRICULTURE & PLANTATION CROPS", "is_synthetic": true,
      "grant_status": 3, "grant_status_label": "Fully used", "current_risk": "Unassigned",
-     "reasons": ["form incomplete: profit unknown - ask SDO"],
+     "reasons": ["form incomplete: profit unknown - ask SDO"], "next_month_class": null, "next_month_p_high": null,
      "predicted_3m": "Low", "p_high_3m": 0.198, "alert_3m": false, "market_level": "Moderate"}
   ]
 }
 ```
 
-`reasons` are the rule reasons for `current_risk` (the same list as `current_risk.reasons` in a visit response). `grant_status` and `grant_status_label` work as in `/risk/visit`.
+`next_month_class` (most likely class) and `next_month_p_high` (chance of High) come from past monthly transitions, the same as `predictions["1M"]`; both are `null` when `current_risk` is Unassigned. `reasons` are the rule reasons for `current_risk` (the same list as `current_risk.reasons` in a visit response). `grant_status` and `grant_status_label` work as in `/risk/visit`.
 
 ## GET /risk/household/SIM-HH-001
 
@@ -118,6 +123,7 @@ Returns `household_key`, `latest_visit` (same shape as the `/risk/visit` respons
 ```json
 {"monitoring_period": "2026-01", "current_risk": "High",
  "reasons": ["no profit last month", "coach: not progressing", "market stress (low sales / input cost / inputs unavailable)"],
+ "next_month_class": "High", "next_month_p_high": 0.696,
  "predicted_3m": "High", "p_high_3m": 0.694, "alert_3m": true, "market_level": "Normal"}
 ```
 
@@ -139,10 +145,21 @@ Returns `household_key`, `latest_visit` (same shape as the `/risk/visit` respons
 
 ## GET /model/evidence
 
-Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tables), `shap_group_share`, `threshold_register` and `limitations`. A `comparisons` item:
+Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tables), `shap_group_share`, `threshold_register`, `transitions` and `limitations`. A `comparisons` item:
 
 ```json
 {"name": "6M warning, grouped CV", "metric": "ROC_AUC", "model": 0.556, "persistence": 0.592, "model_better": false}
+```
+
+`transitions` summarises how risk changes from one month to the next. It is estimated when the artifacts load from the stored simulated visits: same household, consecutive visits exactly 1 month apart, both classes Low/Medium/High; +1 is added to every cell (Laplace smoothing). Rows and columns follow `classes`; rows are this month, columns next month. `p_high_after` gives the chance of High after 1-6 months for each starting class (matrix powers P^k).
+
+```json
+{"is_synthetic": true, "method": "past monthly transitions", "classes": ["Low", "Medium", "High"], "smoothing": 1,
+ "n_transitions": 423, "counts": [[91, 35, 10], [39, 79, 24], [9, 34, 102]],
+ "matrix": [[0.662, 0.259, 0.079], [0.276, 0.552, 0.172], [0.068, 0.236, 0.696]],
+ "p_high_after": [{"months": 1, "Low": 0.079, "Medium": 0.172, "High": 0.696}, "...",
+                  {"months": 6, "Low": 0.272, "Medium": 0.288, "High": 0.325}],
+ "text": "Next-month risk mostly stays the same; a simple summary of past visits is used, no machine-learning model for 1 month (no 1-month model was trained; for 3 months, the model is compared with assuming risk stays the same – see the table below)."}
 ```
 
 Swagger: the 5 v2 endpoints are listed once, under the "Market Risk" tag.

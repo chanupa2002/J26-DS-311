@@ -17,7 +17,7 @@ from typing import Any
 
 import pandas as pd
 
-from app.components.market_risk.v2 import pipeline
+from app.components.market_risk.v2 import pipeline, transitions
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ class Bundle:
     store_visits: pd.DataFrame  # synthetic households only
     store_features: pd.DataFrame
     store_predictions: pd.DataFrame
+    transitions: transitions.Transitions  # estimated from store_features, never typed
 
 
 _lock = threading.RLock()
@@ -151,6 +152,7 @@ def _load() -> Bundle:
         store_visits=visits,
         store_features=store_features,
         store_predictions=pipeline.predict_visits(store_features, models, meta),
+        transitions=transitions.estimate(store_features),
     )
 
 

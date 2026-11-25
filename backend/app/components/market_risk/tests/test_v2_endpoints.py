@@ -42,7 +42,7 @@ def test_synthetic_visit_has_full_response(needs_artifacts):
     assert body["model_version"] == "v2"
     assert body["note"] is None
     assert body["current_risk"]["risk_class"] == "High"
-    assert set(body["predictions"]) == {"3M", "6M"}
+    assert set(body["predictions"]) == {"1M", "3M", "6M"}
     assert isinstance(body["predictions"]["3M"]["alert"], bool)
     assert body["predictions"]["6M"]["alert"] is None
     assert body["predictions"]["6M"]["reliability_note"]

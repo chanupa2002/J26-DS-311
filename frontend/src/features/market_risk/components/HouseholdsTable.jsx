@@ -8,13 +8,18 @@ import { InfoTip } from "./InfoTip"
 import { MarketPill } from "./MarketPill"
 import { ProbabilityBar } from "./ProbabilityBar"
 import { RiskPill } from "./RiskPill"
-import { categoryLabel } from "./v2format"
+import { categoryLabel, inTen, percent } from "./v2format"
 
 const COLUMNS = [
   { label: "Household", tip: "The household code, its livelihood and its district." },
   { label: "Grant used?", tip: "Whether the Samurdhi grant has been received and used, from the latest visit form." },
   { label: "Risk this month", tip: "Worked out automatically from this month's visit form – it is not a prediction." },
   { label: "Why", tip: "The answers on this month's visit form that led to this month's risk.", className: "min-w-40" },
+  {
+    label: "Next month",
+    tip: "Based on past visits: how often households in this risk class were High the next month. Not a prediction model.",
+    className: "min-w-32",
+  },
   { label: "Expected in 3 months", tip: "The risk level the model expects for this household in 3 months." },
   {
     label: "Chance of High risk in 3 months",
@@ -36,9 +41,22 @@ function Head({ label, tip, className }) {
   )
 }
 
+/** Most likely class next month and the chance of High, from past monthly transitions. */
+function NextMonth({ riskClass, pHigh }) {
+  if (!riskClass) return <span className="text-xs text-muted-foreground">Unknown – form incomplete</span>
+  return (
+    <div className="space-y-1">
+      <RiskPill riskClass={riskClass} />
+      <p className="whitespace-nowrap text-xs" title={`Past visits: ${percent(pHigh, 1)} were High the next month`}>
+        {inTen(pHigh)} High
+      </p>
+    </div>
+  )
+}
+
 export function HouseholdsTable({ households, alertThreshold }) {
   return (
-    <Table className="min-w-[920px]">
+    <Table className="min-w-[1040px]">
       <TableHeader>
         <TableRow>
           {COLUMNS.map((column) => (
@@ -67,6 +85,9 @@ export function HouseholdsTable({ households, alertThreshold }) {
                 <RiskPill riskClass={row.current_risk} />
               </TableCell>
               <TableCell className="text-xs">{row.reasons.join("; ")}</TableCell>
+              <TableCell>
+                <NextMonth riskClass={row.next_month_class} pHigh={row.next_month_p_high} />
+              </TableCell>
               <TableCell>
                 <RiskPill riskClass={row.predicted_3m} />
               </TableCell>

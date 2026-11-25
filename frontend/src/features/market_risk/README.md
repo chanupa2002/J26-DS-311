@@ -43,7 +43,12 @@ not retry automatically.
   `CurrentRiskCard`, `FutureRiskCard`, `MarketCard`, `ShapBars`, `VisitResult`, `RiskTimeline`,
   `StepStrip`, `HouseholdsTable`, `MarketHeatmap`, `EvidenceTable`, `ShapGroupShare`, `VisitForm`,
   `V2PageState`, `HouseholdCharts` (risk donut, High risk by district / livelihood), `InfoTip` (ⓘ header help),
-  `HowThisWorks` (collapsible research notes); display helpers in `components/v2format.js`.
+  `HowThisWorks` (collapsible research notes), `TransitionTable` and `ChanceAfterChart` (month-to-month
+  changes on Model evidence); display helpers in `components/v2format.js`.
+- Three time points: **this month** (rule), **next month** (`predictions["1M"]`, `next_month_*`: a summary of
+  past monthly transitions of simulated households, not machine learning, never an alert) and **in 3 months**
+  (ML early warning with the alert). 6 months is not reliable: it is folded away on the detail page and kept
+  out of the table.
 - Plain language for officers: chances are shown as natural frequencies ("about 3 in 10", exact % in the
   tooltip); households needing attention (3-month alert, then High this month, then Unassigned) are listed first.
 - `pages/` – `HouseholdsV2Page`, `HouseholdDetailV2Page`, `CheckVisitV2Page`, `MarketPressurePage`, `ModelEvidencePage`.
