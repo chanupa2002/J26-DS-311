@@ -217,3 +217,41 @@ def test_startup_check_runs_and_v1_keeps_working(monkeypatch, tmp_path, fresh_ca
         assert started.get("/api/risk/health").status_code == 200
         assert started.get(f"{BASE}/model/evidence").status_code == 503
     assert "v2 endpoints will return 503" in caplog.text
+
+
+GRANT_LABELS = {0: "Not received", 1: "Not fully used", 2: "Used, bills not settled", 3: "Fully used"}
+
+
+def test_openapi_lists_v2_paths_once_under_market_risk():
+    paths = client.get("/openapi.json").json()["paths"]
+    v2_paths = [path for path in paths if path.startswith(BASE)]
+    assert len(v2_paths) == 5
+    for path in v2_paths:
+        for operation in paths[path].values():
+            assert operation["tags"] == ["Market Risk"]
+
+
+def test_household_list_has_reasons_and_grant_status(needs_artifacts):
+    rows = client.get(f"{BASE}/risk/households", params={"month": "2026-03"}).json()["households"]
+    for row in rows:
+        assert isinstance(row["reasons"], list) and all(isinstance(text, str) for text in row["reasons"])
+        if row["grant_status"] is None:
+            assert row["grant_status_label"] is None
+        else:
+            assert row["grant_status_label"] == GRANT_LABELS[row["grant_status"]]
+
+
+def test_household_list_reasons_match_timeline(needs_artifacts):
+    detail = client.get(f"{BASE}/risk/household/SIM-HH-001").json()
+    point = detail["timeline"][-1]
+    rows = client.get(f"{BASE}/risk/households", params={"month": point["monitoring_period"]}).json()["households"]
+    row = next(item for item in rows if item["household_key"] == "SIM-HH-001")
+    assert row["reasons"] == point["reasons"]
+    assert row["grant_status"] == detail["latest_visit"]["grant_status"]
+
+
+@pytest.mark.parametrize("code", [0, 1, 2, 3, None])
+def test_visit_echoes_grant_status_with_label(needs_artifacts, code):
+    body = client.post(f"{BASE}/risk/visit", json={**EXAMPLE_VISIT, "grant_status": code}).json()
+    assert body["grant_status"] == code
+    assert body["grant_status_label"] == (None if code is None else GRANT_LABELS[code])

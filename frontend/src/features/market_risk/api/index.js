@@ -6,3 +6,4 @@ export {
   identifyCurrentRisk,
   predictMarketRisk,
 } from "./riskApi"
+export * from "./riskV2Api"

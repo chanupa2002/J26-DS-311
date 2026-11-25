@@ -1,2 +1,7 @@
 export { FutureRiskPage } from "./FutureRiskPage"
 export { RiskCheckPage } from "./RiskCheckPage"
+export { CheckVisitV2Page } from "./CheckVisitV2Page"
+export { HouseholdDetailV2Page } from "./HouseholdDetailV2Page"
+export { HouseholdsV2Page } from "./HouseholdsV2Page"
+export { MarketPressurePage } from "./MarketPressurePage"
+export { ModelEvidencePage } from "./ModelEvidencePage"

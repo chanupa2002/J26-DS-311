@@ -110,6 +110,14 @@ def _current_risk(row: pd.Series) -> dict[str, Any]:
     }
 
 
+def _grant_status(value: Any) -> dict[str, Any]:
+    """Grant status code and its codebook label (the same mapping as the SHAP factor values)."""
+    if value is None or pd.isna(value):
+        return {"grant_status": None, "grant_status_label": None}
+    code = int(value)
+    return {"grant_status": code, "grant_status_label": pipeline.CODED_VALUES["grant_status"].get(code)}
+
+
 def _visit_warnings(bundle: artifacts.Bundle, row: pd.Series) -> list[str]:
     warnings = []
     if row.district not in bundle.training_districts:
@@ -142,6 +150,7 @@ def _visit_payload(bundle: artifacts.Bundle, features: pd.DataFrame, predictions
         "monitoring_period": row.monitoring_period,
         "district": row.district,
         "category": row.category,
+        **_grant_status(row.grant_status),
         "current_risk": _current_risk(row),
         "predictions": {
             horizon: {
@@ -221,7 +230,9 @@ def list_households(month: str | None) -> dict[str, Any]:
             "district": row.district,
             "category": row.category,
             "is_synthetic": True,
+            **_grant_status(row.grant_status),
             "current_risk": row.risk_class_t,
+            "reasons": pipeline.reasons(row),
             "predicted_3m": row.predicted_3M,
             "p_high_3m": float(row.P_High_3M),
             "alert_3m": _alert(row.high_alert_3M),

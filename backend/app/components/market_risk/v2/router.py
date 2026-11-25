@@ -29,7 +29,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-router = APIRouter(prefix="/v2", tags=["Market Risk v2"], lifespan=lifespan)
+router = APIRouter(prefix="/v2", lifespan=lifespan)  # tags come from the parent "Market Risk" router
 
 
 def _unavailable(exc: Exception) -> HTTPException:

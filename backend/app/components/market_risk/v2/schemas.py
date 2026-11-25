@@ -154,6 +154,8 @@ class VisitResponse(V2Envelope):
     monitoring_period: str
     district: str
     category: str
+    grant_status: int | None = Field(description="0-3 as sent or stored; null when not answered.")
+    grant_status_label: str | None = Field(description="Codebook label of grant_status.")
     current_risk: CurrentRisk
     predictions: dict[str, HorizonOutlook]
     shap_base_value: float
@@ -168,7 +170,10 @@ class HouseholdSummary(BaseModel):
     district: str
     category: str
     is_synthetic: bool
+    grant_status: int | None
+    grant_status_label: str | None
     current_risk: CurrentRiskClass
+    reasons: list[str]
     predicted_3m: RiskClass
     p_high_3m: float
     alert_3m: bool | None

@@ -62,6 +62,8 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
   "monitoring_period": "2026-06",
   "district": "Ampara",
   "category": "AGRICULTURE & PLANTATION CROPS",
+  "grant_status": 3,
+  "grant_status_label": "Fully used",
   "current_risk": {
     "risk_class": "High",
     "risk_ord": 2,
@@ -85,6 +87,8 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
 }
 ```
 
+`grant_status` echoes the sent or stored code (0-3 or `null`). `grant_status_label` is its codebook label: 0 "Not received", 1 "Not fully used", 2 "Used, bills not settled", 3 "Fully used" (`null` when not answered). It is the same mapping the SHAP factor values use. Show the label; do not map codes in the frontend.
+
 `group` is one of Business, Household shock, History, Market or Current risk. A positive `contribution` pushes the 3-month P(High) up. `alert: null` means no alert threshold exists, so show "no alert available", not "no alert".
 
 ## GET /risk/households?month=2026-06
@@ -97,11 +101,15 @@ Response (`shap_top_factors` normally has 5 items; 1 is shown here):
   "month": "2026-06", "count": 87,
   "households": [
     {"household_key": "SIM-HH-001", "monitoring_period": "2026-06", "district": "Ampara",
-     "category": "AGRICULTURE & PLANTATION CROPS", "is_synthetic": true, "current_risk": "Unassigned",
+     "category": "AGRICULTURE & PLANTATION CROPS", "is_synthetic": true,
+     "grant_status": 3, "grant_status_label": "Fully used", "current_risk": "Unassigned",
+     "reasons": ["form incomplete: profit unknown - ask SDO"],
      "predicted_3m": "Low", "p_high_3m": 0.198, "alert_3m": false, "market_level": "Moderate"}
   ]
 }
 ```
+
+`reasons` are the rule reasons for `current_risk` (the same list as `current_risk.reasons` in a visit response). `grant_status` and `grant_status_label` work as in `/risk/visit`.
 
 ## GET /risk/household/SIM-HH-001
 
@@ -136,3 +144,5 @@ Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tabl
 ```json
 {"name": "6M warning, grouped CV", "metric": "ROC_AUC", "model": 0.556, "persistence": 0.592, "model_better": false}
 ```
+
+Swagger: the 5 v2 endpoints are listed once, under the "Market Risk" tag.
