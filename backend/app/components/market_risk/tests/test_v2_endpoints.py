@@ -225,7 +225,7 @@ GRANT_LABELS = {0: "Not received", 1: "Not fully used", 2: "Used, bills not sett
 def test_openapi_lists_v2_paths_once_under_market_risk():
     paths = client.get("/openapi.json").json()["paths"]
     v2_paths = [path for path in paths if path.startswith(BASE)]
-    assert len(v2_paths) == 5
+    assert len(v2_paths) == 7
     for path in v2_paths:
         for operation in paths[path].values():
             assert operation["tags"] == ["Market Risk"]

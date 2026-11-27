@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-from app.components.market_risk.v2 import artifacts, pipeline
+from app.components.market_risk.v2 import artifacts, decisions, knowledge, pipeline, recommend, summary
 from app.components.market_risk.v2.schemas import VisitRequest
 
 RULE_VERSION = "SUSTAIN-HH-Risk-Rule v1.0 (provisional, requires expert validation)"
@@ -17,6 +17,9 @@ REAL_VISIT_NOTE = "indicative - no history"
 SYNTHETIC_NOTE = "Simulated household data."
 MARKET_NOTE = "Public market indicators; no household data."
 EVIDENCE_NOTE = "Outcome labels come from simulated households only."
+RECOMMENDATION_DISCLAIMER = (
+    "Suggestions from the rule table and official circulars. The officer makes the final decision."
+)
 
 _shap_lock = threading.Lock()
 
@@ -48,6 +51,10 @@ class UnknownValue(ValueError):
 
 class HouseholdNotFound(LookupError):
     pass
+
+
+class RuleNotRecommended(LookupError):
+    """The rule is not among this household's current recommendations."""
 
 
 def _number(value) -> float | None:
@@ -332,5 +339,83 @@ def model_evidence() -> dict[str, Any]:
         "shap_group_share": sheets["SHAP_Groups_3M"],
         "threshold_register": sheets["Threshold_Register"],
         "transitions": bundle.transitions.evidence(),
+        "recommendations": _knowledge_evidence(),
         "limitations": limitations,
     }
+
+
+def _knowledge_evidence() -> dict[str, Any] | None:
+    try:
+        return knowledge.load().evidence()
+    except knowledge.KnowledgeUnavailable:
+        return None
+
+
+def _latest_visit(household_key: str) -> tuple[dict[str, Any], pd.Series]:
+    """Visit payload (with SHAP) and the joined feature + prediction row of the latest stored visit."""
+    bundle = artifacts.load_bundle()
+    mask = bundle.store_features.household_key == household_key
+    if not mask.any():
+        raise HouseholdNotFound(household_key)
+    features = bundle.store_features[mask].sort_values("month_index").iloc[[-1]]
+    predictions = bundle.store_predictions.loc[features.index]
+    payload = _visit_payload(bundle, features, predictions, household_key, True, SYNTHETIC_NOTE)
+    return payload, features.join(predictions).iloc[0]
+
+
+def _selected(household_key: str) -> tuple[dict[str, Any], knowledge.KnowledgeBase, recommend.Engine,
+                                           dict[str, Any] | None, list[dict[str, Any]]]:
+    base = knowledge.load()
+    payload, row = _latest_visit(household_key)
+    engine = recommend.engine_for(base)
+    follow_up, actions = engine.select(recommend.household_context(row), payload["shap_top_factors"])
+    follow_item = engine.item(*follow_up) if follow_up else None
+    action_items = [engine.item(rule, factors) for rule, factors in actions]
+    return payload, base, engine, follow_item, action_items
+
+
+def recommendations(household_key: str) -> dict[str, Any]:
+    payload, base, _, follow_up, actions = _selected(household_key)
+    items = [item for item in [follow_up, *actions] if item]
+
+    summariser = summary.Summariser(base.version)
+    if summariser.enabled:
+        texts = {str(chunk["chunk_id"]): str(chunk.get("text", "")) for chunk in base.chunks}
+        reasons = [item["reason_label"] for item in items]
+        for item in items:
+            item["summary_steps"] = summariser.steps(
+                item, risk_class=payload["current_risk"]["risk_class"],
+                alert_3m=payload["predictions"]["3M"]["alert"], reason_labels=reasons, chunk_texts=texts,
+            )
+    generated_by = "rules+retrieval+llm" if any(item["summary_steps"] for item in items) else "rules+retrieval"
+
+    try:
+        latest = decisions.latest(household_key)
+    except decisions.DecisionStoreError:
+        latest = {}  # recommendations still work; the decision is shown as not recorded
+    for item in items:
+        item["decision"] = latest.get(item["rule_id"])
+
+    return {
+        "is_synthetic": True, "model_version": "v2", "note": SYNTHETIC_NOTE,
+        "household_key": household_key,
+        "monitoring_period": payload["monitoring_period"],
+        "knowledge_version": base.version,
+        "generated_by": generated_by,
+        "follow_up": follow_up,
+        "actions": actions,
+        "disclaimer": RECOMMENDATION_DISCLAIMER,
+    }
+
+
+def record_decision(household_key: str, rule_id: str, decision: str, note: str | None,
+                    planned_visit_date: str | None) -> dict[str, Any]:
+    _, base, _, follow_up, actions = _selected(household_key)
+    if rule_id not in {item["rule_id"] for item in [follow_up, *actions] if item}:
+        raise RuleNotRecommended(rule_id)
+    saved = decisions.save({
+        "household_key": household_key, "rule_id": rule_id, "decision": decision, "note": note,
+        "planned_visit_date": planned_visit_date, "knowledge_version": base.version,
+    })
+    return {"is_synthetic": True, "model_version": "v2", "note": SYNTHETIC_NOTE,
+            "household_key": household_key, "rule_id": rule_id, "decision": saved}

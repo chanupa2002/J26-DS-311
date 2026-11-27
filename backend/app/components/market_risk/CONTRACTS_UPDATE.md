@@ -145,7 +145,7 @@ Returns `household_key`, `latest_visit` (same shape as the `/risk/visit` respons
 
 ## GET /model/evidence
 
-Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tables), `shap_group_share`, `threshold_register`, `transitions` and `limitations`. A `comparisons` item:
+Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tables), `shap_group_share`, `threshold_register`, `transitions`, `recommendations` and `limitations`. A `comparisons` item:
 
 ```json
 {"name": "6M warning, grouped CV", "metric": "ROC_AUC", "model": 0.556, "persistence": 0.592, "model_better": false}
@@ -162,4 +162,98 @@ Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tabl
  "text": "Next-month risk mostly stays the same; a simple summary of past visits is used, no machine-learning model for 1 month (no 1-month model was trained; for 3 months, the model is compared with assuming risk stays the same – see the table below)."}
 ```
 
-Swagger: the 5 v2 endpoints are listed once, under the "Market Risk" tag.
+`recommendations` summarises the knowledge base (`null` when `artifacts_v2/knowledge/` is not installed). `retrieval_check` runs a fixed test set of 12 queries with expected documents when the knowledge base loads (hit = an expected document among the top 1 / top 3 chunks, searching all documents):
+
+```json
+{"n_rules": 18, "n_rules_validated": 0, "n_documents": 22, "n_chunks": 301, "knowledge_version": "84466d6d91a6",
+ "retrieval_check": {"queries": 12, "hit_at_1": 11, "hit_at_3": 11},
+ "source_page_check": {"matched": 14, "total": 16, "rules": [
+   {"rule_id": "A1", "basis": "cited_pages", "cited_pages": [{"doc_id": "SDD_2026_05", "page": 4}],
+    "top_source": "SDD_2026_05-p4-c5", "top_doc_id": "SDD_2026_05", "top_page": 4, "matched": true}, "..."]}}
+```
+
+`source_page_check`: is each rule's top retrieved source on a cited document page? It uses the rule table's `cited_pages` column (`"DOC_ID:page,page; DOC_ID:page"`), so document and page must both match (`basis: "cited_pages"`). A rule without `cited_pages` falls back to page numbers in its citation text (`basis: "citation text (page only)"`, `doc_id: null`). Rules with neither, or without sources, are not counted. Computed at load; `cited_pages` entries whose document is not in the registry or not in the rule's `doc_filter` are logged and skipped.
+
+## GET /households/SIM-HH-001/recommendations
+
+Evidence-grounded suggestions for the household's latest visit (FR4 rule table + FR5 retrieval). Simulated households only.
+
+- `follow_up`: exactly one Level A rule – the matching rule with the lowest priority number. An Unassigned household gets A0 and `actions: []` (no recommendation from an incomplete form).
+- `actions`: every matching Level B rule. Rules linked to SHAP factors that raise the 3-month risk come first (in SHAP order), then by priority. If a raising factor of the Business, Household shock or Market group has no matching rule, Z1 "No official guidance found – refer to the officer" is added. `related_factors` lists the linked SHAP factor labels.
+- `sources`: the top 2 chunks of the rule's own documents (`doc_filter`) only; query = `query_terms` (Sinhala/English keywords from the circulars) + reason label + action; without `query_terms`, reason label + action. A rule without documents has no sources. `research_basis` is background for the rule, never a source.
+- `draft: true` until the supervisor validates the rule table – show a "Draft" label.
+- `summary_steps`: 2–4 steps from an LLM (Gemini), each citing chunk ids of that item's sources. Only when a key is configured; otherwise, on a timeout, an error, or an answer with a missing or unknown citation it is `null` and `generated_by` is `"rules+retrieval"`. The prompt holds only the risk class, the 3-month alert, reason labels, the action, the guardrail and the chunk texts – never the household key, district or answers. `MARKET_RISK_LLM_SUMMARY=off` turns it off; `MARKET_RISK_LLM_MODEL` overrides the model.
+- `decision`: the latest officer decision for that rule (see below), or `null`.
+
+```json
+{
+  "is_synthetic": true, "model_version": "v2", "note": "Simulated household data.",
+  "household_key": "SIM-HH-001", "monitoring_period": "2026-09",
+  "knowledge_version": "84466d6d91a6", "generated_by": "rules+retrieval",
+  "follow_up": {
+    "rule_id": "A1", "level": "A", "action_category": "Routine monitoring", "reason_label": "…", "action_en": "…",
+    "timing_days": null, "guardrail": "", "research_basis": "…", "draft": true, "related_factors": [],
+    "sources": [
+      {"chunk_id": "SDD_2026_05-p1-c6", "doc_id": "SDD_2026_05", "issuer": "Department of Samurdhi Development",
+       "circular_no": "2026/05", "title_en": "National Community Empowerment Program 2026 – Livelihood Development Programme",
+       "date": "2026-01-21", "page": 1, "source_url": "https://dsd.samurdhi.gov.lk/…", "status_note": "current",
+       "excerpt": "first ~400 characters of the OCR text"}
+    ],
+    "summary_steps": null,
+    "decision": null
+  },
+  "actions": [
+    {"rule_id": "B9", "level": "B", "action_category": "Financial support / savings",
+     "guardrail": "NO second livelihood grant (2026/05, p.2).", "related_factors": [], "...": "same shape"},
+    {"rule_id": "Z1", "level": "B", "action_category": "No official guidance found",
+     "related_factors": ["Market price pressure for this livelihood"], "sources": [], "...": "same shape"}
+  ],
+  "disclaimer": "Suggestions from the rule table and official circulars. The officer makes the final decision."
+}
+```
+
+| Status | Meaning |
+|---|---|
+| 404 | Unknown household |
+| 422 | Key is not `SIM-HH-…` |
+| 503 | Artifacts missing, or `"Recommendations are unavailable: Knowledge base not installed (…)"` |
+
+With a summary, an item has `"summary_steps": [{"text": "…", "chunk_ids": ["SDD_2026_05-p1-c6"]}, …]` and `generated_by` is `"rules+retrieval+llm"`.
+
+## POST /households/SIM-HH-001/recommendations/A1/decision
+
+FR7: the officer's decision on a rule that is currently recommended for the household.
+
+```json
+{"decision": "accept", "note": "Visit planned with the coach.", "planned_visit_date": "2026-12-03"}
+```
+
+`decision` is `accept`, `modify` or `reject`; `note` (max 500 characters) and `planned_visit_date` (YYYY-MM-DD) are optional; other fields are rejected (422). A rule that is not recommended for the household now returns 404. Response:
+
+```json
+{"is_synthetic": true, "model_version": "v2", "note": "Simulated household data.",
+ "household_key": "SIM-HH-001", "rule_id": "A1",
+ "decision": {"decision": "accept", "note": "Visit planned with the coach.", "planned_visit_date": "2026-12-03",
+              "knowledge_version": "84466d6d91a6", "created_at": "2026-11-27T06:10:27.113983+00:00"}}
+```
+
+Decisions are stored in the Supabase table `market_risk_decisions` when Supabase is configured and the table exists; otherwise in a local SQLite file `artifacts_v2/decisions.sqlite3` (git-ignored). Each new decision is a new row; GET returns the latest per rule. SQL for the team lead (not run by the component):
+
+```sql
+create table public.market_risk_decisions (
+  id                bigint generated always as identity primary key,
+  household_key     text        not null check (household_key like 'SIM-HH-%'),
+  rule_id           text        not null,
+  decision          text        not null check (decision in ('accept', 'modify', 'reject')),
+  note              text,
+  planned_visit_date date,
+  knowledge_version text        not null,
+  created_at        timestamptz not null default now()
+);
+create index market_risk_decisions_household_rule
+  on public.market_risk_decisions (household_key, rule_id, created_at desc);
+```
+
+The `SIM-HH-%` check keeps real households out while the endpoint serves simulated households only; remove it only after the NDA rules for real data are agreed.
+
+Swagger: the 7 v2 endpoints are listed once, under the "Market Risk" tag.

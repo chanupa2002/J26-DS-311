@@ -1,5 +1,6 @@
 """Request and response shapes for the market_risk v2 endpoints. Examples are synthetic."""
 
+from datetime import date
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -273,6 +274,45 @@ class TransitionSummary(BaseModel):
     text: str
 
 
+class RetrievalCheck(BaseModel):
+    queries: int
+    hit_at_1: int
+    hit_at_3: int
+
+
+class CitedPage(BaseModel):
+    doc_id: str | None = Field(description="null when only a page number was found in the citation text.")
+    page: int
+
+
+class SourcePageRule(BaseModel):
+    rule_id: str
+    basis: Literal["cited_pages", "citation text (page only)"]
+    cited_pages: list[CitedPage]
+    top_source: str
+    top_doc_id: str
+    top_page: int | None
+    matched: bool
+
+
+class SourcePageCheck(BaseModel):
+    matched: int
+    total: int = Field(description="Rules whose citation names pages and that have a source.")
+    rules: list[SourcePageRule]
+
+
+class RecommendationEvidence(BaseModel):
+    n_rules: int
+    n_rules_validated: int
+    n_documents: int
+    n_chunks: int
+    knowledge_version: str
+    retrieval_check: RetrievalCheck = Field(description="Fixed test set of queries -> expected documents; computed at load.")
+    source_page_check: SourcePageCheck = Field(
+        description="Top source of each rule on a page named in its citation? Computed at load."
+    )
+
+
 class EvidenceResponse(V2Envelope):
     models: dict[str, Any]
     alert_thresholds: dict[str, float | None]
@@ -281,4 +321,80 @@ class EvidenceResponse(V2Envelope):
     shap_group_share: list[dict[str, Any]]
     threshold_register: list[dict[str, Any]]
     transitions: TransitionSummary
+    recommendations: RecommendationEvidence | None = Field(
+        description="Rule table and circular retrieval; null when the knowledge base is not installed."
+    )
     limitations: list[str]
+
+
+DecisionValue = Literal["accept", "modify", "reject"]
+
+
+class DecisionRequest(BaseModel):
+    """FR7: the officer's decision on one recommended rule. No personal data."""
+
+    model_config = ConfigDict(extra="forbid", json_schema_extra={
+        "examples": [{"decision": "accept", "note": "Visit planned with the coach.", "planned_visit_date": "2026-12-03"}]
+    })
+
+    decision: DecisionValue
+    note: str | None = Field(default=None, max_length=500)
+    planned_visit_date: date | None = None
+
+
+class Decision(BaseModel):
+    decision: DecisionValue
+    note: str | None
+    planned_visit_date: str | None
+    knowledge_version: str
+    created_at: str
+
+
+class Source(BaseModel):
+    chunk_id: str
+    doc_id: str
+    issuer: str | None
+    circular_no: str | None
+    title_en: str | None
+    date: str | None
+    page: int | None
+    source_url: str | None
+    status_note: str | None
+    excerpt: str = Field(description="First ~400 characters of the OCR text.")
+
+
+class SummaryStep(BaseModel):
+    text: str
+    chunk_ids: list[str]
+
+
+class Recommendation(BaseModel):
+    rule_id: str
+    level: Literal["A", "B"]
+    action_category: str
+    reason_label: str
+    action_en: str
+    timing_days: int | None
+    guardrail: str
+    research_basis: str = Field(description="Background for the rule; not a source.")
+    draft: bool = Field(description="True until the supervisor validates the rule table.")
+    related_factors: list[str] = Field(description="SHAP factors that raise risk and are linked to this rule.")
+    sources: list[Source] = Field(description="Top 2 chunks from the rule's documents only.")
+    summary_steps: list[SummaryStep] | None = Field(description="Optional LLM summary; null without a key or on any error.")
+    decision: Decision | None = Field(description="Latest officer decision for this rule.")
+
+
+class RecommendationsResponse(V2Envelope):
+    household_key: str
+    monitoring_period: str
+    knowledge_version: str
+    generated_by: Literal["rules+retrieval", "rules+retrieval+llm"]
+    follow_up: Recommendation | None
+    actions: list[Recommendation]
+    disclaimer: str
+
+
+class DecisionResponse(V2Envelope):
+    household_key: str
+    rule_id: str
+    decision: Decision
