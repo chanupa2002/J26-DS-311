@@ -117,27 +117,29 @@ export function ChanceAfterChart({ rows = [] }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <table className="sr-only">
-        <caption>Chance of High risk after 1 to 6 months, by risk class this month</caption>
-        <thead>
-          <tr>
-            <th>Months from now</th>
-            {LINE_ORDER.map((name) => (
-              <th key={name}>{LINE_STYLE[name].label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.months}>
-              <td>{row.months}</td>
+      <div className="sr-only">
+        <table>
+          <caption>Chance of High risk after 1 to 6 months, by risk class this month</caption>
+          <thead>
+            <tr>
+              <th>Months from now</th>
               {LINE_ORDER.map((name) => (
-                <td key={name}>{inTen(row[name])} ({percent(row[name], 1)})</td>
+                <th key={name}>{LINE_STYLE[name].label}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.months}>
+                <td>{row.months}</td>
+                {LINE_ORDER.map((name) => (
+                  <td key={name}>{inTen(row[name])} ({percent(row[name], 1)})</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

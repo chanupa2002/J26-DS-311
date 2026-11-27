@@ -11,18 +11,33 @@ import json
 import logging
 import os
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TEXT_MODEL = "gemini-2.5-flash-lite"  # same default as the project's livelihood text model
-TIMEOUT_MS = 8000
-MIN_STEPS, MAX_STEPS = 2, 4
+TIMEOUT_MS = 10000  # the Gemini API rejects deadlines under 10 s (400 INVALID_ARGUMENT)
+FAILURE_COOLDOWN_S = 300  # after a failed call, skip the LLM for 5 minutes (no wait on every page)
+MIN_STEPS, MAX_STEPS = 1, 3
+PROMPT_VERSION = "officer-steps-2"  # part of the cache key: a new prompt never reuses old answers
 BACKEND_ENV_PATH = Path(__file__).resolve().parents[4] / ".env"
 
 _cache: dict[tuple, list[dict[str, Any]] | None] = {}
 _lock = threading.Lock()
+_failed_at: float | None = None  # monotonic time of the last failed call
+
+
+def _mark_failed() -> None:
+    global _failed_at
+    with _lock:
+        _failed_at = time.monotonic()
+
+
+def _cooling_down() -> bool:
+    with _lock:
+        return _failed_at is not None and time.monotonic() - _failed_at < FAILURE_COOLDOWN_S
 
 
 def _env(name: str) -> str | None:
@@ -55,27 +70,32 @@ def build_prompt(*, risk_class: str, alert_3m: bool | None, reason_labels: list[
     sources = "\n\n".join(f"[{chunk_id}]\n{text}" for chunk_id, text in chunks)
     reasons = "; ".join(reason_labels) or "none"
     return (
-        "You help a Samurdhi development officer plan a follow-up for a livelihood household.\n"
+        "You help a Samurdhi Development Officer plan a follow-up for one livelihood household.\n"
         f"Risk this month: {risk_class}. Needs attention in 3 months: {alert}.\n"
         f"Reasons: {reasons}.\n"
         f"Suggested action from the rule table: {action_en}\n"
         f"Guardrail (must be respected): {guardrail or 'none'}\n\n"
         "Official circular extracts (OCR text, may be noisy):\n"
         f"{sources}\n\n"
-        f"Write {MIN_STEPS} to {MAX_STEPS} short, practical steps in plain English for the officer. "
-        "Use only the extracts above. Every step must cite the chunk id(s) it relies on. "
-        "Never suggest a second livelihood grant. "
+        f"Write {MIN_STEPS} to {MAX_STEPS} short, concrete steps in plain English that the Samurdhi "
+        "Development Officer can take for THIS household. Use only the extracts above. "
+        "Skip extracts about other officials' duties, agreements, forms between offices or administration. "
+        "Every step must cite the chunk id(s) it relies on. Never suggest a second livelihood grant. "
+        'If the extracts give no such step, answer {"steps": []}. '
         'Answer only with JSON: {"steps": [{"text": "...", "chunk_ids": ["..."]}]}'
     )
 
 
 def parse_steps(answer: str, allowed: set[str]) -> list[dict[str, Any]] | None:
-    """Validated steps, or None if the answer breaks any rule (then the caller falls back)."""
+    """Validated steps; [] when the model found no step for the officer; None if the answer breaks
+    any rule (then the caller falls back)."""
     try:
         data = json.loads(answer)
     except (TypeError, ValueError):
         return None
     steps = data.get("steps") if isinstance(data, dict) else None
+    if steps == []:
+        return []
     if not isinstance(steps, list) or not MIN_STEPS <= len(steps) <= MAX_STEPS:
         return None
     clean = []
@@ -106,12 +126,13 @@ def call_llm(prompt: str, key: str) -> str:
 
 
 class Summariser:
-    """One per request: stops calling the LLM after the first failure in that request."""
+    """One per request: stops calling the LLM after the first failure in that request, and for
+    FAILURE_COOLDOWN_S after it in later requests."""
 
     def __init__(self, knowledge_version: str):
         self.key = api_key()
         self.version = knowledge_version
-        self.failed = False
+        self.failed = _cooling_down()
 
     @property
     def enabled(self) -> bool:
@@ -121,7 +142,8 @@ class Summariser:
               reason_labels: list[str], chunk_texts: dict[str, str]) -> list[dict[str, Any]] | None:
         if not self.enabled or not item["sources"]:
             return None
-        cache_key = (item["rule_id"], tuple(sorted(reason_labels)), risk_class, alert_3m, self.version)
+        cache_key = (PROMPT_VERSION, item["rule_id"], tuple(sorted(reason_labels)), risk_class, alert_3m,
+                     self.version)
         with _lock:
             if cache_key in _cache:
                 return _cache[cache_key]
@@ -131,17 +153,24 @@ class Summariser:
         try:
             answer = call_llm(prompt, self.key)
         except Exception as exc:  # timeout, network, quota, SDK errors: fall back, type only in the log
-            logger.warning("market_risk v2: LLM summary unavailable (%s)", type(exc).__name__)
+            logger.warning("market_risk v2: LLM summary unavailable (%s); retry after %d s",
+                           type(exc).__name__, FAILURE_COOLDOWN_S)
             self.failed = True
+            _mark_failed()
             return None
         steps = parse_steps(answer, {chunk_id for chunk_id, _ in chunks})
         if steps is None:
             logger.warning("market_risk v2: LLM summary for rule %s discarded (invalid or uncited)", item["rule_id"])
+        elif not steps:
+            logger.info("market_risk v2: LLM found no officer step for rule %s", item["rule_id"])
+            steps = None  # no step for this household -> summary_steps null
         with _lock:
             _cache[cache_key] = steps
         return steps
 
 
 def clear_cache() -> None:
+    global _failed_at
     with _lock:
         _cache.clear()
+        _failed_at = None

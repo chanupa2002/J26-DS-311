@@ -3,7 +3,15 @@ import { Link, useParams } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 
-import { HouseholdHeader, HowThisWorks, RiskTimeline, StepStrip, V2PageState, VisitResult } from "../components"
+import {
+  HouseholdHeader,
+  HowThisWorks,
+  RiskTimeline,
+  StepStrip,
+  SuggestedActions,
+  V2PageState,
+  VisitResult,
+} from "../components"
 import { useV2Household } from "../hooks"
 
 export function HouseholdDetailV2Page() {
@@ -32,6 +40,7 @@ export function HouseholdDetailV2Page() {
             latestMonth={visit.monitoring_period}
           />
           <VisitResult visit={visit} notes={false} />
+          <SuggestedActions householdKey={householdKey} />
           <RiskTimeline timeline={data.timeline} />
           <HowThisWorks visit={visit} />
         </>

@@ -3,7 +3,8 @@
 Triggers in risk_actions.csv are checked with a small, safe evaluator: Python's ast parser
 plus a whitelist (names, constants, tuples, comparisons, in, and/or/not). Nothing is eval'd.
 Level A: exactly one follow-up rule (lowest priority number). Level B: every matching rule,
-SHAP-linked rules first. Z1 is added when a SHAP factor that raises risk has no matching rule.
+SHAP-linked rules first. Z0 (data completion) comes first when a SHAP factor that raises risk was
+not answered; Z1 is added when a raising factor that has a value has no matching rule.
 """
 
 import ast
@@ -19,7 +20,10 @@ from app.components.market_risk.v2.knowledge import KnowledgeBase, Rule
 
 logger = logging.getLogger(__name__)
 
-FALLBACK_FIELD = "shap_top_factors"  # trigger_fields of the "no official guidance found" rule (Z1)
+FALLBACK_FIELD = "shap_top_factors"  # trigger_fields of the SHAP-driven rules Z0 and Z1 (not compiled)
+MISSING_RULE = "Z0"  # data completion: raising factors without an answer
+FALLBACK_RULE = "Z1"  # no official guidance found
+NOT_ANSWERED = "Not answered"  # pipeline.format_value text for a missing form answer
 ACTIONABLE_GROUPS = {"Business", "Household shock", "Market"}  # SHAP groups that can call for Z1
 UNASSIGNED = "Unassigned"
 
@@ -124,6 +128,16 @@ def household_context(row: pd.Series) -> dict[str, Any]:
     return context
 
 
+def _factor(shap_factor: dict[str, Any]) -> dict[str, str]:
+    """A linked SHAP factor as shown to the officer: its label and the household's value label."""
+    return {"label": str(shap_factor["label"]), "value": str(shap_factor.get("value") or "")}
+
+
+def is_missing(shap_factor: dict[str, Any]) -> bool:
+    """A form question without an answer (not 'No market data' or 'No earlier visit')."""
+    return shap_factor.get("raw_value") is None and shap_factor.get("value") == NOT_ANSWERED
+
+
 class Engine:
     """Compiled rule table of one knowledge-base version."""
 
@@ -131,9 +145,16 @@ class Engine:
         self.base = base
         self.compiled: dict[str, ast.Expression] = {}
         self.fallback: Rule | None = None
+        self.missing: Rule | None = None
         for rule in base.rules:
             if rule.trigger_fields == (FALLBACK_FIELD,):
-                self.fallback = rule
+                if rule.rule_id == MISSING_RULE:
+                    self.missing = rule
+                elif rule.rule_id == FALLBACK_RULE:
+                    self.fallback = rule
+                else:
+                    logger.warning("market_risk v2: rule %s skipped – only Z0 and Z1 may use %s",
+                                   rule.rule_id, FALLBACK_FIELD)
                 continue
             try:
                 self.compiled[rule.rule_id] = compile_trigger(rule.trigger)
@@ -151,15 +172,15 @@ class Engine:
             return False
 
     def select(self, context: dict[str, Any], shap_factors: list[dict[str, Any]]) -> tuple[
-            tuple[Rule, list[str]] | None, list[tuple[Rule, list[str]]]]:
-        """(follow-up rule, [(action rule, linked SHAP factor labels)]) for one visit."""
+            tuple[Rule, list[dict[str, str]]] | None, list[tuple[Rule, list[dict[str, str]]]]]:
+        """(follow-up rule, [(action rule, linked SHAP factors as {label, value})]) for one visit."""
         level_a = [r for r in self.base.rules if r.level == "A" and self.matches(r, context)]
         follow_up = min(level_a, key=lambda r: (r.priority, r.rule_id)) if level_a else None
         if follow_up is not None and context.get("risk_class_t") == UNASSIGNED:
             return (follow_up, []), []  # A0: no recommendation from an incomplete form
 
         raising = [f for f in shap_factors if f["contribution"] > 0]
-        level_b = [r for r in self.base.rules if r.level == "B" and r is not self.fallback and self.matches(r, context)]
+        level_b = [r for r in self.base.rules if r.level == "B" and self.matches(r, context)]
 
         def linked(rule: Rule) -> list[dict[str, Any]]:
             return [f for f in raising if f["feature"] in rule.trigger_fields]
@@ -169,14 +190,18 @@ class Engine:
             first = raising.index(factors[0]) if factors else len(raising)
             return (0 if factors else 1, first, rule.priority, rule.rule_id)
 
-        actions = [(rule, [f["label"] for f in linked(rule)]) for rule in sorted(level_b, key=order)]
+        actions = [(rule, [_factor(f) for f in linked(rule)]) for rule in sorted(level_b, key=order)]
+        missing = [f for f in raising if is_missing(f)]
+        if missing and self.missing is not None:
+            actions.insert(0, (self.missing, [_factor(f) for f in missing]))
         covered = {field for rule in level_b for field in rule.trigger_fields}
-        unmatched = [f for f in raising if f["group"] in ACTIONABLE_GROUPS and f["feature"] not in covered]
+        unmatched = [f for f in raising if f["group"] in ACTIONABLE_GROUPS and f["feature"] not in covered
+                     and f.get("raw_value") is not None]
         if unmatched and self.fallback is not None:
-            actions.append((self.fallback, [f["label"] for f in unmatched]))
+            actions.append((self.fallback, [_factor(f) for f in unmatched]))
         return ((follow_up, []) if follow_up else None), actions
 
-    def item(self, rule: Rule, factors: list[str]) -> dict[str, Any]:
+    def item(self, rule: Rule, factors: list[dict[str, str]]) -> dict[str, Any]:
         return {
             "rule_id": rule.rule_id,
             "level": rule.level,
@@ -184,11 +209,12 @@ class Engine:
             "reason_label": rule.reason_label,
             "action_en": rule.action_en,
             "timing_days": rule.timing_days,
+            "circular_says": rule.circular_says,
             "guardrail": rule.guardrail,
             "research_basis": rule.research_basis,
             "draft": rule.draft,
             "related_factors": factors,
-            "sources": self.base.retrieve(rule.query, rule.doc_filter),
+            "sources": self.base.retrieve(rule.query, rule.doc_filter, cited=rule.doc_pages),
             "summary_steps": None,
             "decision": None,
         }

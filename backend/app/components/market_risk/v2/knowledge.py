@@ -4,6 +4,8 @@ Files live in artifacts_v2/knowledge/ (git-ignored): guidance_chunks.jsonl (publ
 official documents), doc_registry.csv and risk_actions.csv. They are loaded once, separately
 from the model artifacts, so a missing knowledge folder never stops the other v2 endpoints.
 Retrieval: TF-IDF over character n-grams (robust to OCR noise and mixed Sinhala/English).
+Optional guidance_chunks_en.jsonl holds machine translations of the Sinhala chunks (written by
+translate_chunks.py); it is not part of knowledge_version and is re-read when the file changes.
 """
 
 import csv
@@ -12,7 +14,8 @@ import json
 import logging
 import re
 import threading
-from dataclasses import dataclass, replace
+from collections import Counter
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -28,8 +31,13 @@ CHUNKS_FILE = "guidance_chunks.jsonl"
 REGISTRY_FILE = "doc_registry.csv"
 RULES_FILE = "risk_actions.csv"
 FILES = (CHUNKS_FILE, REGISTRY_FILE, RULES_FILE)
+TRANSLATIONS_FILE = "guidance_chunks_en.jsonl"  # optional: {chunk_id, text_en, model, created_at}
+SINHALA = "si"
 TOP_K = 2
-EXCERPT_CHARS = 400
+EXCERPT_CHARS = 600  # the excerpt is at most this long, plus "…" when it is cut
+EXCERPT_MIN_CHARS = 150  # a cut at a sentence end must keep at least this much text
+START_SEARCH_CHARS = 200  # how far a cut-off start may be skipped to reach a sentence or point
+ELLIPSIS = "…"
 VECTORIZER_SETTINGS = {"analyzer": "char_wb", "ngram_range": (2, 4), "sublinear_tf": True}
 
 # Fixed retrieval test set from the component owner: query -> doc_ids that count as a hit.
@@ -59,6 +67,17 @@ CITED_PAGE = re.compile(r"\bp\.\s*(\d+)(?:\s*[–-]\s*(\d+))?")
 # One page or a range in the cited_pages column: "4", "1-2", "1–2".
 PAGE_ITEM = re.compile(r"(\d+)(?:\s*[–-]\s*(\d+))?")
 
+# Excerpt boundaries. A sentence ends with . ? ! or the Sinhala kunddaliya ෴ followed by a space;
+# a numbered point starts after a space: "2.", "02.", "2.1", "3)", "(4)", "(iii)", "iv)", "(a)".
+SENTENCE_END = re.compile(r"[.?!෴](?=\s|$)")
+POINT_START = re.compile(r"(?:(?<=\s)|^)(?:\(?\d{1,2}(?:\.\d{1,2})*[.)]|\((?:[ivxIVX]{1,4}|[a-z])\)|[ivx]{1,4}\))(?=\s)")
+# A number right after a sentence end or colon ("… කිරීම. 03. ඉලක්ක", "as follows: 1. Visit") is a
+# point marker, so its full stop is not a sentence end; "… to division 8." is a sentence end.
+POINT_NUMBER = re.compile(r"(?:^|[.?!෴:]\s)\(?\d{1,2}$")
+# Text that cannot begin a word: Sinhala vowel signs and virama, joiners, lower-case Latin,
+# or punctuation that closes something.
+CUT_START = re.compile(r"^(?:[\u0D81-\u0D83\u0DCA-\u0DDF\u0DF2\u0DF3\u200C\u200D]|[a-z]|[,.;:)\]}’”-])")
+
 SOURCE_FIELDS = ("chunk_id", "doc_id", "issuer", "circular_no", "title_en", "date", "page", "source_url", "status_note")
 
 
@@ -84,6 +103,7 @@ class Rule:
     validated_by: str
     status: str
     query_terms: str = ""
+    circular_says: str = ""  # plain-English summary of the cited circular (validated with the table)
     doc_pages: tuple[tuple[str, int], ...] = ()  # validated (doc_id, page) pairs from cited_pages
 
     @property
@@ -115,30 +135,49 @@ class KnowledgeBase:
     doc_ids: np.ndarray
     retrieval_check: dict[str, int]
     source_page_check: dict[str, Any]
+    translations: dict[str, dict[str, str]] = field(default_factory=dict)  # chunk_id -> {text_en, model}
 
     def scores(self, query: str) -> np.ndarray:
         return (self.matrix @ self.vectorizer.transform([query]).T).toarray().ravel()
 
-    def retrieve(self, query: str, doc_filter: tuple[str, ...], k: int = TOP_K) -> list[dict[str, Any]]:
-        """Top-k chunks, searching only documents in doc_filter. Empty filter -> no sources."""
+    def retrieve(self, query: str, doc_filter: tuple[str, ...], k: int = TOP_K,
+                 cited: tuple[tuple[str, int], ...] = ()) -> list[dict[str, Any]]:
+        """Top-k chunks, searching only documents in doc_filter. Empty filter -> no sources.
+
+        With `cited` (the rule's validated cited_pages), the best-ranked chunks on those
+        (document, page) pairs come first; the rest of doc_filter only fills up to k.
+        """
         if not doc_filter:
             return []
         allowed = np.flatnonzero(np.isin(self.doc_ids, list(doc_filter)))
         if allowed.size == 0:
             return []
         scores = self.scores(query)[allowed]
-        order = allowed[np.argsort(-scores, kind="stable")][:k]
-        return [self.source(self.chunks[i]) for i in order]
+        order = [int(i) for i in allowed[np.argsort(-scores, kind="stable")]]
+        if cited:
+            pairs = set(cited)
+            on_page = [i for i in order if (str(self.doc_ids[i]), self.chunks[i].get("page")) in pairs]
+            first = set(on_page)
+            order = on_page + [i for i in order if i not in first]
+        return [self.source(self.chunks[i]) for i in order[:k]]
 
     def search_all(self, query: str, k: int) -> list[str]:
         """doc_ids of the top-k chunks over all documents (retrieval check only)."""
         order = np.argsort(-self.scores(query), kind="stable")[:k]
         return [str(self.doc_ids[i]) for i in order]
 
-    @staticmethod
-    def source(chunk: dict[str, Any]) -> dict[str, Any]:
+    def source(self, chunk: dict[str, Any]) -> dict[str, Any]:
+        translated = self.translations.get(str(chunk.get("chunk_id")))
         return {**{name: chunk.get(name) for name in SOURCE_FIELDS},
-                "excerpt": str(chunk.get("text", ""))[:EXCERPT_CHARS]}
+                "excerpt": excerpt(str(chunk.get("text", ""))),
+                "excerpt_en": excerpt(translated["text_en"]) if translated else None}
+
+    def translation_summary(self) -> dict[str, Any]:
+        sinhala = {str(c["chunk_id"]) for c in self.chunks if c.get("language") == SINHALA}
+        done = [t for chunk_id, t in self.translations.items() if chunk_id in sinhala]
+        models = Counter(t.get("model") or "" for t in done)
+        model = models.most_common(1)[0][0] if models else ""
+        return {"translated": len(done), "sinhala_chunks": len(sinhala), "model": model or None}
 
     def evidence(self) -> dict[str, Any]:
         return {
@@ -149,11 +188,83 @@ class KnowledgeBase:
             "knowledge_version": self.version,
             "retrieval_check": self.retrieval_check,
             "source_page_check": self.source_page_check,
+            "translations": self.translation_summary(),
         }
+
+
+def _sentence_ends(text: str) -> list[int]:
+    """Positions just after each sentence end (bare point numbers such as " 2." excluded)."""
+    return [m.end() for m in SENTENCE_END.finditer(text)
+            if not (text[m.start()] == "." and POINT_NUMBER.search(text[:m.start()]))]
+
+
+def _excerpt_start(text: str) -> int:
+    """0, unless the chunk begins with a cut-off word or fragment: then the first sentence or
+    numbered-point start within START_SEARCH_CHARS, else the first whole word."""
+    if not CUT_START.match(text):
+        return 0
+    starts = [m.start() for m in POINT_START.finditer(text, 0, START_SEARCH_CHARS)]
+    starts += [end for end in _sentence_ends(text[:START_SEARCH_CHARS])]
+    starts = [s for s in starts if 0 < s < len(text)]
+    if starts:
+        return min(starts)
+    space = text.find(" ")
+    return space + 1 if 0 < space < START_SEARCH_CHARS else 0
+
+
+def excerpt(text: str, limit: int = EXCERPT_CHARS) -> str:
+    """Readable passage of a chunk: whole words only, from a sentence or point start, ending at
+    the last sentence end within `limit` characters; "…" marks text left out at the end."""
+    text = " ".join(text.split())
+    text = text[_excerpt_start(text):].lstrip()
+    if len(text) <= limit:
+        return text
+    window = text[:limit + 1]  # +1: a sentence end exactly at the limit still counts
+    ends = [end for end in _sentence_ends(window) if EXCERPT_MIN_CHARS <= end <= limit]
+    if ends:
+        cut = ends[-1]
+    else:
+        space = window.rfind(" ")
+        cut = space if space > 0 else limit
+    return text[:cut].rstrip() + ELLIPSIS
 
 
 def folder() -> Path:
     return artifacts.artifacts_dir() / FOLDER
+
+
+def read_translations(path: Path, chunk_ids: set[str]) -> dict[str, dict[str, str]]:
+    """chunk_id -> {text_en, model} from the optional translations file. Missing file -> {}.
+    Lines that are not valid JSON, lack text, or name an unknown chunk are skipped (logged once)."""
+    if not path.is_file():
+        return {}
+    found: dict[str, dict[str, str]] = {}
+    skipped = 0
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+                chunk_id, text = str(row["chunk_id"]), str(row["text_en"]).strip()
+            except (ValueError, KeyError, TypeError):
+                skipped += 1
+                continue
+            if chunk_id not in chunk_ids or not text:
+                skipped += 1
+                continue
+            found[chunk_id] = {"text_en": text, "model": str(row.get("model") or "")}  # last line wins
+    if skipped:
+        logger.warning("market_risk v2: %d translation lines skipped (invalid or unknown chunk)", skipped)
+    return found
+
+
+def _translations_stamp() -> tuple[int, int] | None:
+    try:
+        stat = (folder() / TRANSLATIONS_FILE).stat()
+    except OSError:
+        return None
+    return (stat.st_mtime_ns, stat.st_size)
 
 
 def parse_cited_pages(text: str) -> tuple[list[tuple[str, int]], list[str]]:
@@ -227,6 +338,7 @@ def _rule(row: dict[str, str]) -> Rule:
         validated_by=(row.get("validated_by") or "").strip(),
         status=(row.get("status") or "").strip(),
         query_terms=(row.get("query_terms") or "").strip(),
+        circular_says=(row.get("circular_says") or "").strip(),
     )
 
 
@@ -242,7 +354,9 @@ def retrieval_check(base: KnowledgeBase) -> dict[str, int]:
 def source_page_check(base: KnowledgeBase) -> dict[str, Any]:
     """Is each rule's top retrieved source on a cited (document, page)?
 
-    Uses the cited_pages column; for a rule without it, falls back to page numbers in the citation text.
+    This is the retrieval evaluation, so it ranks the whole doc_filter without the cited-page
+    preference the recommendation items use. Uses the cited_pages column; for a rule without it,
+    falls back to page numbers in the citation text.
     """
     rules = []
     for rule in base.rules:
@@ -292,21 +406,35 @@ def _load() -> KnowledgeBase:
                             "source_page_check": source_page_check(base)})
 
 
+def _with_translations(base: KnowledgeBase) -> KnowledgeBase:
+    try:
+        translations = read_translations(folder() / TRANSLATIONS_FILE, {str(c["chunk_id"]) for c in base.chunks})
+    except OSError as exc:  # type only
+        logger.warning("market_risk v2: translations not readable (%s)", type(exc).__name__)
+        translations = {}
+    return replace(base, translations=translations)
+
+
 _lock = threading.RLock()
 _base: KnowledgeBase | None = None
 _failure: KnowledgeUnavailable | None = None
+_stamp: tuple[int, int] | None = None  # translations file (mtime, size) of the loaded base
 
 
 def load() -> KnowledgeBase:
     """Return the loaded knowledge base, or raise KnowledgeUnavailable with a safe message."""
-    global _base, _failure
+    global _base, _failure, _stamp
     with _lock:
         if _base is not None:
+            stamp = _translations_stamp()
+            if stamp != _stamp:  # translations written or removed since loading
+                _base, _stamp = _with_translations(_base), stamp
             return _base
         if _failure is not None:
             raise _failure
         try:
-            _base = _load()
+            _stamp = _translations_stamp()
+            _base = _with_translations(_load())
         except KnowledgeUnavailable as exc:
             _failure = exc
             logger.warning("market_risk v2 recommendations disabled: %s", exc)
@@ -327,7 +455,8 @@ def check_on_startup() -> None:
 
 
 def clear_cache() -> None:
-    global _base, _failure
+    global _base, _failure, _stamp
     with _lock:
         _base = None
         _failure = None
+        _stamp = None

@@ -32,3 +32,16 @@ export function getV2MarketDistricts(month) {
 export function getV2ModelEvidence() {
   return api(`${V2}/model/evidence`)
 }
+
+/** GET /households/{key}/recommendations – follow-up + action rules with official sources (FR4/FR5). */
+export function getV2Recommendations(householdKey) {
+  return api(`${V2}/households/${encodeURIComponent(householdKey)}/recommendations`)
+}
+
+/** POST /households/{key}/recommendations/{rule}/decision – the officer's decision (FR7). */
+export function saveV2Decision(householdKey, ruleId, body) {
+  return api(
+    `${V2}/households/${encodeURIComponent(householdKey)}/recommendations/${encodeURIComponent(ruleId)}/decision`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}

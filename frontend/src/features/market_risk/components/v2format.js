@@ -111,3 +111,60 @@ export function spreadText(row) {
   const high = inTen(Math.max(...values))
   return low === high ? `${low} for every start` : `from ${low} to ${high}`
 }
+
+// --- Recommendations (FR4/FR5/FR7) -------------------------------------------------------------
+// api() gives only the backend `detail` text, so errors are recognised by the backend's fixed messages.
+export const RECOMMENDATION_ERRORS = {
+  knowledgeMissing: "Recommendations are unavailable",
+  householdMissing: "Household not found",
+  ruleChanged: "This rule is not recommended",
+  storeFailed: "decision could not be stored",
+}
+
+export function errorKind(error) {
+  const text = String(error?.message || "")
+  if (text.includes(RECOMMENDATION_ERRORS.knowledgeMissing)) return "unavailable"
+  if (text.includes(RECOMMENDATION_ERRORS.householdMissing)) return "not-found"
+  if (text.includes(RECOMMENDATION_ERRORS.ruleChanged)) return "changed"
+  if (text.includes(RECOMMENDATION_ERRORS.storeFailed)) return "store"
+  return "other"
+}
+
+/** "2026-12-03" -> "3 Dec 2026" (a date without time, read as a local calendar day). */
+export function dayText(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""))
+  if (!match) return value || "—"
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+}
+
+/** ISO timestamp -> "27 Nov 2026 13:04" in the officer's local time. */
+export function dateTimeText(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value || "—"
+  const day = date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const time = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+  return `${day} ${time}`
+}
+
+/** True when the text holds Sinhala letters (Unicode block U+0D80–U+0DFF). */
+export function hasSinhala(text) {
+  return /[\u0D80-\u0DFF]/.test(String(text || ""))
+}
+
+export const DECISION_LABELS = { accept: "Accepted", modify: "Changed", reject: "Not suitable" }
+
+/** DOM id of one source inside one suggestion (the same passage can appear in two suggestions). */
+export function sourceAnchor(scope, chunkId) {
+  return `source-${scope}-${chunkId}`.replace(/[^A-Za-z0-9_-]/g, "-")
+}
+
+/** Short name of a source for citation chips: "2026/05 · p. 4". */
+export function sourceShortName(source) {
+  return [source.circular_no || source.doc_id, source.page ? `p. ${source.page}` : null].filter(Boolean).join(" · ")
+}
+
+// Rule ids with their own layout (from the rule table): incomplete form, no official guidance.
+export const INCOMPLETE_RULE = "A0"
+export const NO_GUIDANCE_RULE = "Z1"
+export const MISSING_ANSWERS_RULE = "Z0"

@@ -123,17 +123,19 @@ function HighBars({ title, description, data, note, axisWidth = AXIS_WIDTH }) {
             </ResponsiveContainer>
         </div>
         {note && <div className="mt-3 text-xs text-muted-foreground">{note}</div>}
-        <table className="sr-only">
-          <caption>{title}</caption>
-          <tbody>
-            {data.map((d) => (
-              <tr key={d.name}>
-                <th scope="row">{d.name}</th>
-                <td>{d.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="sr-only">
+          <table>
+            <caption>{title}</caption>
+            <tbody>
+              {data.map((d) => (
+                <tr key={d.name}>
+                  <th scope="row">{d.name}</th>
+                  <td>{d.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   )

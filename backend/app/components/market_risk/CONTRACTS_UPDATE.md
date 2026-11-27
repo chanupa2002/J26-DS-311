@@ -169,20 +169,26 @@ Returns `models`, `alert_thresholds`, `comparisons`, `results` (full result tabl
  "retrieval_check": {"queries": 12, "hit_at_1": 11, "hit_at_3": 11},
  "source_page_check": {"matched": 14, "total": 16, "rules": [
    {"rule_id": "A1", "basis": "cited_pages", "cited_pages": [{"doc_id": "SDD_2026_05", "page": 4}],
-    "top_source": "SDD_2026_05-p4-c5", "top_doc_id": "SDD_2026_05", "top_page": 4, "matched": true}, "..."]}}
+    "top_source": "SDD_2026_05-p4-c5", "top_doc_id": "SDD_2026_05", "top_page": 4, "matched": true}, "..."]},
+ "translations": {"translated": 192, "sinhala_chunks": 192, "model": "gemini-…"}}
 ```
 
-`source_page_check`: is each rule's top retrieved source on a cited document page? It uses the rule table's `cited_pages` column (`"DOC_ID:page,page; DOC_ID:page"`), so document and page must both match (`basis: "cited_pages"`). A rule without `cited_pages` falls back to page numbers in its citation text (`basis: "citation text (page only)"`, `doc_id: null`). Rules with neither, or without sources, are not counted. Computed at load; `cited_pages` entries whose document is not in the registry or not in the rule's `doc_filter` are logged and skipped.
+`translations`: counted from the optional `artifacts_v2/knowledge/guidance_chunks_en.jsonl` (machine translations of the Sinhala chunks, written by `v2/translate_chunks.py`): Sinhala chunks that have a translation, all Sinhala chunks, and the model that wrote most of them (`null` when there are none). The file is not part of `knowledge_version`; the server re-reads it when it changes.
+
+`source_page_check`: is each rule's top retrieved source on a cited document page? It uses the rule table's `cited_pages` column (`"DOC_ID:page,page; DOC_ID:page"`), so document and page must both match (`basis: "cited_pages"`). A rule without `cited_pages` falls back to page numbers in its citation text (`basis: "citation text (page only)"`, `doc_id: null`). Rules with neither, or without sources, are not counted. This is the retrieval evaluation, so it ranks the whole `doc_filter` without the cited-page preference that the recommendation `sources` use (otherwise every rule with `cited_pages` would match by construction). Computed at load; `cited_pages` entries whose document is not in the registry or not in the rule's `doc_filter` are logged and skipped.
 
 ## GET /households/SIM-HH-001/recommendations
 
 Evidence-grounded suggestions for the household's latest visit (FR4 rule table + FR5 retrieval). Simulated households only.
 
 - `follow_up`: exactly one Level A rule – the matching rule with the lowest priority number. An Unassigned household gets A0 and `actions: []` (no recommendation from an incomplete form).
-- `actions`: every matching Level B rule. Rules linked to SHAP factors that raise the 3-month risk come first (in SHAP order), then by priority. If a raising factor of the Business, Household shock or Market group has no matching rule, Z1 "No official guidance found – refer to the officer" is added. `related_factors` lists the linked SHAP factor labels.
-- `sources`: the top 2 chunks of the rule's own documents (`doc_filter`) only; query = `query_terms` (Sinhala/English keywords from the circulars) + reason label + action; without `query_terms`, reason label + action. A rule without documents has no sources. `research_basis` is background for the rule, never a source.
+- `actions`: every matching Level B rule. Z0 "Data completion" comes first (right after the follow-up) when SHAP factors that raise the 3-month risk were not answered in the visit form (`raw_value` null, value "Not answered"); it is added once, its `related_factors` are those questions (value "Not answered"), and it has no sources and no `circular_says`. Then rules linked to SHAP factors that raise the 3-month risk come first (in SHAP order), then by priority. If a raising factor of the Business, Household shock or Market group has a value but no matching rule, Z1 "No official guidance found – refer to the officer" is added. `related_factors` lists the linked SHAP factors as `{"label", "value"}` – the same label and value label as in the household's `shap_top_factors` (value may be empty).
+- `sources`: the top 2 chunks of the rule's own documents (`doc_filter`) only; query = `query_terms` (Sinhala/English keywords from the circulars) + reason label + action; without `query_terms`, reason label + action. When the rule has `cited_pages`, the best-ranked chunks on those (document, page) pairs come first, and the rest of `doc_filter` only fills up to 2. A rule without documents has no sources. `research_basis` is background for the rule, never a source.
+- `circular_says`: what the cited circular says, in plain English – the rule table's `circular_says` column, written from the OCR text and validated by the supervisor with the rest of the table. A string; may be empty (A0 and Z1 have none). Show it as the main evidence line.
+- `sources[].excerpt`: a readable passage of the chunk, at most ~600 characters. Whitespace is collapsed. If the chunk begins with a cut-off word or fragment (a Sinhala vowel sign or virama, a joiner, a lower-case Latin letter or closing punctuation), the passage starts at the first sentence start or numbered point (`02.`, `2.1`, `3)`, `(iii)`, `(a)`) within the first 200 characters, else after the first word. A longer chunk is cut at its last sentence end (`.` `?` `!` `෴` followed by a space; a point number such as `… කිරීම. 03.` is not a sentence end) within 600 characters, or at the last space when there is none, and `…` is added. Never starts or ends inside a word.
+- `sources[].excerpt_en`: English machine translation of a Sinhala chunk, trimmed the same way from the whole translated chunk (so it need not cover exactly the same sentences as `excerpt`); `null` for English chunks and untranslated ones. Show it as a machine translation next to the original.
 - `draft: true` until the supervisor validates the rule table – show a "Draft" label.
-- `summary_steps`: 2–4 steps from an LLM (Gemini), each citing chunk ids of that item's sources. Only when a key is configured; otherwise, on a timeout, an error, or an answer with a missing or unknown citation it is `null` and `generated_by` is `"rules+retrieval"`. The prompt holds only the risk class, the 3-month alert, reason labels, the action, the guardrail and the chunk texts – never the household key, district or answers. `MARKET_RISK_LLM_SUMMARY=off` turns it off; `MARKET_RISK_LLM_MODEL` overrides the model.
+- `summary_steps`: 1–3 concrete steps the Samurdhi Development Officer can take for this household, written by an LLM (Gemini) from that item's passages only, each citing their chunk ids. The prompt tells the model to skip passages about other officials' duties, agreements or administration; when the passages give no such step it answers an empty list and `summary_steps` is `null`. Answers are cached in memory per prompt version (`PROMPT_VERSION`), so a changed prompt never reuses old answers. Only when a key is configured; otherwise, on a timeout, an error, or an answer with a missing or unknown citation it is `null` and `generated_by` is `"rules+retrieval"`. The prompt holds only the risk class, the 3-month alert, reason labels, the action, the guardrail and the chunk texts – never the household key, district or answers. `MARKET_RISK_LLM_SUMMARY=off` turns it off; `MARKET_RISK_LLM_MODEL` overrides the model.
 - `decision`: the latest officer decision for that rule (see below), or `null`.
 
 ```json
@@ -192,21 +198,23 @@ Evidence-grounded suggestions for the household's latest visit (FR4 rule table +
   "knowledge_version": "84466d6d91a6", "generated_by": "rules+retrieval",
   "follow_up": {
     "rule_id": "A1", "level": "A", "action_category": "Routine monitoring", "reason_label": "…", "action_en": "…",
-    "timing_days": null, "guardrail": "", "research_basis": "…", "draft": true, "related_factors": [],
+    "timing_days": null, "circular_says": "2026/05 (p.4): progress of every livelihood project must be reported and followed up …",
+    "guardrail": "", "research_basis": "…", "draft": true, "related_factors": [],
     "sources": [
-      {"chunk_id": "SDD_2026_05-p1-c6", "doc_id": "SDD_2026_05", "issuer": "Department of Samurdhi Development",
+      {"chunk_id": "SDD_2026_05-p4-c5", "doc_id": "SDD_2026_05", "issuer": "Department of Samurdhi Development",
        "circular_no": "2026/05", "title_en": "National Community Empowerment Program 2026 – Livelihood Development Programme",
-       "date": "2026-01-21", "page": 1, "source_url": "https://dsd.samurdhi.gov.lk/…", "status_note": "current",
-       "excerpt": "first ~400 characters of the OCR text"}
+       "date": "2026-01-21", "page": 4, "source_url": "https://dsd.samurdhi.gov.lk/…", "status_note": "current",
+       "excerpt": "passage of the OCR text from a sentence start to a sentence end, ≤ ~600 characters …"}
     ],
     "summary_steps": null,
     "decision": null
   },
   "actions": [
     {"rule_id": "B9", "level": "B", "action_category": "Financial support / savings",
-     "guardrail": "NO second livelihood grant (2026/05, p.2).", "related_factors": [], "...": "same shape"},
+     "circular_says": "…", "guardrail": "NO second livelihood grant (2026/05, p.2).", "related_factors": [],
+     "...": "same shape"},
     {"rule_id": "Z1", "level": "B", "action_category": "No official guidance found",
-     "related_factors": ["Market price pressure for this livelihood"], "sources": [], "...": "same shape"}
+     "related_factors": [{"label": "Market price pressure for this livelihood", "value": "…"}], "sources": [], "...": "same shape"}
   ],
   "disclaimer": "Suggestions from the rule table and official circulars. The officer makes the final decision."
 }
@@ -257,3 +265,11 @@ create index market_risk_decisions_household_rule
 The `SIM-HH-%` check keeps real households out while the endpoint serves simulated households only; remove it only after the NDA rules for real data are agreed.
 
 Swagger: the 7 v2 endpoints are listed once, under the "Market Risk" tag.
+
+## One-off script: translate the Sinhala chunks
+
+```bash
+cd backend && .venv/bin/python -m app.components.market_risk.v2.translate_chunks [--batch-size 6] [--limit N]
+```
+
+Translates every chunk with `language: "si"` to English with Gemini (same key lookup, model and settings as the summary – temperature 0, JSON answer – with a 60 s timeout per batch), 6 chunks per call. The prompt holds only public circular text and chunk ids (no household data) and asks to keep numbers, dates, amounts and circular references unchanged. A batch whose answer does not return every chunk id with text is retried once, then counted as failed. Output, appended per batch: `artifacts_v2/knowledge/guidance_chunks_en.jsonl` (git-ignored) with `{chunk_id, text_en, model, created_at}`. Resumable: chunks already in the file are skipped. Prints translated / skipped / failed counts.

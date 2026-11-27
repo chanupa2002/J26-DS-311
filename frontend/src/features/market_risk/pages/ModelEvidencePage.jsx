@@ -5,6 +5,7 @@ import {
   ChanceAfterChart,
   decimal,
   EvidenceTable,
+  RecommendationEvidence,
   ShapGroupShare,
   SimulatedBadge,
   spreadText,
@@ -155,6 +156,8 @@ export function ModelEvidencePage() {
           </CardContent>
         </Card>
       </div>
+
+      <RecommendationEvidence data={data.recommendations} />
 
       <Card>
         <CardHeader className="pb-3">

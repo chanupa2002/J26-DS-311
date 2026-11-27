@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom"
-
 import { Card, CardContent } from "@/components/ui/card"
 
 import { categoryLabel, shortMonth } from "./v2format"
@@ -34,9 +32,6 @@ export function StepStrip({ category, grantStatusLabel, visits, latestMonth }) {
             <p>
               Livelihood being monitored: <span className="text-foreground">{categoryLabel(category)}</span>
             </p>
-            <Link to="/livelihood/recommend" className="underline underline-offset-4 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-              Livelihood recommendation
-            </Link>
           </Step>
           <Step number={2} title="Samurdhi grant used?">
             <p className="text-foreground">{grantStatusLabel || "Not answered"}</p>

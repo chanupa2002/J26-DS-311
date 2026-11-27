@@ -301,6 +301,12 @@ class SourcePageCheck(BaseModel):
     rules: list[SourcePageRule]
 
 
+class TranslationSummary(BaseModel):
+    translated: int = Field(description="Sinhala chunks with an English machine translation.")
+    sinhala_chunks: int
+    model: str | None = Field(description="Model that wrote most translations; null when there are none.")
+
+
 class RecommendationEvidence(BaseModel):
     n_rules: int
     n_rules_validated: int
@@ -311,6 +317,8 @@ class RecommendationEvidence(BaseModel):
     source_page_check: SourcePageCheck = Field(
         description="Top source of each rule on a page named in its citation? Computed at load."
     )
+    translations: TranslationSummary = Field(
+        description="Counted from the optional guidance_chunks_en.jsonl; not part of knowledge_version.")
 
 
 class EvidenceResponse(V2Envelope):
@@ -360,12 +368,21 @@ class Source(BaseModel):
     page: int | None
     source_url: str | None
     status_note: str | None
-    excerpt: str = Field(description="First ~400 characters of the OCR text.")
+    excerpt: str = Field(description=(
+        "Passage of the OCR text, at most ~600 characters: whole words only, starting at a sentence or "
+        "numbered-point start, ending at a sentence end; ends with '…' when text was left out."))
+    excerpt_en: str | None = Field(default=None, description=(
+        "Machine translation (English) of a Sinhala chunk, trimmed the same way; null when there is none."))
 
 
 class SummaryStep(BaseModel):
     text: str
     chunk_ids: list[str]
+
+
+class RelatedFactor(BaseModel):
+    label: str = Field(description="SHAP factor label, as in shap_top_factors.")
+    value: str = Field(description="The household's value label for it, as in shap_top_factors (may be empty).")
 
 
 class Recommendation(BaseModel):
@@ -375,10 +392,14 @@ class Recommendation(BaseModel):
     reason_label: str
     action_en: str
     timing_days: int | None
+    circular_says: str = Field(description=(
+        "What the cited circular says, in plain English (rule table, validated by the supervisor). "
+        "May be empty."))
     guardrail: str
     research_basis: str = Field(description="Background for the rule; not a source.")
     draft: bool = Field(description="True until the supervisor validates the rule table.")
-    related_factors: list[str] = Field(description="SHAP factors that raise risk and are linked to this rule.")
+    related_factors: list[RelatedFactor] = Field(
+        description="SHAP factors that raise risk and are linked to this rule, with the household's value.")
     sources: list[Source] = Field(description="Top 2 chunks from the rule's documents only.")
     summary_steps: list[SummaryStep] | None = Field(description="Optional LLM summary; null without a key or on any error.")
     decision: Decision | None = Field(description="Latest officer decision for this rule.")

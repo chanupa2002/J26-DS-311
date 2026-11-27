@@ -57,7 +57,7 @@ def rule(rule_id="T1", level="B", priority=1, trigger="profit == 0", fields=("pr
 
 
 def engine(*rules) -> recommend.Engine:
-    return recommend.Engine(SimpleNamespace(rules=tuple(rules), retrieve=lambda query, doc_filter: []))
+    return recommend.Engine(SimpleNamespace(rules=tuple(rules), retrieve=lambda query, doc_filter, **_: []))
 
 
 # --- safe evaluator -------------------------------------------------------------------------
@@ -112,17 +112,88 @@ def test_level_a_picks_one_lowest_priority_and_b_orders_by_shap():
     ]
     context = {"risk_class_t": "High", "profit": 0, "saved_money": 0, "problem_sales_low": 1, "hours_band": 1}
     shap = [
-        {"feature": "problem_sales_low", "label": "Sales low", "group": "Household shock", "contribution": 0.04},
-        {"feature": "saved_money", "label": "Saved", "group": "Business", "contribution": 0.03},
-        {"feature": "profit", "label": "Profit", "group": "Business", "contribution": -0.02},
-        {"feature": "hours_band", "label": "Hours", "group": "Business", "contribution": 0.01},
-        {"feature": "high_count_6m", "label": "History", "group": "History", "contribution": 0.05},
+        {"feature": "problem_sales_low", "label": "Sales low", "value": "Yes", "raw_value": 1.0,
+         "group": "Household shock", "contribution": 0.04},
+        {"feature": "saved_money", "label": "Saved", "raw_value": 0.0, "group": "Business", "contribution": 0.03},
+        {"feature": "profit", "label": "Profit", "raw_value": 0.0, "group": "Business", "contribution": -0.02},
+        {"feature": "hours_band", "label": "Hours", "value": "1–4 hours", "raw_value": 1.0, "group": "Business",
+         "contribution": 0.01},
+        {"feature": "high_count_6m", "label": "History", "raw_value": 2.0, "group": "History", "contribution": 0.05},
     ]
     follow_up, actions = engine(*rules).select(context, shap)
     assert follow_up[0].rule_id == "A2"
     assert [r.rule_id for r, _ in actions] == ["B3", "B2", "B1", "Z1"]  # SHAP-linked first, then priority
-    assert actions[0][1] == ["Sales low"]
-    assert actions[-1][1] == ["Hours"]  # History factors never call for Z1
+    assert actions[0][1] == [{"label": "Sales low", "value": "Yes"}]
+    assert actions[-1][1] == [{"label": "Hours", "value": "1–4 hours"}]  # History factors never call for Z1
+    assert actions[1][1] == [{"label": "Saved", "value": ""}]  # no value label -> empty string
+
+
+Z_RULES = (rule("Z0", "B", 1, "missing answer", [recommend.FALLBACK_FIELD]),
+           rule("Z1", "B", 9, "no rule matched", [recommend.FALLBACK_FIELD]))
+
+
+def factor(feature, label, raw, group="Business", contribution=0.02, value=None):
+    shown = value if value is not None else (recommend.NOT_ANSWERED if raw is None else f"{raw:g}")
+    return {"feature": feature, "label": label, "value": shown, "raw_value": raw, "group": group,
+            "contribution": contribution}
+
+
+def test_missing_answers_get_z0_first_and_leave_z1():
+    rules = [rule("A1", "A", 1, 'risk_class_t == "High"', ["risk_class_t"]),
+             rule("B1", "B", 1, "profit == 0", ["profit"]), *Z_RULES]
+    context = {"risk_class_t": "High", "profit": 0, "borrowed": None, "hours_band": None, "price_up": 1}
+    shap = [factor("borrowed", "Borrowed money for the business", None, contribution=0.05),
+            factor("profit", "Profit last month", 0.0, contribution=0.04),
+            factor("hours_band", "Hours worked per day", None, contribution=0.03),
+            factor("price_up", "Price pressure", 1.0, group="Market", contribution=0.02),
+            factor("savings", "Savings", None, contribution=-0.01)]  # lowers risk: not listed
+    _, actions = engine(*rules).select(context, shap)
+    assert [r.rule_id for r, _ in actions] == ["Z0", "B1", "Z1"]
+    assert actions[0][1] == [{"label": "Borrowed money for the business", "value": "Not answered"},
+                             {"label": "Hours worked per day", "value": "Not answered"}]
+    assert actions[-1][1] == [{"label": "Price pressure", "value": "1"}]  # only factors with a value
+
+
+def test_only_missing_unmatched_factors_give_z0_without_z1():
+    shap = [factor("borrowed", "Borrowed", None), factor("hours_band", "Hours", None)]
+    _, actions = engine(*Z_RULES).select({"borrowed": None, "hours_band": None}, shap)
+    assert [r.rule_id for r, _ in actions] == ["Z0"]  # added once, Z1 not added
+
+
+def test_no_market_data_is_neither_z0_nor_z1():
+    shap = [factor("market_pressure", "Market price pressure", None, group="Market", value="No market data")]
+    _, actions = engine(*Z_RULES).select({}, shap)
+    assert actions == []
+
+
+def test_a0_never_gets_z0():
+    rules = [rule("A0", "A", 0, 'risk_class_t == "Unassigned"', ["risk_class_t"]), *Z_RULES]
+    _, actions = engine(*rules).select({"risk_class_t": "Unassigned"}, [factor("hours_band", "Hours", None)])
+    assert actions == []
+
+
+def test_not_answered_matches_the_pipeline_text():
+    from app.components.market_risk.v2 import pipeline
+    assert pipeline.format_value("hours_band", float("nan"), {}) == recommend.NOT_ANSWERED
+
+
+def test_real_z0_and_z1_factors(needs_knowledge):
+    """Synthetic households only; counts reported, no rows printed."""
+    keys = [h["household_key"] for h in service.list_households(None)["households"]
+            if str(h["household_key"]).startswith("SIM-HH-")]
+    z0 = 0
+    for key in keys:
+        body = client.get(f"{BASE}/households/{key}/recommendations").json()
+        ids = [item["rule_id"] for item in body["actions"]]
+        assert ids.count("Z0") <= 1 and (not ids or "Z0" not in ids or ids[0] == "Z0")
+        for item in body["actions"]:
+            if item["rule_id"] == "Z0":
+                z0 += 1
+                assert item["sources"] == [] and item["circular_says"] == ""
+                assert item["related_factors"] and all(f["value"] == "Not answered" for f in item["related_factors"])
+            if item["rule_id"] == "Z1":
+                assert all(f["value"] != "Not answered" for f in item["related_factors"])
+    assert z0 > 0
 
 
 def test_unassigned_gets_a0_and_no_actions():
@@ -176,9 +247,153 @@ def test_retrieval_stays_inside_doc_filter(needs_knowledge):
         found = base.retrieve(item.query, item.doc_filter)
         assert len(found) == (min(2, sum(d in item.doc_filter for d in base.doc_ids)) if item.doc_filter else 0)
         assert all(source["doc_id"] in item.doc_filter for source in found), item.rule_id
-        assert all(len(source["excerpt"]) <= knowledge.EXCERPT_CHARS for source in found)
+        assert all(len(source["excerpt"]) <= knowledge.EXCERPT_CHARS + len(knowledge.ELLIPSIS) for source in found)
     for query, _ in knowledge.RETRIEVAL_TEST_SET:
         assert all(s["doc_id"] == "MOF_08_2025_iii" for s in base.retrieve(query, ("MOF_08_2025_iii",)))
+
+
+# --- source excerpts (synthetic text) --------------------------------------------------------
+
+def sentences(n: int, word: str = "Officers") -> str:
+    return " ".join(f"{word} must report project progress every month to division {i}." for i in range(n))
+
+
+def test_short_clean_chunk_is_kept_whole():
+    text = "  The officer visits the project.\n\nProgress is reported monthly.  "
+    assert knowledge.excerpt(text) == "The officer visits the project. Progress is reported monthly."
+
+
+def test_excerpt_ends_at_the_last_sentence_end_within_the_limit():
+    text = sentences(20)
+    result = knowledge.excerpt(text)
+    assert result.endswith("." + knowledge.ELLIPSIS)
+    assert len(result) <= knowledge.EXCERPT_CHARS + 1
+    body = result[:-1]
+    assert text.startswith(body) and text[len(body)] == " "
+    assert len(body) > knowledge.EXCERPT_CHARS - len("Officers must report project progress every month to division 10.") - 1
+
+
+@pytest.mark.parametrize("fragment", ["ject progress is slow. ", "ාව සංවර්ධනය. ", ", and the bank. ", "\u200dරමය. "])
+def test_cut_off_start_is_dropped_up_to_the_first_sentence(fragment):
+    assert knowledge.excerpt(fragment + "The officer visits the project.") == "The officer visits the project."
+
+
+def test_cut_off_start_jumps_to_a_numbered_point():
+    text = "tion of the scheme 02. Objectives of the programme are listed below."
+    assert knowledge.excerpt(text) == "02. Objectives of the programme are listed below."
+
+
+@pytest.mark.parametrize("text", ["(iii) Only one allowance per business unit.", "3) Report monthly.",
+                                  "02. අරමුණු. Officers report.", "Officers report monthly. Then visit."])
+def test_clean_start_is_kept(text):
+    assert knowledge.excerpt(text) == text
+
+
+def test_cut_off_start_without_a_sentence_drops_only_the_first_word():
+    assert knowledge.excerpt("rmation officers collect market prices") == "officers collect market prices"
+
+
+def test_no_sentence_end_in_the_window_cuts_at_a_space():
+    text = " ".join(["marketprice"] * 100)  # 1199 characters, no full stop
+    result = knowledge.excerpt(text)
+    assert result.endswith("marketprice" + knowledge.ELLIPSIS)
+    assert len(result) <= knowledge.EXCERPT_CHARS + 1
+    assert text[len(result) - 1] == " "
+
+
+def test_point_number_is_not_a_sentence_end():
+    text = "Officers report monthly. 2. Visit the project: 3. Check sales. Report to division 8. Done."
+    ends = [text[:end] for end in knowledge._sentence_ends(text)]
+    assert ends == ["Officers report monthly.", text[:text.index("Check sales.") + 12],
+                    text[:text.index("division 8.") + 11], text]
+
+
+def test_real_excerpts_never_start_or_end_inside_a_word(needs_knowledge):
+    """Every chunk of the installed circulars (public text). Reports counts only."""
+    base = knowledge.load()
+    bad = 0
+    for chunk in base.chunks:
+        clean = " ".join(str(chunk.get("text", "")).split())
+        result = knowledge.excerpt(clean)
+        body = result.removesuffix(knowledge.ELLIPSIS)
+        at = clean.find(body)
+        ok = (bool(body) and at >= 0 and (at == 0 or clean[at - 1] == " ")
+              and len(body) <= knowledge.EXCERPT_CHARS
+              and (at + len(body) == len(clean)) == (not result.endswith(knowledge.ELLIPSIS))
+              and (at + len(body) == len(clean) or clean[at + len(body)] == " "))
+        bad += not ok
+    assert bad == 0, f"{bad} of {len(base.chunks)} excerpts start or end inside a word"
+
+
+# --- sources from cited pages first ----------------------------------------------------------
+
+def tiny_base(chunks) -> knowledge.KnowledgeBase:
+    vectorizer = knowledge.TfidfVectorizer(**knowledge.VECTORIZER_SETTINGS)
+    matrix = vectorizer.fit_transform([c["text"] for c in chunks])
+    return knowledge.KnowledgeBase(
+        version="test", rules=(), documents={}, chunks=chunks, vectorizer=vectorizer, matrix=matrix,
+        doc_ids=knowledge.np.array([c["doc_id"] for c in chunks]), retrieval_check={}, source_page_check={})
+
+
+TINY_CHUNKS = [
+    {"chunk_id": "D1-p1-c1", "doc_id": "D1", "page": 1, "text": "savings programme savings programme savings"},
+    {"chunk_id": "D1-p2-c1", "doc_id": "D1", "page": 2, "text": "savings meeting with officers"},
+    {"chunk_id": "D1-p2-c2", "doc_id": "D1", "page": 2, "text": "officers report monthly"},
+    {"chunk_id": "D2-p1-c1", "doc_id": "D2", "page": 1, "text": "savings programme for families savings"},
+    {"chunk_id": "D3-p2-c1", "doc_id": "D3", "page": 2, "text": "savings programme savings programme"},
+]
+
+
+def test_cited_pages_rank_first_then_fill_from_doc_filter():
+    base = tiny_base(TINY_CHUNKS)
+    query = "savings programme"
+    plain = [s["chunk_id"] for s in base.retrieve(query, ("D1", "D2"))]
+    assert plain[0] == "D1-p1-c1"  # best overall is on an uncited page
+    cited = [s["chunk_id"] for s in base.retrieve(query, ("D1", "D2"), cited=(("D1", 2),))]
+    assert cited == ["D1-p2-c1", "D1-p2-c2"]  # both on the cited page, best-ranked first
+    filled = [s["chunk_id"] for s in base.retrieve(query, ("D1", "D2"), cited=(("D2", 1),))]
+    assert filled == ["D2-p1-c1", plain[0] if plain[0] != "D2-p1-c1" else plain[1]]  # one cited, then the best other
+    assert all(s["doc_id"] in ("D1", "D2") for s in base.retrieve(query, ("D1", "D2"), cited=(("D3", 2),)))
+    assert base.retrieve(query, (), cited=(("D1", 2),)) == []
+
+
+def test_items_use_cited_pages_but_page_check_does_not(needs_knowledge):
+    base = knowledge.load()
+    with_pages = [r for r in base.rules if r.doc_pages]
+    assert with_pages
+    on_cited = sum((s["doc_id"], s["page"]) in set(r.doc_pages)
+                   for r in with_pages for s in recommend.engine_for(base).item(r, [])["sources"][:1])
+    assert on_cited == len(with_pages)  # every item's first source is on a cited page
+    recomputed = knowledge.source_page_check(base)
+    assert (recomputed["matched"], recomputed["total"]) == (base.source_page_check["matched"],
+                                                           base.source_page_check["total"])
+    for entry in recomputed["rules"]:
+        rule_ = next(r for r in base.rules if r.rule_id == entry["rule_id"])
+        assert entry["top_source"] == base.retrieve(rule_.query, rule_.doc_filter, k=1)[0]["chunk_id"]
+
+
+def test_related_factors_carry_the_shap_value_labels(needs_knowledge):
+    payload, _ = service._latest_visit(KEY)
+    values = {f["label"]: f["value"] for f in payload["shap_top_factors"]}
+    body = get_recommendations().json()
+    factors = [f for item in body["actions"] for f in item["related_factors"]]
+    assert factors, "SIM-HH-001 is expected to have linked factors"
+    assert all(set(f) == {"label", "value"} and f["value"] == values[f["label"]] for f in factors)
+
+
+# --- circular_says ---------------------------------------------------------------------------
+
+def test_circular_says_is_read_from_the_rule_table(needs_knowledge):
+    rules = knowledge.load().rules
+    assert all(isinstance(r.circular_says, str) and r.circular_says == r.circular_says.strip() for r in rules)
+    assert any(r.circular_says for r in rules)
+
+
+def test_item_carries_circular_says():
+    item = engine(rule("T1", circular_says="The circular says report monthly.")).item(
+        rule("T1", circular_says="The circular says report monthly."), [])
+    assert item["circular_says"] == "The circular says report monthly."
+    assert engine(rule("T2")).item(rule("T2"), [])["circular_says"] == ""
 
 
 def test_query_uses_query_terms_first():
@@ -298,6 +513,7 @@ def test_recommendations_shape_without_key(needs_knowledge):
         assert item["draft"] is source_rule.draft
         assert item["guardrail"] == source_rule.guardrail
         assert item["research_basis"] == source_rule.research_basis
+        assert item["circular_says"] == source_rule.circular_says
         assert all(s["doc_id"] in source_rule.doc_filter for s in item["sources"])
         assert all(s["chunk_id"] != item["research_basis"] for s in item["sources"])
     assert all(item["level"] == "B" for item in body["actions"])
@@ -367,6 +583,8 @@ def test_llm_prompt_has_no_household_key_or_district(needs_knowledge, monkeypatc
     json.dumps({"steps": [{"text": "a", "chunk_ids": ["NOT-A-GIVEN-CHUNK"]}, {"text": "b", "chunk_ids": ["X"]}]}),
     json.dumps({"steps": [{"text": "a", "chunk_ids": []}, {"text": "b", "chunk_ids": []}]}),
     json.dumps({"steps": [{"text": "only one step", "chunk_ids": ["X"]}]}),
+    json.dumps({"steps": [{"text": f"step {n}", "chunk_ids": ["X"]} for n in range(4)]}),
+    json.dumps({"steps": []}),  # no step for the officer in these passages
     "not json",
 ])
 def test_invalid_llm_answer_falls_back(needs_knowledge, monkeypatch, answer):
@@ -390,6 +608,15 @@ def test_llm_error_falls_back(needs_knowledge, monkeypatch):
     assert response.status_code == 200
     assert response.json()["generated_by"] == "rules+retrieval"
     assert len(calls) == 1  # no more calls after the first failure in a request
+    assert get_recommendations().json()["generated_by"] == "rules+retrieval"
+    assert len(calls) == 1  # nor in the next request (cool-down)
+    monkeypatch.setattr(summary, "_failed_at", -10.0 * summary.FAILURE_COOLDOWN_S)  # cool-down over
+    get_recommendations()
+    assert len(calls) == 2
+
+
+def test_timeout_is_at_least_the_gemini_minimum():
+    assert summary.TIMEOUT_MS >= 10_000  # the API answers 400 INVALID_ARGUMENT for shorter deadlines
 
 
 def test_no_key_never_calls_the_llm(needs_knowledge):
@@ -397,13 +624,56 @@ def test_no_key_never_calls_the_llm(needs_knowledge):
     assert get_recommendations().json()["generated_by"] == "rules+retrieval"
 
 
+def test_prompt_asks_for_officer_steps_for_this_household():
+    prompt = summary.build_prompt(risk_class="High", alert_3m=True, reason_labels=["No profit"],
+                                  action_en="Visit", guardrail="", chunks=[("C1", "text")])
+    assert "1 to 3 short, concrete steps" in prompt
+    assert "Samurdhi Development Officer can take for THIS household" in prompt
+    assert "Skip extracts about other officials' duties, agreements" in prompt
+    assert 'If the extracts give no such step, answer {"steps": []}' in prompt
+
+
+def test_one_valid_step_is_accepted(needs_knowledge, monkeypatch):
+    def fake(prompt, key):
+        ids = [line[1:-1] for line in prompt.splitlines() if line.startswith("[") and line.endswith("]")]
+        return json.dumps({"steps": [{"text": "Visit the household.", "chunk_ids": ids[:1]}]})
+
+    monkeypatch.setattr(summary, "api_key", lambda: "test-key")
+    monkeypatch.setattr(summary, "call_llm", fake)
+    body = get_recommendations().json()
+    assert body["generated_by"] == "rules+retrieval+llm"
+    assert all(len(i["summary_steps"]) == 1 for i in [body["follow_up"], *body["actions"]] if i["sources"])
+
+
+def test_empty_answer_is_cached_and_prompt_version_separates_the_cache(needs_knowledge, monkeypatch):
+    calls = []
+
+    def empty(prompt, key):
+        calls.append(1)
+        return json.dumps({"steps": []})
+
+    monkeypatch.setattr(summary, "api_key", lambda: "test-key")
+    monkeypatch.setattr(summary, "call_llm", empty)
+    get_recommendations()
+    first = len(calls)
+    assert first > 0
+    get_recommendations()
+    assert len(calls) == first  # "no step" is cached too
+    monkeypatch.setattr(summary, "PROMPT_VERSION", "another-prompt")
+    get_recommendations()
+    assert len(calls) == 2 * first  # a new prompt version never reuses old answers
+
+
 def test_parse_steps_rules():
     allowed = {"C1", "C2"}
+    assert summary.parse_steps(json.dumps({"steps": []}), allowed) == []
+    assert summary.parse_steps(json.dumps({"steps": [{"text": "a", "chunk_ids": ["C2"]}]}), allowed) == [
+        {"text": "a", "chunk_ids": ["C2"]}]
     good = json.dumps({"steps": [{"text": "a", "chunk_ids": ["C1"]}, {"text": "b", "chunk_ids": ["C1", "C2"]}]})
     assert summary.parse_steps(good, allowed) == [{"text": "a", "chunk_ids": ["C1"]},
                                                   {"text": "b", "chunk_ids": ["C1", "C2"]}]
-    five = json.dumps({"steps": [{"text": "a", "chunk_ids": ["C1"]}] * 5})
-    assert summary.parse_steps(five, allowed) is None
+    four = json.dumps({"steps": [{"text": "a", "chunk_ids": ["C1"]}] * 4})
+    assert summary.parse_steps(four, allowed) is None
 
 
 # --- FR7 decisions --------------------------------------------------------------------------
