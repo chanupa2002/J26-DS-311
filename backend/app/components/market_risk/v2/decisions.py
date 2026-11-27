@@ -48,23 +48,36 @@ def latest_by_rule(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return latest
 
 
+SQLITE_SCHEMA = (
+    f"CREATE TABLE IF NOT EXISTS {TABLE} ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT, household_key TEXT NOT NULL, rule_id TEXT NOT NULL, "
+    "decision TEXT NOT NULL, note TEXT, planned_visit_date TEXT, knowledge_version TEXT NOT NULL, "
+    "created_at TEXT NOT NULL)"
+)
+
+
 class SQLiteStore:
+    """Local fallback store. Every connection creates the folder and table if missing, so a file
+    deleted while the server runs is recreated on the next save or read."""
+
     name = "sqlite"
 
     def __init__(self, path: Path):
         self.path = path
         self._lock = threading.Lock()
-        with closing(self._connect()) as db, db:
-            db.execute(
-                f"CREATE TABLE IF NOT EXISTS {TABLE} ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, household_key TEXT NOT NULL, rule_id TEXT NOT NULL, "
-                "decision TEXT NOT NULL, note TEXT, planned_visit_date TEXT, knowledge_version TEXT NOT NULL, "
-                "created_at TEXT NOT NULL)"
-            )
+        with self._lock, closing(self._connect()):
+            pass
 
     def _connect(self) -> sqlite3.Connection:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        return sqlite3.connect(self.path)
+        db = sqlite3.connect(self.path)
+        try:
+            with db:
+                db.execute(SQLITE_SCHEMA)
+        except BaseException:
+            db.close()
+            raise
+        return db
 
     def add(self, record: dict[str, Any]) -> None:
         with self._lock, closing(self._connect()) as db, db:

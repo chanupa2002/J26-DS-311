@@ -716,3 +716,20 @@ def test_sqlite_store_keeps_only_allowed_fields(tmp_path):
                     "planned_visit_date": None, "knowledge_version": "v"})
     [record] = store.records(KEY)
     assert set(record) == {"id", *decisions.FIELDS}
+
+
+def test_sqlite_store_recreates_a_deleted_file(tmp_path):
+    path = tmp_path / "decisions" / "d.sqlite3"
+    store = decisions.SQLiteStore(path)
+    decisions.set_store(store)
+    path.unlink()  # deleted while the server runs
+    saved = decisions.save({"household_key": KEY, "rule_id": "B9", "decision": "accept", "note": "after delete",
+                            "planned_visit_date": "2026-12-03", "knowledge_version": "v"})
+    assert path.is_file()
+    assert decisions.latest(KEY) == {"B9": saved}
+    assert saved["note"] == "after delete" and saved["decision"] == "accept"
+    path.unlink()  # deleted again: reading works and is empty
+    assert decisions.latest(KEY) == {}
+    path.unlink()
+    path.parent.rmdir()  # even the folder may be gone
+    assert decisions.latest(KEY) == {}
